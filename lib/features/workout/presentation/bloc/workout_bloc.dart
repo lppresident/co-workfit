@@ -28,18 +28,25 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     RequestHealthPermissionEvent event,
     Emitter<WorkoutState> emit,
   ) async {
+    print('[WorkoutBloc] 권한 요청 시작');
     emit(const WorkoutPermissionRequesting());
 
     final result = await requestHealthPermission();
 
     result.fold(
-      (error) => emit(WorkoutPermissionDenied(error)),
+      (error) {
+        print('[WorkoutBloc] 권한 요청 실패: $error');
+        emit(WorkoutPermissionDenied(error));
+      },
       (granted) {
+        print('[WorkoutBloc] 권한 요청 결과: $granted');
         if (granted) {
+          print('[WorkoutBloc] 권한 승인됨 - 최근 운동 데이터 로드 시작');
           emit(const WorkoutPermissionGranted());
-          // 권한 승인 후 자동으로 오늘의 운동 가져오기
-          add(const FetchTodayWorkoutsEvent());
+          // 권한 승인 후 자동으로 최근 7일 운동 가져오기
+          add(const FetchRecentWorkoutsEvent(days: 7));
         } else {
+          print('[WorkoutBloc] 권한 거부됨');
           emit(const WorkoutPermissionDenied('권한이 거부되었습니다.'));
         }
       },
@@ -70,16 +77,23 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     FetchRecentWorkoutsEvent event,
     Emitter<WorkoutState> emit,
   ) async {
+    print('[WorkoutBloc] 최근 ${event.days}일 운동 데이터 로드 시작');
     emit(const WorkoutLoading());
 
     final result = await getRecentWorkouts(days: event.days);
 
     result.fold(
-      (error) => emit(WorkoutError(error)),
+      (error) {
+        print('[WorkoutBloc] 운동 데이터 로드 실패: $error');
+        emit(WorkoutError(error));
+      },
       (workouts) {
+        print('[WorkoutBloc] 운동 데이터 로드 완료: ${workouts.length}개');
         if (workouts.isEmpty) {
+          print('[WorkoutBloc] 운동 데이터 없음');
           emit(const WorkoutEmpty());
         } else {
+          print('[WorkoutBloc] 운동 데이터 표시');
           emit(WorkoutLoaded.fromWorkouts(workouts));
         }
       },
@@ -113,11 +127,8 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     RefreshWorkoutsEvent event,
     Emitter<WorkoutState> emit,
   ) async {
-    // 현재 상태에 따라 다시 가져오기
-    if (state is WorkoutLoaded) {
-      add(const FetchTodayWorkoutsEvent());
-    } else {
-      add(const FetchTodayWorkoutsEvent());
-    }
+    print('[WorkoutBloc] 새로고침 요청');
+    // 최근 7일 운동 데이터 다시 가져오기
+    add(const FetchRecentWorkoutsEvent(days: 7));
   }
 }

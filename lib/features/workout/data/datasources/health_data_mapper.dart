@@ -2,19 +2,23 @@ import 'package:health/health.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/core/constants/health_data_types.dart';
 import 'package:co_workfit/features/calibration/domain/usecases/calibrate_workout.dart';
+import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
 
-/// HealthKit 데이터를 WorkoutEntity로 변환하는 매퍼
+/// Health 데이터를 WorkoutEntity로 변환하는 매퍼
+/// Apple HealthKit, Google Fit, Samsung Health 데이터 모두 지원
 class HealthDataMapper {
   final CalibrateWorkout _calibrateWorkout = CalibrateWorkout();
 
   /// HealthDataPoint를 WorkoutEntity로 변환
-  /// [healthPoint]: HealthKit에서 가져온 운동 데이터 포인트
+  /// [healthPoint]: Health 패키지에서 가져온 운동 데이터 포인트
   /// [details]: 운동 상세 데이터 (칼로리, 거리, 심박수 등)
   /// [userId]: 사용자 ID
+  /// [source]: 데이터 소스 (appleHealth, googleFit, samsungHealth 등)
   WorkoutEntity toWorkoutEntity({
     required HealthDataPoint healthPoint,
     required Map<String, dynamic> details,
     required String userId,
+    WorkoutSource source = WorkoutSource.appleHealth,
   }) {
     // Workout 타입 매핑
     final workoutValue = healthPoint.value as WorkoutHealthValue;
@@ -40,9 +44,9 @@ class HealthDataMapper {
 
     // 임시 엔티티 생성 (캘리브레이션 전)
     final tempEntity = WorkoutEntity(
-      id: _generateWorkoutId(healthPoint),
+      id: _generateWorkoutId(healthPoint, source),
       userId: userId,
-      source: WorkoutSource.appleHealth,
+      source: source,
       type: workoutType,
       startTime: startTime,
       endTime: endTime,
@@ -69,19 +73,37 @@ class HealthDataMapper {
   }
 
   /// 고유한 운동 ID 생성
-  String _generateWorkoutId(HealthDataPoint healthPoint) {
-    // 시간 기반 ID 생성 (health 패키지에 uuid 프로퍼티가 없을 수 있음)
+  String _generateWorkoutId(HealthDataPoint healthPoint, WorkoutSource source) {
     final timestamp = healthPoint.dateFrom.millisecondsSinceEpoch;
     final type = healthPoint.type.name;
-    return 'apple_health_${type}_$timestamp';
+    final sourcePrefix = _getSourcePrefix(source);
+    return '${sourcePrefix}_${type}_$timestamp';
+  }
+
+  /// WorkoutSource에 따른 ID 접두사 반환
+  String _getSourcePrefix(WorkoutSource source) {
+    switch (source) {
+      case WorkoutSource.appleHealth:
+        return 'apple_health';
+      case WorkoutSource.googleFit:
+        return 'google_fit';
+      case WorkoutSource.samsungHealth:
+        return 'samsung_health';
+      case WorkoutSource.garmin:
+        return 'garmin';
+      case WorkoutSource.manual:
+        return 'manual';
+    }
   }
 
   /// 여러 HealthDataPoint를 WorkoutEntity 리스트로 변환
+  /// [source]: 데이터 소스 (appleHealth, googleFit, samsungHealth 등)
   Future<List<WorkoutEntity>> toWorkoutEntities({
     required List<HealthDataPoint> healthPoints,
     required Future<Map<String, dynamic>> Function(DateTime start, DateTime end)
         detailsFetcher,
     required String userId,
+    WorkoutSource source = WorkoutSource.appleHealth,
   }) async {
     final workouts = <WorkoutEntity>[];
 
@@ -96,6 +118,40 @@ class HealthDataMapper {
         healthPoint: point,
         details: details,
         userId: userId,
+        source: source,
+      );
+
+      workouts.add(workout);
+    }
+
+    return workouts;
+  }
+
+  /// Health Connect 소스 정보가 포함된 데이터를 WorkoutEntity 리스트로 변환
+  /// 각 데이터 포인트의 실제 소스(Samsung Health, Google Fit 등)를 감지하여 변환
+  Future<List<WorkoutEntity>> toWorkoutEntitiesWithAutoSource({
+    required List<HealthDataPointWithSource> healthPointsWithSource,
+    required Future<Map<String, dynamic>> Function(DateTime start, DateTime end)
+        detailsFetcher,
+    required String userId,
+  }) async {
+    final workouts = <WorkoutEntity>[];
+
+    for (final pointWithSource in healthPointsWithSource) {
+      final point = pointWithSource.healthDataPoint;
+      final source = pointWithSource.detectedSource;
+
+      // 각 운동에 대한 상세 데이터 가져오기
+      final details = await detailsFetcher(
+        point.dateFrom,
+        point.dateTo,
+      );
+
+      final workout = toWorkoutEntity(
+        healthPoint: point,
+        details: details,
+        userId: userId,
+        source: source,
       );
 
       workouts.add(workout);

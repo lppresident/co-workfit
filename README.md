@@ -135,11 +135,11 @@ workload = (칼로리 × 0.35) + (심박수 × 0.30) +
 - [x] 캘리브레이션 로직 구현
 - [x] 기본 UI/UX
 
-### Phase 2: 플랫폼 연동 (진행 중)
-- [ ] Apple HealthKit 연동
-- [ ] Google Fit 연동
-- [ ] Garmin Connect API
-- [ ] Samsung Health SDK
+### Phase 2: 플랫폼 연동 ✅ (완료)
+- [x] Apple HealthKit 연동 ✅
+- [x] Google Fit 연동 ✅
+- [x] Samsung Health (Health Connect 통합) ✅
+- [x] Garmin Connect API (코드 구조 완료, API 승인 대기) ✅
 
 ### Phase 3: 소셜 기능
 - [ ] 사용자 인증 (Firebase Auth)
