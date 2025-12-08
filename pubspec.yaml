@@ -56,6 +56,12 @@ dependencies:
   # Health Platform Integration
   health: ^10.2.0
 
+  # Firebase
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.3.3
+  cloud_firestore: ^5.5.2
+  google_sign_in: ^6.2.2
+
   # JSON Serialization
   json_annotation: ^4.9.0
   freezed_annotation: ^2.4.4

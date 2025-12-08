@@ -1,4 +1,6 @@
 import 'package:get_it/get_it.dart';
+
+// Workout
 import 'package:co_workfit/features/workout/data/datasources/health_kit_datasource.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_data_mapper.dart';
@@ -10,6 +12,20 @@ import 'package:co_workfit/features/workout/domain/repositories/workout_reposito
 import 'package:co_workfit/features/workout/domain/usecases/get_workouts.dart';
 import 'package:co_workfit/features/workout/domain/usecases/request_health_permission.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
+
+// Auth
+import 'package:co_workfit/features/auth/data/datasources/firebase_auth_datasource.dart';
+import 'package:co_workfit/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:co_workfit/features/auth/domain/repositories/auth_repository.dart';
+import 'package:co_workfit/features/auth/domain/usecases/get_current_user.dart';
+import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_email.dart';
+import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_google.dart';
+import 'package:co_workfit/features/auth/domain/usecases/sign_out.dart';
+import 'package:co_workfit/features/auth/domain/usecases/sign_up_with_email.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
+
+// Social
+import 'package:co_workfit/features/social/data/datasources/firestore_social_datasource.dart';
 
 final sl = GetIt.instance;
 
@@ -71,5 +87,43 @@ Future<void> initializeDependencies() async {
       getRecentWorkouts: sl(),
       getWorkouts: sl(),
     ),
+  );
+
+  // ========== Auth Feature ==========
+
+  // Data Sources
+  sl.registerLazySingleton<FirebaseAuthDataSource>(
+    () => FirebaseAuthDataSource(),
+  );
+
+  // Repository
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => GetCurrentUser(sl()));
+  sl.registerLazySingleton(() => SignInWithEmail(sl()));
+  sl.registerLazySingleton(() => SignUpWithEmail(sl()));
+  sl.registerLazySingleton(() => SignInWithGoogle(sl()));
+  sl.registerLazySingleton(() => SignOut(sl()));
+
+  // BLoC
+  sl.registerFactory(
+    () => AuthBloc(
+      getCurrentUser: sl(),
+      signInWithEmail: sl(),
+      signUpWithEmail: sl(),
+      signInWithGoogle: sl(),
+      signOut: sl(),
+      authRepository: sl(),
+    ),
+  );
+
+  // ========== Social Feature ==========
+
+  // Data Sources
+  sl.registerLazySingleton<FirestoreSocialDataSource>(
+    () => FirestoreSocialDataSource(),
   );
 }

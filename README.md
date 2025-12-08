@@ -73,6 +73,7 @@ lib/
 ### 필수 요구사항
 - Flutter SDK >= 3.10.0
 - Dart SDK >= 3.10.0
+- Firebase 프로젝트 (Phase 3 소셜 기능 사용 시)
 
 ### 설치
 
@@ -83,9 +84,18 @@ flutter pub get
 # 코드 생성 (JSON serialization)
 dart run build_runner build --delete-conflicting-outputs
 
+# Firebase 설정 (선택 사항, Phase 3 기능용)
+# 자세한 내용은 FIREBASE_SETUP.md 참고
+flutterfire configure
+
 # 앱 실행
 flutter run
 ```
+
+### Firebase 설정 (Phase 3 소셜 기능)
+
+소셜 기능을 사용하려면 Firebase 설정이 필요합니다.
+자세한 설정 방법은 [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) 참고
 
 ### 테스트
 
@@ -141,11 +151,12 @@ workload = (칼로리 × 0.35) + (심박수 × 0.30) +
 - [x] Samsung Health (Health Connect 통합) ✅
 - [x] Garmin Connect API (코드 구조 완료, API 승인 대기) ✅
 
-### Phase 3: 소셜 기능
-- [ ] 사용자 인증 (Firebase Auth)
-- [ ] 친구 시스템
-- [ ] 리더보드
-- [ ] 실시간 업데이트
+### Phase 3: 소셜 기능 ✅ (백엔드 완료, UI 대기)
+- [x] Firebase 통합 (Auth, Firestore)
+- [x] 사용자 인증 (이메일/비밀번호, Google)
+- [x] 친구 시스템 (요청, 수락, 거절)
+- [x] 리더보드 (전체, 친구)
+- [ ] UI 구현 (로그인, 친구 목록, 리더보드 화면)
 
 ### Phase 4: 고급 기능
 - [ ] 그룹 챌린지

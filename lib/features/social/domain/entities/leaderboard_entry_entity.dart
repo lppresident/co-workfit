@@ -1,0 +1,65 @@
+import 'package:equatable/equatable.dart';
+
+/// 리더보드 엔트리 타입
+enum LeaderboardType {
+  weekly,
+  monthly,
+  allTime,
+}
+
+/// 리더보드 엔트리 엔티티
+class LeaderboardEntryEntity extends Equatable {
+  final String userId;
+  final String displayName;
+  final String? photoUrl;
+  final int totalScore;
+  final int workoutCount;
+  final int rank;
+  final LeaderboardType type;
+  final DateTime updatedAt;
+
+  const LeaderboardEntryEntity({
+    required this.userId,
+    required this.displayName,
+    this.photoUrl,
+    required this.totalScore,
+    required this.workoutCount,
+    required this.rank,
+    required this.type,
+    required this.updatedAt,
+  });
+
+  @override
+  List<Object?> get props => [
+        userId,
+        displayName,
+        photoUrl,
+        totalScore,
+        workoutCount,
+        rank,
+        type,
+        updatedAt,
+      ];
+
+  LeaderboardEntryEntity copyWith({
+    String? userId,
+    String? displayName,
+    String? photoUrl,
+    int? totalScore,
+    int? workoutCount,
+    int? rank,
+    LeaderboardType? type,
+    DateTime? updatedAt,
+  }) {
+    return LeaderboardEntryEntity(
+      userId: userId ?? this.userId,
+      displayName: displayName ?? this.displayName,
+      photoUrl: photoUrl ?? this.photoUrl,
+      totalScore: totalScore ?? this.totalScore,
+      workoutCount: workoutCount ?? this.workoutCount,
+      rank: rank ?? this.rank,
+      type: type ?? this.type,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+}
