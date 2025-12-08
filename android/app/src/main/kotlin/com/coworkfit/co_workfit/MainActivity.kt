@@ -1,4 +1,4 @@
-package com.coworker.co_worker
+package com.coworkfit.co_workfit
 
 import io.flutter.embedding.android.FlutterActivity
 
