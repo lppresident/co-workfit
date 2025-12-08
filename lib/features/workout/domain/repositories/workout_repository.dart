@@ -9,6 +9,9 @@ abstract class WorkoutRepository {
   /// HealthKit 사용 가능 여부
   Future<bool> isHealthKitAvailable();
 
+  /// Health Connect 설치 유도
+  Future<void> installHealthConnect();
+
   /// 특정 기간의 운동 데이터 가져오기
   Future<Either<String, List<WorkoutEntity>>> getWorkouts({
     required DateTime startDate,

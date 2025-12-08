@@ -46,3 +46,8 @@ class FetchWorkoutsEvent extends WorkoutEvent {
 class RefreshWorkoutsEvent extends WorkoutEvent {
   const RefreshWorkoutsEvent();
 }
+
+/// Health Connect 설치 유도 이벤트
+class InstallHealthConnectEvent extends WorkoutEvent {
+  const InstallHealthConnectEvent();
+}

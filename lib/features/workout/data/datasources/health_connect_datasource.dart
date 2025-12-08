@@ -2,6 +2,7 @@ import 'package:health/health.dart';
 import 'package:co_workfit/core/constants/health_data_types.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:dartz/dartz.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Health Connect 데이터 소스
 /// Android에서 Health Connect를 통해 여러 소스(Google Fit, Samsung Health 등)의 데이터를 통합 관리합니다.
@@ -13,45 +14,66 @@ class HealthConnectDataSource {
   /// Health Connect 권한 요청
   Future<Either<String, bool>> requestAuthorization() async {
     try {
-      print('[HealthConnect] 권한 요청 시작');
-
-      final isAvailable = await isHealthConnectAvailable();
-      print('[HealthConnect] Health Connect 사용 가능 여부: $isAvailable');
-
-      if (!isAvailable) {
-        return Left('Health Connect를 사용할 수 없습니다. Android 14 이상 또는 Health Connect 앱이 필요합니다.');
-      }
-
-      final authorized = await _health.requestAuthorization(
-        HealthDataTypes.readTypes,
-        permissions: HealthDataTypes.readTypes
-            .map((type) => HealthDataAccess.READ)
-            .toList(),
+      // STEPS 권한으로 Health Connect 설치 여부 확인
+      final testAuth = await _health.requestAuthorization(
+        [HealthDataType.STEPS],
+        permissions: [HealthDataAccess.READ],
       );
 
-      print('[HealthConnect] 권한 요청 결과: $authorized');
+      // 전체 권한 요청
+      if (testAuth) {
+        final authorized = await _health.requestAuthorization(
+          HealthDataTypes.readTypes,
+          permissions: HealthDataTypes.readTypes
+              .map((type) => HealthDataAccess.READ)
+              .toList(),
+        );
 
-      if (authorized) {
-        return Right(true);
-      } else {
-        // 부분 권한이라도 데이터 접근 시도
-        final now = DateTime.now();
-        final yesterday = now.subtract(const Duration(days: 1));
-
-        try {
-          await _health.getHealthDataFromTypes(
-            types: [HealthDataType.STEPS],
-            startTime: yesterday,
-            endTime: now,
-          );
+        if (authorized) {
           return Right(true);
-        } catch (e) {
-          return Left('Health Connect 권한이 거부되었습니다.');
         }
       }
+
+      // 부분 권한 확인
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+
+      try {
+        await _health.getHealthDataFromTypes(
+          types: [HealthDataType.STEPS],
+          startTime: yesterday,
+          endTime: now,
+        );
+        return Right(true);
+      } catch (e) {
+        return Left('Health Connect 권한이 거부되었습니다.');
+      }
     } catch (e) {
-      print('[HealthConnect] 권한 요청 중 오류: $e');
+      final errorString = e.toString().toLowerCase();
+
+      // Health Connect 미설치 확인
+      if (errorString.contains('not available')) {
+        return const Left('HEALTH_CONNECT_NOT_INSTALLED');
+      }
+
       return Left('Health Connect 권한 요청 중 오류: ${e.toString()}');
+    }
+  }
+
+  /// Health Connect 설치 유도 (Play Store로 이동)
+  Future<void> installHealthConnect() async {
+    try {
+      final url = Uri.parse(
+        'https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata',
+      );
+
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw Exception('Play Store를 열 수 없습니다.');
+      }
+    } catch (e) {
+      throw Exception('Health Connect 설치를 시작할 수 없습니다: $e');
     }
   }
 
@@ -226,6 +248,10 @@ class HealthConnectDataSource {
   }
 
   /// Health Connect 사용 가능 여부 확인
+  ///
+  /// 주의: 이 메소드는 Health Connect 앱의 실제 설치 여부가 아니라
+  /// 데이터 타입에 대한 접근 권한이 있는지를 확인합니다.
+  /// 앱 설치 여부를 확인하려면 requestAuthorization()의 예외 처리를 사용하세요.
   Future<bool> isHealthConnectAvailable() async {
     try {
       return Health().isDataTypeAvailable(HealthDataType.STEPS);

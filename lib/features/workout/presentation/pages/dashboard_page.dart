@@ -4,6 +4,8 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart'
 import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/workout_list_item.dart';
+import 'package:co_workfit/core/di/injection.dart' as di;
+import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 
 /// 메인 대시보드 페이지
 class DashboardPage extends StatefulWidget {
@@ -17,12 +19,8 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // 앱 시작시 권한 확인 및 데이터 로드
-    Future.delayed(Duration.zero, () {
-      if (mounted) {
-        context.read<WorkoutBloc>().add(const RequestHealthPermissionEvent());
-      }
-    });
+    // 앱 시작시 자동 권한 요청 제거
+    // 사용자가 "권한 허용하기" 버튼을 눌렀을 때만 권한 요청
   }
 
   @override
@@ -48,21 +46,59 @@ class _DashboardPageState extends State<DashboardPage> {
       body: BlocConsumer<WorkoutBloc, WorkoutState>(
         listener: (context, state) {
           if (state is WorkoutPermissionDenied) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-                action: SnackBarAction(
-                  label: '재시도',
-                  textColor: Colors.white,
-                  onPressed: () {
-                    context
-                        .read<WorkoutBloc>()
-                        .add(const RequestHealthPermissionEvent());
-                  },
-                ),
-              ),
-            );
+            // Health Connect 설치가 필요한 경우 다이얼로그 표시
+            if (state.message == 'HEALTH_CONNECT_NOT_INSTALLED') {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Row(
+                      children: [
+                        const Icon(Icons.info_outline, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: const Text('Health Connect 필요'),
+                        ),
+                      ],
+                    ),
+                    content: const Text(
+                      'Co-WorkFit은 Health Connect를 통해 여러 피트니스 앱의 데이터를 통합합니다.\n\n'
+                      'Play Store에서 "Health Connect"를 설치하시겠습니까?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('취소'),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          // Health Connect 설치 유도
+                          try {
+                            // DI에서 WorkoutRepository 가져오기
+                            final repository = di.sl<WorkoutRepository>();
+                            await repository.installHealthConnect();
+                          } catch (e) {
+                            print('[DashboardPage] Health Connect 설치 유도 실패: $e');
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Play Store로 이동할 수 없습니다: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.download),
+                        label: const Text('설치하러 가기'),
+                      ),
+                    ],
+                  ),
+                );
+              });
+            }
+            // 일반 권한 거부는 카드로만 표시하고 snackbar는 표시하지 않음
           } else if (state is WorkoutError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -91,6 +127,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
                   if (state is WorkoutPermissionDenied)
                     _buildPermissionDeniedCard(context),
+
+                  // 초기 상태일 때도 권한 요청 안내 카드 표시
+                  if (state is WorkoutInitial)
+                    _buildInitialPermissionCard(context),
 
                   // 오늘의 요약 카드
                   _buildTodaySummaryCard(context, state),
@@ -202,6 +242,51 @@ class _DashboardPageState extends State<DashboardPage> {
               },
               icon: const Icon(Icons.health_and_safety),
               label: const Text('권한 허용하기'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInitialPermissionCard(BuildContext context) {
+    return Card(
+      color: Colors.blue[50],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue[700]),
+                const SizedBox(width: 8),
+                Text(
+                  'Health Connect 연결',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.blue[700],
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Google Fit, Samsung Health 등 여러 피트니스 앱의 운동 데이터를 불러오려면 Health Connect 연결이 필요합니다.',
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                context
+                    .read<WorkoutBloc>()
+                    .add(const RequestHealthPermissionEvent());
+              },
+              icon: const Icon(Icons.link),
+              label: const Text('Health Connect 연결하기'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[700],
+                foregroundColor: Colors.white,
+              ),
             ),
           ],
         ),
