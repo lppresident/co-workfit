@@ -63,6 +63,9 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <!-- Health Connect 앱 설치 여부 확인을 위해 필요 -->
+        <package android:name="com.google.android.apps.healthdata"/>
+
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

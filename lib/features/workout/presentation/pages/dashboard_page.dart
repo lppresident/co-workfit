@@ -55,56 +55,12 @@ class _DashboardPageState extends State<DashboardPage> {
             // Health Connect 설치가 필요한 경우 다이얼로그 표시
             if (state.message == 'HEALTH_CONNECT_NOT_INSTALLED') {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Row(
-                      children: [
-                        const Icon(Icons.info_outline, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: const Text('Health Connect 필요'),
-                        ),
-                      ],
-                    ),
-                    content: const Text(
-                      'Co-WorkFit은 Health Connect를 통해 여러 피트니스 앱의 데이터를 통합합니다.\n\n'
-                      'Play Store에서 "Health Connect"를 설치하시겠습니까?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('취소'),
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                          // Health Connect 설치 유도
-                          try {
-                            // DI에서 WorkoutRepository 가져오기
-                            final repository = di.sl<WorkoutRepository>();
-                            await repository.installHealthConnect();
-                          } catch (e) {
-                            print('[DashboardPage] Health Connect 설치 유도 실패: $e');
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Play Store로 이동할 수 없습니다: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.download),
-                        label: const Text('설치하러 가기'),
-                      ),
-                    ],
-                  ),
-                );
+                _showHealthConnectInstallDialog(context);
               });
+            } else if (state.message == 'HEALTH_PERMISSION_DENIED') {
+              // 권한 거부는 카드로만 표시 (다이얼로그 표시 안함)
+              print('[DashboardPage] Health Connect 권한이 거부됨');
             }
-            // 일반 권한 거부는 카드로만 표시하고 snackbar는 표시하지 않음
           } else if (state is WorkoutError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -471,6 +427,109 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
       ],
+    );
+  }
+
+  /// Health Connect 설치 안내 다이얼로그
+  void _showHealthConnectInstallDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.health_and_safety, color: Colors.blue[700]),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('Health Connect 앱 필요'),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Co-WorkFit은 Health Connect를 통해 여러 피트니스 앱의 운동 데이터를 통합합니다.',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '📱 지원되는 앱:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[900],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('• Samsung Health'),
+                  const Text('• Google Fit'),
+                  const Text('• Garmin Connect'),
+                  const Text('• 기타 피트니스 앱'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Play Store에서 Health Connect를 설치하시겠습니까?',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('나중에'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              // Health Connect 설치 유도
+              try {
+                final repository = di.sl<WorkoutRepository>();
+                await repository.installHealthConnect();
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Health Connect 설치 후 다시 돌아와서 권한을 허용해주세요.',
+                      ),
+                      backgroundColor: Colors.blue,
+                      duration: Duration(seconds: 4),
+                    ),
+                  );
+                }
+              } catch (e) {
+                print('[DashboardPage] Health Connect 설치 유도 실패: $e');
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Play Store로 이동할 수 없습니다: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.download),
+            label: const Text('설치하러 가기'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[700],
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

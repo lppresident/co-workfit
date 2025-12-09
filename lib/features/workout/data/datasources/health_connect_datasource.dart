@@ -1,6 +1,7 @@
 import 'package:health/health.dart';
 import 'package:co_workfit/core/constants/health_data_types.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
+import 'package:co_workfit/core/platform/health_connect_checker.dart';
 import 'package:dartz/dartz.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -12,29 +13,38 @@ class HealthConnectDataSource {
   HealthConnectDataSource({Health? health}) : _health = health ?? Health();
 
   /// Health Connect 권한 요청
+  ///
+  /// 개선된 권한 요청 플로우:
+  /// 1. 먼저 Health Connect 앱 설치 여부를 확인 (MethodChannel 사용)
+  /// 2. 미설치 시 'HEALTH_CONNECT_NOT_INSTALLED' 반환
+  /// 3. 설치되어 있으면 권한 요청 진행
+  /// 4. 권한 거부 시 명확한 에러 메시지 반환
   Future<Either<String, bool>> requestAuthorization() async {
     try {
-      // STEPS 권한으로 Health Connect 설치 여부 확인
-      final testAuth = await _health.requestAuthorization(
-        [HealthDataType.STEPS],
-        permissions: [HealthDataAccess.READ],
-      );
+      // 1단계: Health Connect 앱 설치 여부 확인 (정확한 방법)
+      final isInstalled = await HealthConnectChecker.isHealthConnectInstalled();
 
-      // 전체 권한 요청
-      if (testAuth) {
-        final authorized = await _health.requestAuthorization(
-          HealthDataTypes.readTypes,
-          permissions: HealthDataTypes.readTypes
-              .map((type) => HealthDataAccess.READ)
-              .toList(),
-        );
-
-        if (authorized) {
-          return Right(true);
-        }
+      if (!isInstalled) {
+        print('[HealthConnect] Health Connect 앱이 설치되지 않음');
+        return const Left('HEALTH_CONNECT_NOT_INSTALLED');
       }
 
-      // 부분 권한 확인
+      print('[HealthConnect] Health Connect 앱 설치 확인됨, 권한 요청 시작');
+
+      // 2단계: 전체 권한 요청
+      final authorized = await _health.requestAuthorization(
+        HealthDataTypes.readTypes,
+        permissions: HealthDataTypes.readTypes
+            .map((type) => HealthDataAccess.READ)
+            .toList(),
+      );
+
+      if (authorized) {
+        print('[HealthConnect] 권한 승인됨');
+        return Right(true);
+      }
+
+      // 3단계: 부분 권한이라도 있는지 확인
       final now = DateTime.now();
       final yesterday = now.subtract(const Duration(days: 1));
 
@@ -44,14 +54,17 @@ class HealthConnectDataSource {
           startTime: yesterday,
           endTime: now,
         );
+        print('[HealthConnect] 부분 권한으로 데이터 접근 가능');
         return Right(true);
       } catch (e) {
-        return Left('Health Connect 권한이 거부되었습니다.');
+        print('[HealthConnect] 권한이 거부됨: $e');
+        return const Left('HEALTH_PERMISSION_DENIED');
       }
     } catch (e) {
+      print('[HealthConnect] 권한 요청 중 예외 발생: $e');
       final errorString = e.toString().toLowerCase();
 
-      // Health Connect 미설치 확인
+      // 혹시 모를 fallback: health 패키지가 'not available' 반환하는 경우
       if (errorString.contains('not available')) {
         return const Left('HEALTH_CONNECT_NOT_INSTALLED');
       }
