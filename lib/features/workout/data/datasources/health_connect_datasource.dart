@@ -17,7 +17,7 @@ class HealthConnectDataSource {
   /// 개선된 권한 요청 플로우:
   /// 1. 먼저 Health Connect 앱 설치 여부를 확인 (MethodChannel 사용)
   /// 2. 미설치 시 'HEALTH_CONNECT_NOT_INSTALLED' 반환
-  /// 3. 설치되어 있으면 권한 요청 진행
+  /// 3. 설치되어 있으면 권한 요청 진행 (10초 타임아웃)
   /// 4. 권한 거부 시 명확한 에러 메시지 반환
   Future<Either<String, bool>> requestAuthorization() async {
     try {
@@ -31,13 +31,21 @@ class HealthConnectDataSource {
 
       print('[HealthConnect] Health Connect 앱 설치 확인됨, 권한 요청 시작');
 
-      // 2단계: 전체 권한 요청
-      final authorized = await _health.requestAuthorization(
-        HealthDataTypes.readTypes,
-        permissions: HealthDataTypes.readTypes
-            .map((type) => HealthDataAccess.READ)
-            .toList(),
-      );
+      // 2단계: 전체 권한 요청 (10초 타임아웃)
+      final authorized = await _health
+          .requestAuthorization(
+            HealthDataTypes.readTypes,
+            permissions: HealthDataTypes.readTypes
+                .map((type) => HealthDataAccess.READ)
+                .toList(),
+          )
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              print('[HealthConnect] 권한 요청 타임아웃 (10초)');
+              return false;
+            },
+          );
 
       if (authorized) {
         print('[HealthConnect] 권한 승인됨');
@@ -111,11 +119,19 @@ class HealthConnectDataSource {
     try {
       print('[HealthConnect] 운동 데이터 요청: $startDate ~ $endDate');
 
-      final healthData = await _health.getHealthDataFromTypes(
-        types: [HealthDataType.WORKOUT],
-        startTime: startDate,
-        endTime: endDate,
-      );
+      final healthData = await _health
+          .getHealthDataFromTypes(
+            types: [HealthDataType.WORKOUT],
+            startTime: startDate,
+            endTime: endDate,
+          )
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              print('[HealthConnect] 데이터 조회 타임아웃 (10초)');
+              return [];
+            },
+          );
 
       // 소스 정보를 포함한 데이터로 변환
       final dataWithSource = healthData.map((point) {
@@ -283,6 +299,18 @@ class HealthConnectDataSource {
       return Health().isDataTypeAvailable(HealthDataType.STEPS);
     } catch (e) {
       print('[HealthConnect] 사용 가능 여부 확인 실패: $e');
+      return false;
+    }
+  }
+
+  /// Health Connect 앱 설치 여부 확인
+  ///
+  /// MethodChannel을 통해 정확하게 Health Connect 앱의 설치 여부를 확인합니다.
+  Future<bool> isHealthConnectInstalled() async {
+    try {
+      return await HealthConnectChecker.isHealthConnectInstalled();
+    } catch (e) {
+      print('[HealthConnect] 설치 여부 확인 실패: $e');
       return false;
     }
   }
