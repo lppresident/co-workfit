@@ -67,6 +67,15 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     }
   }
 
+  @override
+  Future<void> openHealthConnectSettings() async {
+    if (_isAndroid) {
+      return await _healthConnectDataSource.openHealthConnectSettings();
+    } else {
+      throw Exception('Health Connect는 Android에서만 사용 가능합니다.');
+    }
+  }
+
   // ========== Garmin 관련 메서드 ==========
 
   /// Garmin 연동 여부 확인

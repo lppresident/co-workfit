@@ -77,6 +77,32 @@ class HealthConnectDataSource {
     }
   }
 
+  /// Health Connect 앱 설정 화면 열기
+  ///
+  /// health 패키지의 권한 다이얼로그가 작동하지 않는 경우
+  /// 사용자를 직접 Health Connect 설정으로 이동시킵니다.
+  Future<void> openHealthConnectSettings() async {
+    try {
+      // Health Connect 앱 설정 화면으로 이동
+      final url = Uri.parse('package:com.google.android.apps.healthdata');
+
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        // 설정 앱에서 Health Connect 검색
+        final settingsUrl = Uri.parse('android-app://com.android.settings');
+        if (await canLaunchUrl(settingsUrl)) {
+          await launchUrl(settingsUrl, mode: LaunchMode.externalApplication);
+        } else {
+          throw Exception('설정 화면을 열 수 없습니다.');
+        }
+      }
+    } catch (e) {
+      print('[HealthConnect] 설정 화면 열기 실패: $e');
+      throw Exception('Health Connect 설정을 열 수 없습니다: $e');
+    }
+  }
+
   /// 특정 기간의 운동 데이터 가져오기 (소스 정보 포함)
   Future<Either<String, List<HealthDataPointWithSource>>> fetchWorkoutDataWithSource({
     required DateTime startDate,

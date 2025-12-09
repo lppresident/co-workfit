@@ -194,15 +194,52 @@ class _DashboardPageState extends State<DashboardPage> {
             Text(
               '운동 데이터를 가져오려면 $healthServiceName 접근 권한이 필요합니다.',
             ),
+            const SizedBox(height: 8),
+            if (!Platform.isIOS)
+              Text(
+                '권한 다이얼로그가 표시되지 않는 경우, 아래 "설정 열기" 버튼을 눌러 수동으로 권한을 설정해주세요.',
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+              ),
             const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                context
-                    .read<WorkoutBloc>()
-                    .add(const RequestHealthPermissionEvent());
-              },
-              icon: const Icon(Icons.health_and_safety),
-              label: const Text('권한 허용하기'),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      context
+                          .read<WorkoutBloc>()
+                          .add(const RequestHealthPermissionEvent());
+                    },
+                    icon: const Icon(Icons.health_and_safety),
+                    label: const Text('권한 허용하기'),
+                  ),
+                ),
+                if (!Platform.isIOS) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        try {
+                          final repository = di.sl<WorkoutRepository>();
+                          await repository.openHealthConnectSettings();
+                        } catch (e) {
+                          print('[DashboardPage] 설정 열기 실패: $e');
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('설정을 열 수 없습니다: $e'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.settings),
+                      label: const Text('설정 열기'),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

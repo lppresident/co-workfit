@@ -12,6 +12,9 @@ abstract class WorkoutRepository {
   /// Health Connect 설치 유도
   Future<void> installHealthConnect();
 
+  /// Health Connect 설정 화면 열기
+  Future<void> openHealthConnectSettings();
+
   /// 특정 기간의 운동 데이터 가져오기
   Future<Either<String, List<WorkoutEntity>>> getWorkouts({
     required DateTime startDate,
