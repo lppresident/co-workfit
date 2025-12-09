@@ -127,8 +127,44 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     RefreshWorkoutsEvent event,
     Emitter<WorkoutState> emit,
   ) async {
-    print('[WorkoutBloc] 새로고침 요청');
-    // 최근 7일 운동 데이터 다시 가져오기
-    add(const FetchRecentWorkoutsEvent(days: 7));
+    print('[WorkoutBloc] 새로고침 요청 - 데이터 로드 시도');
+    emit(const WorkoutLoading());
+
+    // 데이터를 가져와서 권한 상태를 확인
+    final result = await getRecentWorkouts(days: 7);
+
+    result.fold(
+      (error) {
+        print('[WorkoutBloc] 새로고침 실패: $error');
+
+        // 권한 관련 에러인지 확인
+        final errorLower = error.toLowerCase();
+        if (error == 'HEALTH_CONNECT_NOT_INSTALLED' ||
+            errorLower.contains('not installed') ||
+            errorLower.contains('not available')) {
+          print('[WorkoutBloc] Health Connect 미설치 - 권한 UI 표시');
+          emit(const WorkoutPermissionDenied('HEALTH_CONNECT_NOT_INSTALLED'));
+        } else if (error == 'HEALTH_PERMISSION_DENIED' ||
+            errorLower.contains('permission') ||
+            errorLower.contains('권한') ||
+            errorLower.contains('authorized') ||
+            errorLower.contains('access denied')) {
+          print('[WorkoutBloc] 권한 거부됨 - 권한 UI 표시');
+          emit(const WorkoutPermissionDenied('HEALTH_PERMISSION_DENIED'));
+        } else {
+          // 기타 에러
+          print('[WorkoutBloc] 일반 에러 - 에러 UI 표시');
+          emit(WorkoutError(error));
+        }
+      },
+      (workouts) {
+        print('[WorkoutBloc] 새로고침 성공: ${workouts.length}개');
+        if (workouts.isEmpty) {
+          emit(const WorkoutEmpty());
+        } else {
+          emit(WorkoutLoaded.fromWorkouts(workouts));
+        }
+      },
+    );
   }
 }

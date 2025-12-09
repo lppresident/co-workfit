@@ -114,6 +114,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     required DateTime endDate,
   }) async {
     final allWorkouts = <WorkoutEntity>[];
+    String? platformError;
 
     // 1. 플랫폼별 기본 데이터 가져오기
     if (_isIOS) {
@@ -122,7 +123,10 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
         endDate: endDate,
       );
       healthKitResult.fold(
-        (error) => print('[WorkoutRepo] HealthKit 오류: $error'),
+        (error) {
+          print('[WorkoutRepo] HealthKit 오류: $error');
+          platformError = error;
+        },
         (workouts) => allWorkouts.addAll(workouts),
       );
     } else if (_isAndroid) {
@@ -131,9 +135,27 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
         endDate: endDate,
       );
       healthConnectResult.fold(
-        (error) => print('[WorkoutRepo] Health Connect 오류: $error'),
+        (error) {
+          print('[WorkoutRepo] Health Connect 오류: $error');
+          platformError = error;
+        },
         (workouts) => allWorkouts.addAll(workouts),
       );
+    }
+
+    // 플랫폼 데이터 가져오기에 실패한 경우, 권한 관련 에러면 즉시 반환
+    if (platformError != null) {
+      final errorLower = platformError!.toLowerCase();
+      // 권한 관련 에러 감지
+      if (errorLower.contains('permission') ||
+          errorLower.contains('권한') ||
+          errorLower.contains('authorized') ||
+          errorLower.contains('access denied') ||
+          errorLower.contains('not available')) {
+        print('[WorkoutRepo] 권한 에러 감지 - 즉시 반환: $platformError');
+        return Left(platformError!);
+      }
+      // 기타 에러는 계속 진행 (Garmin 등 다른 소스에서 데이터 가져올 수 있음)
     }
 
     // 2. Garmin 데이터 추가 (연결된 경우)
