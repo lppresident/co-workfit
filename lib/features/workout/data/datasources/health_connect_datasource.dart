@@ -44,22 +44,9 @@ class HealthConnectDataSource {
         return Right(true);
       }
 
-      // 3단계: 부분 권한이라도 있는지 확인
-      final now = DateTime.now();
-      final yesterday = now.subtract(const Duration(days: 1));
-
-      try {
-        await _health.getHealthDataFromTypes(
-          types: [HealthDataType.STEPS],
-          startTime: yesterday,
-          endTime: now,
-        );
-        print('[HealthConnect] 부분 권한으로 데이터 접근 가능');
-        return Right(true);
-      } catch (e) {
-        print('[HealthConnect] 권한이 거부됨: $e');
-        return const Left('HEALTH_PERMISSION_DENIED');
-      }
+      // 권한이 거부되었거나 사용자가 취소함
+      print('[HealthConnect] 권한이 거부됨 또는 사용자가 취소');
+      return const Left('HEALTH_PERMISSION_DENIED');
     } catch (e) {
       print('[HealthConnect] 권한 요청 중 예외 발생: $e');
       final errorString = e.toString().toLowerCase();

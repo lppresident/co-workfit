@@ -20,13 +20,8 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // 첫 진입 시 헬스 데이터 로드 시도
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 초기 상태인 경우에만 데이터 로드 시도
-      if (context.read<WorkoutBloc>().state is WorkoutInitial) {
-        context.read<WorkoutBloc>().add(const FetchRecentWorkoutsEvent(days: 7));
-      }
-    });
+    // 초기 상태 유지 - 사용자가 명시적으로 권한을 허용할 때까지 대기
+    // 자동으로 데이터를 가져오지 않고, 사용자에게 권한 연결 안내 표시
   }
 
   @override
