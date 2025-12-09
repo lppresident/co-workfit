@@ -111,19 +111,6 @@ class HealthConnectDataSource {
     try {
       print('[HealthConnect] 운동 데이터 요청: $startDate ~ $endDate');
 
-      // 권한 확인 - hasPermissions로 명시적 체크
-      final hasPermission = await _health.hasPermissions(
-        [HealthDataType.WORKOUT],
-        permissions: [HealthDataAccess.READ],
-      );
-
-      print('[HealthConnect] 권한 상태: $hasPermission');
-
-      if (hasPermission != true) {
-        print('[HealthConnect] 권한 없음 - 데이터 조회 불가');
-        return const Left('HEALTH_PERMISSION_DENIED');
-      }
-
       final healthData = await _health.getHealthDataFromTypes(
         types: [HealthDataType.WORKOUT],
         startTime: startDate,
