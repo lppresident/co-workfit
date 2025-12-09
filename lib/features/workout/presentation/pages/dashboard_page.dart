@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
@@ -19,8 +20,13 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // 앱 시작시 자동 권한 요청 제거
-    // 사용자가 "권한 허용하기" 버튼을 눌렀을 때만 권한 요청
+    // 첫 진입 시 헬스 데이터 로드 시도
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 초기 상태인 경우에만 데이터 로드 시도
+      if (context.read<WorkoutBloc>().state is WorkoutInitial) {
+        context.read<WorkoutBloc>().add(const FetchRecentWorkoutsEvent(days: 7));
+      }
+    });
   }
 
   @override
@@ -188,6 +194,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildPermissionRequestingCard(BuildContext context) {
+    final healthServiceName = Platform.isIOS ? 'HealthKit' : 'Health Connect';
+
     return Card(
       color: Colors.blue[50],
       child: Padding(
@@ -198,7 +206,7 @@ class _DashboardPageState extends State<DashboardPage> {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                'HealthKit 권한을 요청하는 중...',
+                '$healthServiceName 권한을 요청하는 중...',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -209,6 +217,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildPermissionDeniedCard(BuildContext context) {
+    final healthServiceName = Platform.isIOS ? 'HealthKit' : 'Health Connect';
+
     return Card(
       color: Colors.red[50],
       child: Padding(
@@ -221,7 +231,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 Icon(Icons.warning, color: Colors.red[700]),
                 const SizedBox(width: 8),
                 Text(
-                  'HealthKit 권한 필요',
+                  '$healthServiceName 권한 필요',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Colors.red[700],
                         fontWeight: FontWeight.bold,
@@ -230,8 +240,8 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              '운동 데이터를 가져오려면 HealthKit 접근 권한이 필요합니다.',
+            Text(
+              '운동 데이터를 가져오려면 $healthServiceName 접근 권한이 필요합니다.',
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(
@@ -250,6 +260,12 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildInitialPermissionCard(BuildContext context) {
+    final isIOS = Platform.isIOS;
+    final healthServiceName = isIOS ? 'HealthKit' : 'Health Connect';
+    final healthServiceDescription = isIOS
+        ? 'Apple 건강 앱의 운동 데이터를 불러오려면 $healthServiceName 연결이 필요합니다.'
+        : 'Google Fit, Samsung Health 등 여러 피트니스 앱의 운동 데이터를 불러오려면 $healthServiceName 연결이 필요합니다.';
+
     return Card(
       color: Colors.blue[50],
       child: Padding(
@@ -262,7 +278,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 Icon(Icons.info_outline, color: Colors.blue[700]),
                 const SizedBox(width: 8),
                 Text(
-                  'Health Connect 연결',
+                  '건강 데이터 연결',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Colors.blue[700],
                         fontWeight: FontWeight.bold,
@@ -271,9 +287,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Google Fit, Samsung Health 등 여러 피트니스 앱의 운동 데이터를 불러오려면 Health Connect 연결이 필요합니다.',
-            ),
+            Text(healthServiceDescription),
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: () {
@@ -282,7 +296,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     .add(const RequestHealthPermissionEvent());
               },
               icon: const Icon(Icons.link),
-              label: const Text('Health Connect 연결하기'),
+              label: Text('$healthServiceName 연결하기'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue[700],
                 foregroundColor: Colors.white,
