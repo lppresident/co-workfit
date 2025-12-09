@@ -5,6 +5,7 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart'
 import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/workout_list_item.dart';
+import 'package:co_workfit/features/workout/presentation/pages/health_debug_page.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 
@@ -20,8 +21,13 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // 초기 상태 유지 - 사용자가 명시적으로 권한을 허용할 때까지 대기
-    // 자동으로 데이터를 가져오지 않고, 사용자에게 권한 연결 안내 표시
+    // 앱 첫 진입 시 자동으로 데이터 로드 시도
+    // - 권한 있으면: 데이터 표시
+    // - 권한 없으면: 권한 요청 UI 표시
+    // 새로고침과 동일한 로직을 타도록 구현
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<WorkoutBloc>().add(const FetchRecentWorkoutsEvent(days: 7));
+    });
   }
 
   @override
@@ -30,6 +36,20 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         title: const Text('Co-WorkFit'),
         actions: [
+          // Android용 디버그 버튼
+          if (Platform.isAndroid)
+            IconButton(
+              icon: const Icon(Icons.bug_report),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HealthDebugPage(),
+                  ),
+                );
+              },
+              tooltip: 'Health Connect Debug',
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {

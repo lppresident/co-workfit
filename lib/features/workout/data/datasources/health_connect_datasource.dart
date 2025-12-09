@@ -18,7 +18,7 @@ class HealthConnectDataSource {
   /// 1. 먼저 Health Connect 앱 설치 여부를 확인 (MethodChannel 사용)
   /// 2. 미설치 시 'HEALTH_CONNECT_NOT_INSTALLED' 반환
   /// 3. 설치되어 있으면 권한 요청 진행 (10초 타임아웃)
-  /// 4. 권한 거부 시 명확한 에러 메시지 반환
+  /// 4. requestAuthorization이 false를 반환해도 실제 데이터 조회로 재확인
   Future<Either<String, bool>> requestAuthorization() async {
     try {
       // 1단계: Health Connect 앱 설치 여부 확인 (정확한 방법)
@@ -47,14 +47,34 @@ class HealthConnectDataSource {
             },
           );
 
-      if (authorized) {
-        print('[HealthConnect] 권한 승인됨');
-        return Right(true);
+      print('[HealthConnect] requestAuthorization 결과: $authorized');
+
+      // 3단계: authorized가 false여도 실제 데이터 접근으로 재확인
+      // Health Connect는 이미 권한이 있을 때도 false를 반환하는 버그가 있음
+      if (!authorized) {
+        print('[HealthConnect] false 반환됨 - 실제 데이터 접근 테스트 시도');
+
+        try {
+          // 간단한 데이터 조회로 실제 권한 확인
+          final testData = await _health
+              .getHealthDataFromTypes(
+                types: [HealthDataType.STEPS],
+                startTime: DateTime.now().subtract(const Duration(days: 1)),
+                endTime: DateTime.now(),
+              )
+              .timeout(const Duration(seconds: 3));
+
+          print('[HealthConnect] 테스트 데이터 조회 성공 - 실제로는 권한 있음');
+          return const Right(true);
+        } catch (e) {
+          print('[HealthConnect] 테스트 데이터 조회 실패: $e');
+          // 실제로 권한이 없는 것으로 판단
+          return const Left('HEALTH_PERMISSION_DENIED');
+        }
       }
 
-      // 권한이 거부되었거나 사용자가 취소함
-      print('[HealthConnect] 권한이 거부됨 또는 사용자가 취소');
-      return const Left('HEALTH_PERMISSION_DENIED');
+      print('[HealthConnect] 권한 승인됨');
+      return const Right(true);
     } catch (e) {
       print('[HealthConnect] 권한 요청 중 예외 발생: $e');
       final errorString = e.toString().toLowerCase();
