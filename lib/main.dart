@@ -3,10 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:co_workfit/shared/theme/app_theme.dart';
 import 'package:co_workfit/features/workout/presentation/pages/dashboard_page.dart';
+import 'package:co_workfit/features/auth/presentation/pages/login_page.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +51,27 @@ class CoWorkFitApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
-        home: const DashboardPage(),
+        home: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            if (state is Authenticated) {
+              return const DashboardPage();
+            } else if (state is Unauthenticated) {
+              return const LoginPage();
+            } else if (state is AuthError) {
+              return const LoginPage();
+            }
+            // AuthInitial or AuthLoading
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          },
+        ),
+        routes: {
+          '/dashboard': (context) => const DashboardPage(),
+          '/login': (context) => const LoginPage(),
+        },
         debugShowCheckedModeBanner: false,
       ),
     );
