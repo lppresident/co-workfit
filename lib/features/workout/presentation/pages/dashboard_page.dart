@@ -6,6 +6,8 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart
 import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/workout_list_item.dart';
 import 'package:co_workfit/features/workout/presentation/pages/health_debug_page.dart';
+import 'package:co_workfit/features/workout/presentation/pages/workout_list_page.dart';
+import 'package:co_workfit/features/workout/presentation/pages/workout_detail_page.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 
@@ -407,9 +409,11 @@ class _DashboardPageState extends State<DashboardPage> {
             if (state is WorkoutLoaded && state.workouts.isNotEmpty)
               TextButton.icon(
                 onPressed: () {
-                  // TODO: 전체 운동 목록 페이지로 이동
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('전체 운동 목록 페이지 준비 중')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const WorkoutListPage(),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.list),
@@ -460,7 +464,17 @@ class _DashboardPageState extends State<DashboardPage> {
           Column(
             children: state.workouts
                 .take(5) // 최근 5개만 표시
-                .map((workout) => WorkoutListItem(workout: workout))
+                .map((workout) => WorkoutListItem(
+                      workout: workout,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => WorkoutDetailPage(workout: workout),
+                          ),
+                        );
+                      },
+                    ))
                 .toList(),
           )
         else if (state is WorkoutPermissionDenied)

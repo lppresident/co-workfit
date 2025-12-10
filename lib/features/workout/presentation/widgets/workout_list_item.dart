@@ -5,10 +5,12 @@ import 'package:intl/intl.dart';
 /// 운동 리스트 아이템 위젯
 class WorkoutListItem extends StatelessWidget {
   final WorkoutEntity workout;
+  final VoidCallback? onTap;
 
   const WorkoutListItem({
     super.key,
     required this.workout,
+    this.onTap,
   });
 
   @override
@@ -16,9 +18,7 @@ class WorkoutListItem extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
-        onTap: () {
-          // TODO: 운동 상세 페이지로 이동
-        },
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
