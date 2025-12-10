@@ -1,4 +1,5 @@
-part of 'profile_bloc.dart';
+import 'package:equatable/equatable.dart';
+import 'package:co_workfit/features/auth/domain/entities/user_entity.dart';
 
 abstract class ProfileState extends Equatable {
   const ProfileState();

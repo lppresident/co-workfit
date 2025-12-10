@@ -1,24 +1,25 @@
 import 'package:bloc/bloc.dart';
 import 'package:co_workfit/core/errors/failure.dart';
-import 'package:equatable/equatable.dart';
-import 'package:co_workfit/features/auth/domain/entities/user_entity.dart';
 import 'package:co_workfit/features/profile/domain/usecases/get_profile_data.dart';
 import 'package:co_workfit/features/profile/domain/usecases/logout_user.dart';
-import 'package:co_workfit/features/profile/domain/usecases/update_display_name.dart';
+import 'package:co_workfit/features/profile/domain/usecases/update_display_name_use_case.dart';
 
-part 'profile_event.dart';
-part 'profile_state.dart';
+import 'profile_event.dart';
+import 'profile_state.dart';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
-  final GetProfileData getProfileData;
-  final UpdateDisplayName updateDisplayName;
-  final LogoutUser logoutUser;
+  final GetProfileData _getProfileDataUseCase;
+  final UpdateDisplayNameUseCase _updateDisplayNameUseCase;
+  final LogoutUser _logoutUserUseCase;
 
   ProfileBloc({
-    required this.getProfileData,
-    required this.updateDisplayName,
-    required this.logoutUser,
-  }) : super(ProfileInitial()) {
+    required GetProfileData getProfileData,
+    required UpdateDisplayNameUseCase updateDisplayName,
+    required LogoutUser logoutUser,
+  })  : _getProfileDataUseCase = getProfileData,
+        _updateDisplayNameUseCase = updateDisplayName,
+        _logoutUserUseCase = logoutUser,
+        super(ProfileInitial()) {
     on<FetchProfileData>(_onFetchProfileData);
     on<UpdateDisplayName>(_onUpdateDisplayName);
     on<LogoutButtonPressed>(_onLogoutButtonPressed);
@@ -29,7 +30,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     Emitter<ProfileState> emit,
   ) async {
     emit(ProfileLoading());
-    final result = await getProfileData();
+    final result = await _getProfileDataUseCase.call();
     result.fold(
       (failure) => emit(ProfileLoadFailure(_mapFailureToMessage(failure))),
       (user) => emit(ProfileLoadSuccess(user)),
@@ -40,23 +41,15 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     UpdateDisplayName event,
     Emitter<ProfileState> emit,
   ) async {
-    // Optionally emit a loading state or just update the current success state.
-    // For simplicity, we'll refetch data after update to ensure consistency.
-    // If there's a current success state, emit it to avoid unnecessary loading indicators.
-    final currentState = state;
-    if (currentState is ProfileLoadSuccess) {
-      // Emit success state with current user to maintain UI responsiveness
-      // and show an overlay or temporary message during update.
-    } else {
+    if (state is! ProfileLoadSuccess) {
       emit(ProfileLoading());
     }
 
-    final result = await updateDisplayName(event.newDisplayName);
-    await result.fold(
+    final result = await _updateDisplayNameUseCase.call(event.newDisplayName);
+    result.fold(
       (failure) => emit(ProfileLoadFailure(_mapFailureToMessage(failure))),
       (_) async {
-        // After successful update, refetch profile data to update UI.
-        final refetchResult = await getProfileData();
+        final refetchResult = await _getProfileDataUseCase.call();
         refetchResult.fold(
           (failure) => emit(ProfileLoadFailure(_mapFailureToMessage(failure))),
           (user) => emit(ProfileLoadSuccess(user)),
@@ -69,11 +62,11 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     LogoutButtonPressed event,
     Emitter<ProfileState> emit,
   ) async {
-    emit(ProfileLoading()); // Can be a specific LogoutLoading state if needed
-    final result = await logoutUser();
-    await result.fold(
+    emit(ProfileLoading());
+    final result = await _logoutUserUseCase.call();
+    result.fold(
       (failure) => emit(ProfileLoadFailure(_mapFailureToMessage(failure))),
-      (_) => emit(ProfileInitial()), // Or a specific LogoutSuccess state
+      (_) => emit(ProfileInitial()),
     );
   }
 
@@ -88,3 +81,4 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     return 'Unexpected Error';
   }
 }
+

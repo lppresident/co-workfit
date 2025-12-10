@@ -1,9 +1,46 @@
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
+import 'package:co_workfit/features/profile/presentation/bloc/profile_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  void _showEditProfileDialog(BuildContext context, String currentDisplayName) {
+    final TextEditingController controller = TextEditingController(text: currentDisplayName);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit Display Name'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Display Name',
+            hintText: 'Enter new display name',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty && newName != currentDisplayName) {
+                context.read<ProfileBloc>().add(UpdateDisplayName(newName));
+              }
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,8 +111,7 @@ class ProfileScreen extends StatelessWidget {
                     leading: const Icon(Icons.edit),
                     title: const Text('Edit Profile'),
                     onTap: () {
-                      // TODO: Implement profile editing dialog/screen
-                      // Example: context.read<ProfileBloc>().add(UpdateDisplayName('New Name'));
+                      _showEditProfileDialog(context, user.displayName);
                     },
                   ),
                   const Divider(),
