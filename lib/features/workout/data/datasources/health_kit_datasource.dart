@@ -126,8 +126,36 @@ class HealthKitDataSource {
           0,
           (sum, point) => sum + (point.value as NumericHealthValue).numericValue,
         );
-        // meters to kilometers
-        details['distance'] = totalDistance / 1000.0;
+
+        // 디버그: 실제 반환되는 값과 단위 확인
+        print('[HealthKit] 거리 데이터 원본값: $totalDistance');
+        print('[HealthKit] 거리 데이터 개수: ${distanceData.length}');
+        if (distanceData.isNotEmpty) {
+          print('[HealthKit] 첫 번째 데이터 포인트 단위: ${distanceData.first.unit}');
+          print('[HealthKit] 첫 번째 데이터 포인트 값: ${(distanceData.first.value as NumericHealthValue).numericValue}');
+        }
+
+        // health 패키지는 기본적으로 미터 단위로 반환
+        // 하지만 일부 경우 단위가 다를 수 있으므로 단위 확인
+        final unit = distanceData.first.unit;
+        double distanceInKm;
+
+        if (unit == HealthDataUnit.METER) {
+          // 미터 → 킬로미터
+          distanceInKm = totalDistance / 1000.0;
+          print('[HealthKit] 미터 단위 감지: ${totalDistance}m → ${distanceInKm}km');
+        } else if (unit == HealthDataUnit.MILE) {
+          // 마일 → 킬로미터
+          distanceInKm = totalDistance * 1.60934;
+          print('[HealthKit] 마일 단위 감지: ${totalDistance}mi → ${distanceInKm}km');
+        } else {
+          // 알 수 없는 단위는 미터로 가정
+          distanceInKm = totalDistance / 1000.0;
+          print('[HealthKit] 알 수 없는 단위 ($unit), 미터로 가정: ${totalDistance} → ${distanceInKm}km');
+        }
+
+        details['distance'] = distanceInKm;
+        print('[HealthKit] 최종 거리: ${distanceInKm}km');
       }
 
       // 걸음 수
