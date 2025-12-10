@@ -7,20 +7,36 @@ import 'package:co_workfit/features/auth/data/models/user_model.dart';
 
 /// Firebase Auth 데이터소스
 class FirebaseAuthDataSource {
-  final FirebaseAuth _firebaseAuth;
-  final FirebaseFirestore _firestore;
-  final GoogleSignIn _googleSignIn;
+  late final FirebaseAuth _firebaseAuth;
+  late final FirebaseFirestore _firestore;
+  late final GoogleSignIn _googleSignIn;
+  bool _initialized = false;
 
   FirebaseAuthDataSource({
     FirebaseAuth? firebaseAuth,
     FirebaseFirestore? firestore,
     GoogleSignIn? googleSignIn,
-  })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn();
+  }) {
+    try {
+      _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
+      _firestore = firestore ?? FirebaseFirestore.instance;
+      _googleSignIn = googleSignIn ?? GoogleSignIn();
+      _initialized = true;
+    } catch (e) {
+      print('[FirebaseAuthDataSource] Firebase not initialized: $e');
+      _initialized = false;
+    }
+  }
+
+  /// Firebase 초기화 여부 확인
+  bool get isInitialized => _initialized;
 
   /// 현재 로그인된 사용자 가져오기
   Future<Either<String, UserModel?>> getCurrentUser() async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       final firebaseUser = _firebaseAuth.currentUser;
       if (firebaseUser == null) {
@@ -57,6 +73,10 @@ class FirebaseAuthDataSource {
     required String password,
     required String displayName,
   }) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       // Firebase Auth에 사용자 생성
       final credential = await _firebaseAuth.createUserWithEmailAndPassword(
@@ -95,6 +115,10 @@ class FirebaseAuthDataSource {
     required String email,
     required String password,
   }) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       final credential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
@@ -136,6 +160,10 @@ class FirebaseAuthDataSource {
 
   /// Google 로그인
   Future<Either<String, UserModel>> signInWithGoogle() async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       // Google 로그인 플로우 시작
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -193,6 +221,10 @@ class FirebaseAuthDataSource {
 
   /// 로그아웃
   Future<Either<String, void>> signOut() async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       await Future.wait([
         _firebaseAuth.signOut(),
@@ -206,6 +238,10 @@ class FirebaseAuthDataSource {
 
   /// 비밀번호 재설정 이메일 전송
   Future<Either<String, void>> sendPasswordResetEmail(String email) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       await _firebaseAuth.sendPasswordResetEmail(email: email);
       return const Right(null);
@@ -222,6 +258,10 @@ class FirebaseAuthDataSource {
     String? displayName,
     String? photoUrl,
   }) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       final user = _firebaseAuth.currentUser;
       if (user == null) {
@@ -303,5 +343,10 @@ class FirebaseAuthDataSource {
   }
 
   /// 인증 상태 변경 스트림
-  Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
+  Stream<User?> get authStateChanges {
+    if (!_initialized) {
+      return Stream.value(null);
+    }
+    return _firebaseAuth.authStateChanges();
+  }
 }

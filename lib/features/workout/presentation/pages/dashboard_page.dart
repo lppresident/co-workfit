@@ -8,6 +8,8 @@ import 'package:co_workfit/features/workout/presentation/widgets/workout_list_it
 import 'package:co_workfit/features/workout/presentation/pages/health_debug_page.dart';
 import 'package:co_workfit/features/workout/presentation/pages/workout_list_page.dart';
 import 'package:co_workfit/features/workout/presentation/pages/workout_detail_page.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 
@@ -58,11 +60,25 @@ class _DashboardPageState extends State<DashboardPage> {
               context.read<WorkoutBloc>().add(const RefreshWorkoutsEvent());
             },
           ),
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.person),
-            onPressed: () {
-              // TODO: 프로필 페이지로 이동
+            onSelected: (value) {
+              if (value == 'logout') {
+                _showLogoutDialog(context);
+              }
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: 8),
+                    Text('로그아웃'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -592,6 +608,32 @@ class _DashboardPageState extends State<DashboardPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue[700],
               foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('정말 로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.read<AuthBloc>().add(const SignOutRequested());
+            },
+            child: const Text(
+              '로그아웃',
+              style: TextStyle(color: Colors.red),
             ),
           ),
         ],

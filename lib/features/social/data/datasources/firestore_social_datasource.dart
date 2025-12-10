@@ -8,10 +8,21 @@ import 'package:co_workfit/features/social/domain/entities/leaderboard_entry_ent
 
 /// Firestore 소셜 데이터소스
 class FirestoreSocialDataSource {
-  final FirebaseFirestore _firestore;
+  late final FirebaseFirestore _firestore;
+  bool _initialized = false;
 
-  FirestoreSocialDataSource({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  FirestoreSocialDataSource({FirebaseFirestore? firestore}) {
+    try {
+      _firestore = firestore ?? FirebaseFirestore.instance;
+      _initialized = true;
+    } catch (e) {
+      print('[FirestoreSocialDataSource] Firebase not initialized: $e');
+      _initialized = false;
+    }
+  }
+
+  /// Firebase 초기화 여부 확인
+  bool get isInitialized => _initialized;
 
   // ========== 친구 요청 관련 ==========
 
@@ -22,6 +33,10 @@ class FirestoreSocialDataSource {
     String? senderPhotoUrl,
     required String receiverId,
   }) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       // 이미 친구 요청이 있는지 확인
       final existingRequest = await _firestore
@@ -71,6 +86,10 @@ class FirestoreSocialDataSource {
   Future<Either<String, List<FriendRequestEntity>>> getReceivedFriendRequests(
     String userId,
   ) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       final snapshot = await _firestore
           .collection(FirebaseConfig.friendRequestsCollection)
@@ -93,6 +112,10 @@ class FirestoreSocialDataSource {
   Future<Either<String, List<FriendRequestEntity>>> getSentFriendRequests(
     String userId,
   ) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       final snapshot = await _firestore
           .collection(FirebaseConfig.friendRequestsCollection)
@@ -115,6 +138,10 @@ class FirestoreSocialDataSource {
   Future<Either<String, void>> acceptFriendRequest(
     String requestId,
   ) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       // 친구 요청 가져오기
       final requestDoc = await _firestore
@@ -188,6 +215,10 @@ class FirestoreSocialDataSource {
 
   /// 친구 요청 거절
   Future<Either<String, void>> rejectFriendRequest(String requestId) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       await _firestore
           .collection(FirebaseConfig.friendRequestsCollection)
@@ -205,6 +236,10 @@ class FirestoreSocialDataSource {
 
   /// 친구 요청 취소
   Future<Either<String, void>> cancelFriendRequest(String requestId) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       await _firestore
           .collection(FirebaseConfig.friendRequestsCollection)
@@ -223,6 +258,10 @@ class FirestoreSocialDataSource {
   Future<Either<String, List<FriendshipEntity>>> getFriends(
     String userId,
   ) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       final snapshot = await _firestore
           .collection(FirebaseConfig.friendsCollection)
@@ -257,6 +296,10 @@ class FirestoreSocialDataSource {
     required String userId,
     required String friendId,
   }) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       // 양방향 친구 관계 삭제
       final batch = _firestore.batch();
@@ -298,6 +341,10 @@ class FirestoreSocialDataSource {
     required LeaderboardType type,
     int limit = 50,
   }) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       Query query = _firestore.collection(FirebaseConfig.usersCollection);
 
@@ -337,6 +384,10 @@ class FirestoreSocialDataSource {
     required String userId,
     required LeaderboardType type,
   }) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       // 친구 목록 가져오기
       final friendsResult = await getFriends(userId);
@@ -420,6 +471,10 @@ class FirestoreSocialDataSource {
   Future<Either<String, List<Map<String, dynamic>>>> searchUsersByEmail(
     String email,
   ) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
     try {
       if (email.isEmpty) {
         return const Right([]);

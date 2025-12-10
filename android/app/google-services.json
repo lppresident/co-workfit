@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "89240730998",
+    "project_id": "co-workfit",
+    "storage_bucket": "co-workfit.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:89240730998:android:836909febed94e5c438e57",
+        "android_client_info": {
+          "package_name": "com.coworkfit.co_workfit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8qTv8_Y4lVwY0_u6lTWb_c1IJ2WL4yIM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
