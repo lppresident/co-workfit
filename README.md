@@ -53,27 +53,20 @@ lib/
 ### 아키텍처 & 상태 관리
 - **Clean Architecture**: 계층 분리 및 의존성 역전
 - **BLoC Pattern**: 상태 관리 (flutter_bloc)
-- **Dependency Injection**: GetIt + Injectable
-
-### 데이터 & 네트워크
-- **로컬 저장소**: Hive, SQLite, SharedPreferences
-- **네트워크**: Dio, HTTP
-- **JSON 직렬화**: json_serializable, freezed
+- **Dependency Injection**: GetIt
 
 ### 헬스 플랫폼 통합
 - **Health Package**: 멀티 플랫폼 헬스 데이터 통합
+- **Firebase**: 인증 및 Firestore
 
-### UI & 시각화
+### UI
 - **Material 3**: 최신 디자인 시스템
-- **FL Chart**: 운동 데이터 시각화
-- **Cached Network Image**: 이미지 캐싱
 
 ## 🚀 시작하기
 
 ### 필수 요구사항
 - Flutter SDK >= 3.10.0
 - Dart SDK >= 3.10.0
-- Firebase 프로젝트 (Phase 3 소셜 기능 사용 시)
 
 ### 설치
 
@@ -81,21 +74,9 @@ lib/
 # 의존성 설치
 flutter pub get
 
-# 코드 생성 (JSON serialization)
-dart run build_runner build --delete-conflicting-outputs
-
-# Firebase 설정 (선택 사항, Phase 3 기능용)
-# 자세한 내용은 FIREBASE_SETUP.md 참고
-flutterfire configure
-
 # 앱 실행
 flutter run
 ```
-
-### Firebase 설정 (Phase 3 소셜 기능)
-
-소셜 기능을 사용하려면 Firebase 설정이 필요합니다.
-자세한 설정 방법은 [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) 참고
 
 ### 테스트
 
@@ -137,40 +118,13 @@ workload = (칼로리 × 0.35) + (심박수 × 0.30) +
 - 사이클링: 0.9
 - 걷기: 0.7
 
-## 🗺️ 로드맵
+## 📋 개발 현황
 
-### Phase 1: 기반 구축 ✅ (완료)
-- [x] 프로젝트 구조 설계
-- [x] 데이터 모델 정의
-- [x] 캘리브레이션 로직 구현
-- [x] 기본 UI/UX
-
-### Phase 2: 플랫폼 연동 ✅ (완료)
-- [x] Apple HealthKit 연동 ✅
-- [x] Google Fit 연동 ✅
-- [x] Samsung Health (Health Connect 통합) ✅
-- [x] Garmin Connect API (코드 구조 완료, API 승인 대기) ✅
-
-### Phase 3: 소셜 기능 ✅ (백엔드 완료, UI 대기)
-- [x] Firebase 통합 (Auth, Firestore)
-- [x] 사용자 인증 (이메일/비밀번호, Google)
-- [x] 친구 시스템 (요청, 수락, 거절)
-- [x] 리더보드 (전체, 친구)
-- [ ] UI 구현 (로그인, 친구 목록, 리더보드 화면)
-
-### Phase 4: 고급 기능
-- [ ] 그룹 챌린지
-- [ ] 목표 설정 및 추적
-- [ ] 성취 배지 시스템
-- [ ] AI 기반 운동 추천
+자세한 개발 진행 상황 및 로드맵은 [GitHub Issue #3](https://github.com/lppresident/co-workfit/issues/3)에서 확인하세요.
 
 ## 📝 라이선스
 
 Private Project
-
-## 👥 기여
-
-현재 개발 중인 프로젝트입니다.
 
 ---
 
