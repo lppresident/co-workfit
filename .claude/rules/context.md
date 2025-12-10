@@ -50,7 +50,7 @@
 
 #### 3.2. 코딩 규칙
 - **상태 관리**: BLoC (Event → Bloc → State) 사용
-- **에러 처리**: `Either<Failure, T>` 사용 (Dartz 패키지). 데이터 계층에서는 `ServerException`, `CacheException`, `AuthException` 등의 커스텀 예외를 발생시키고, 리포지토리 구현체에서 이 예외들을 catch하여 `Failure` 타입으로 변환합니다. `Failure`는 도메인 계층의 오류를 표현합니다.
+- **에러 처리**: `Either<Failure, T>` 사용 (Dartz 패키지)
 - **데이터 흐름**: Datasource (try-catch) → Repository (Left 반환) → UseCase
 - **AI 협업**: 코드 수정 전 반드시 대상 파일 읽기 수행
 
