@@ -211,6 +211,7 @@ class HealthConnectDataSource {
   }
 
   /// 특정 운동에 대한 상세 데이터 가져오기
+  /// 거리 데이터는 WORKOUT의 totalDistance를 직접 사용하므로 여기서는 조회하지 않음
   Future<Either<String, Map<String, dynamic>>> fetchWorkoutDetails({
     required DateTime workoutStart,
     required DateTime workoutEnd,

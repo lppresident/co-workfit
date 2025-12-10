@@ -34,9 +34,28 @@ class HealthDataMapper {
     final endTime = healthPoint.dateTo;
     final durationMinutes = endTime.difference(startTime).inMinutes;
 
-    // 상세 데이터에서 값 추출
+    // WorkoutHealthValue에서 직접 거리 데이터 추출 (중복 합산 방지)
+    double? distance;
+    if (workoutValue.totalDistance != null && workoutValue.totalDistanceUnit != null) {
+      final rawDistance = workoutValue.totalDistance!.toDouble();
+      final unit = workoutValue.totalDistanceUnit!;
+
+      // 단위에 따라 킬로미터로 변환
+      if (unit == HealthDataUnit.METER) {
+        distance = rawDistance / 1000.0;
+        print('[HealthDataMapper] WORKOUT 거리: ${rawDistance}m → ${distance}km');
+      } else if (unit == HealthDataUnit.MILE) {
+        distance = rawDistance * 1.60934;
+        print('[HealthDataMapper] WORKOUT 거리: ${rawDistance}mi → ${distance}km');
+      } else {
+        // 알 수 없는 단위는 미터로 가정
+        distance = rawDistance / 1000.0;
+        print('[HealthDataMapper] WORKOUT 거리 (알 수 없는 단위 $unit): ${rawDistance} → ${distance}km');
+      }
+    }
+
+    // 상세 데이터에서 값 추출 (거리는 WORKOUT에서 직접 가져오므로 제외)
     final calories = details['calories'] as int?;
-    final distance = details['distance'] as double?;
     final averageHeartRate = details['averageHeartRate'] as int?;
     final maxHeartRate = details['maxHeartRate'] as int?;
     final steps = details['steps'] as int?;
@@ -100,8 +119,10 @@ class HealthDataMapper {
   /// [source]: 데이터 소스 (appleHealth, googleFit, samsungHealth 등)
   Future<List<WorkoutEntity>> toWorkoutEntities({
     required List<HealthDataPoint> healthPoints,
-    required Future<Map<String, dynamic>> Function(DateTime start, DateTime end)
-        detailsFetcher,
+    required Future<Map<String, dynamic>> Function(
+      DateTime start,
+      DateTime end,
+    ) detailsFetcher,
     required String userId,
     WorkoutSource source = WorkoutSource.appleHealth,
   }) async {
@@ -131,8 +152,10 @@ class HealthDataMapper {
   /// 각 데이터 포인트의 실제 소스(Samsung Health, Google Fit 등)를 감지하여 변환
   Future<List<WorkoutEntity>> toWorkoutEntitiesWithAutoSource({
     required List<HealthDataPointWithSource> healthPointsWithSource,
-    required Future<Map<String, dynamic>> Function(DateTime start, DateTime end)
-        detailsFetcher,
+    required Future<Map<String, dynamic>> Function(
+      DateTime start,
+      DateTime end,
+    ) detailsFetcher,
     required String userId,
   }) async {
     final workouts = <WorkoutEntity>[];
