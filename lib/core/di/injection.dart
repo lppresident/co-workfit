@@ -120,6 +120,43 @@ Future<void> initializeDependencies() async {
     ),
   );
 
+  // ========== Firebase & GoogleSignIn Instances (Core) ==========
+  sl.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
+  sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
+  sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn());
+
+
+  // ========== Profile Feature ==========
+
+  // Data Sources
+  sl.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(
+      firebaseAuth: sl(),
+      firestore: sl(),
+      googleSignIn: sl(),
+    ),
+  );
+
+  // Repository
+  sl.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => GetProfileData(sl()));
+  sl.registerLazySingleton(() => UpdateDisplayName(sl()));
+  sl.registerLazySingleton(() => LogoutUser(sl()));
+
+  // BLoC
+  sl.registerFactory(
+    () => ProfileBloc(
+      getProfileData: sl(),
+      updateDisplayName: sl(),
+      logoutUser: sl(),
+    ),
+  );
+
+
   // ========== Social Feature ==========
 
   // Data Sources
