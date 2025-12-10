@@ -1,5 +1,10 @@
 import 'package:get_it/get_it.dart';
 
+// Firebase & Google Sign-In
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
 // Workout
 import 'package:co_workfit/features/workout/data/datasources/health_kit_datasource.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
@@ -23,6 +28,16 @@ import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_google.dar
 import 'package:co_workfit/features/auth/domain/usecases/sign_out.dart';
 import 'package:co_workfit/features/auth/domain/usecases/sign_up_with_email.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
+
+// Profile
+import 'package:co_workfit/features/profile/data/datasources/profile_remote_data_source.dart';
+import 'package:co_workfit/features/profile/data/datasources/profile_remote_data_source_impl.dart';
+import 'package:co_workfit/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:co_workfit/features/profile/domain/repositories/profile_repository.dart';
+import 'package:co_workfit/features/profile/domain/usecases/get_profile_data.dart';
+import 'package:co_workfit/features/profile/domain/usecases/logout_user.dart';
+import 'package:co_workfit/features/profile/domain/usecases/update_display_name_use_case.dart';
+import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 
 // Social
 import 'package:co_workfit/features/social/data/datasources/firestore_social_datasource.dart';
@@ -119,6 +134,43 @@ Future<void> initializeDependencies() async {
       authRepository: sl(),
     ),
   );
+
+  // ========== Firebase & GoogleSignIn Instances (Core) ==========
+  sl.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
+  sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
+  sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn());
+
+
+  // ========== Profile Feature ==========
+
+  // Data Sources
+  sl.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(
+      firebaseAuth: sl(),
+      firestore: sl(),
+      googleSignIn: sl(),
+    ),
+  );
+
+  // Repository
+  sl.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => GetProfileData(sl()));
+  sl.registerLazySingleton(() => UpdateDisplayName(sl()));
+  sl.registerLazySingleton(() => LogoutUser(sl()));
+
+  // BLoC
+  sl.registerFactory(
+    () => ProfileBloc(
+      getProfileData: sl(),
+      updateDisplayName: sl(),
+      logoutUser: sl(),
+    ),
+  );
+
 
   // ========== Social Feature ==========
 

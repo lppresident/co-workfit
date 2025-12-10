@@ -1,4 +1,9 @@
 import 'dart:io' show Platform;
+import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
+import 'package:co_workfit/features/profile/presentation/screens/profile_screen.dart';
+import 'package:co_workfit/features/social/presentation/pages/friends_page.dart';
+import 'package:co_workfit/features/social/presentation/pages/leaderboard_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
@@ -13,7 +18,7 @@ import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 
-/// 메인 대시보드 페이지
+/// 메인 대시보드 페이지 (네비게이션 허브)
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -22,15 +27,31 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  @override
-  void initState() {
-    super.initState();
-    // 앱 첫 진입 시 자동으로 데이터 로드 시도
-    // - 권한 있으면: 데이터 표시
-    // - 권한 없으면: 권한 요청 UI 표시
-    // 새로고침과 동일한 로직을 타도록 구현
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WorkoutBloc>().add(const FetchRecentWorkoutsEvent(days: 7));
+  int _selectedIndex = 0;
+
+  Widget _getPageForIndex(int index) {
+    switch (index) {
+      case 0:
+        return const _DashboardHome();
+      case 1:
+        return const WorkoutListPage();
+      case 2:
+        return const FriendsPage();
+      case 3:
+        return const LeaderboardPage();
+      case 4:
+        return BlocProvider<ProfileBloc>(
+          create: (context) => di.sl<ProfileBloc>()..add(FetchProfileData()),
+          child: const ProfileScreen(),
+        );
+      default:
+        return const _DashboardHome();
+    }
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
     });
   }
 
@@ -41,7 +62,7 @@ class _DashboardPageState extends State<DashboardPage> {
         title: const Text('Co-WorkFit'),
         actions: [
           // Android용 디버그 버튼
-          if (Platform.isAndroid)
+          if (Platform.isAndroid && _selectedIndex == 0)
             IconButton(
               icon: const Icon(Icons.bug_report),
               onPressed: () {
@@ -54,12 +75,13 @@ class _DashboardPageState extends State<DashboardPage> {
               },
               tooltip: 'Health Connect Debug',
             ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              context.read<WorkoutBloc>().add(const RefreshWorkoutsEvent());
-            },
-          ),
+          if (_selectedIndex == 0)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                context.read<WorkoutBloc>().add(const RefreshWorkoutsEvent());
+              },
+            ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.person),
             onSelected: (value) {
@@ -82,75 +104,12 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
-      body: BlocConsumer<WorkoutBloc, WorkoutState>(
-        listener: (context, state) {
-          if (state is WorkoutPermissionDenied) {
-            // Health Connect 설치가 필요한 경우 다이얼로그 표시
-            if (state.message == 'HEALTH_CONNECT_NOT_INSTALLED') {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _showHealthConnectInstallDialog(context);
-              });
-            } else if (state.message == 'HEALTH_PERMISSION_DENIED') {
-              // 권한 거부는 카드로만 표시 (다이얼로그 표시 안함)
-              print('[DashboardPage] Health Connect 권한이 거부됨');
-            }
-          } else if (state is WorkoutError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          return RefreshIndicator(
-            onRefresh: () async {
-              context.read<WorkoutBloc>().add(const RefreshWorkoutsEvent());
-              // Wait for the refresh to complete
-              await Future.delayed(const Duration(seconds: 1));
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 권한 상태 표시
-                  if (state is WorkoutPermissionRequesting)
-                    _buildPermissionRequestingCard(context),
-
-                  if (state is WorkoutPermissionDenied)
-                    _buildPermissionDeniedCard(context),
-
-                  // 초기 상태일 때도 권한 요청 안내 카드 표시
-                  if (state is WorkoutInitial)
-                    _buildInitialPermissionCard(context),
-
-                  // 오늘의 요약 카드
-                  _buildTodaySummaryCard(context, state),
-                  const SizedBox(height: 16),
-
-                  // 최근 운동 기록
-                  _buildRecentWorkouts(context, state),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // TODO: 운동 추가 페이지로 이동
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('수동 운동 추가 기능 준비 중')),
-          );
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('운동 추가'),
+      body: Center(
+        child: _getPageForIndex(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -168,16 +127,212 @@ class _DashboardPageState extends State<DashboardPage> {
             icon: Icon(Icons.leaderboard),
             label: '리더보드',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: '프로필',
+          ),
         ],
-        onTap: (index) {
-          // TODO: 네비게이션 구현
-          if (index != 0) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('해당 기능 준비 중')),
-            );
-          }
-        },
         type: BottomNavigationBarType.fixed,
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('정말 로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.read<AuthBloc>().add(const SignOutRequested());
+            },
+            child: const Text(
+              '로그아웃',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+/// 홈 탭의 내용을 표시하는 위젯
+class _DashboardHome extends StatefulWidget {
+  const _DashboardHome();
+
+  @override
+  State<_DashboardHome> createState() => _DashboardHomeState();
+}
+
+class _DashboardHomeState extends State<_DashboardHome> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<WorkoutBloc>().add(const FetchRecentWorkoutsEvent(days: 7));
+    });
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<WorkoutBloc, WorkoutState>(
+      listener: (context, state) {
+        if (state is WorkoutPermissionDenied) {
+          if (state.message == 'HEALTH_CONNECT_NOT_INSTALLED') {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _showHealthConnectInstallDialog(context);
+            });
+          } else if (state.message == 'HEALTH_PERMISSION_DENIED') {
+            print('[DashboardPage] Health Connect 권한이 거부됨');
+          }
+        } else if (state is WorkoutError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        return RefreshIndicator(
+          onRefresh: () async {
+            context.read<WorkoutBloc>().add(const RefreshWorkoutsEvent());
+            await Future.delayed(const Duration(seconds: 1));
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (state is WorkoutPermissionRequesting)
+                  _buildPermissionRequestingCard(context),
+
+                if (state is WorkoutPermissionDenied)
+                  _buildPermissionDeniedCard(context),
+
+                if (state is WorkoutInitial)
+                  _buildInitialPermissionCard(context),
+
+                _buildTodaySummaryCard(context, state),
+                const SizedBox(height: 16),
+
+                _buildRecentWorkouts(context, state),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  void _showHealthConnectInstallDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.health_and_safety, color: Colors.blue[700]),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('Health Connect 앱 필요'),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Co-WorkFit은 Health Connect를 통해 여러 피트니스 앱의 운동 데이터를 통합합니다.',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '📱 지원되는 앱:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[900],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('• Samsung Health'),
+                  const Text('• Google Fit'),
+                  const Text('• Garmin Connect'),
+                  const Text('• 기타 피트니스 앱'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Play Store에서 Health Connect를 설치하시겠습니까?',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('나중에'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              try {
+                final repository = di.sl<WorkoutRepository>();
+                await repository.installHealthConnect();
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Health Connect 설치 후 다시 돌아와서 권한을 허용해주세요.',
+                      ),
+                      backgroundColor: Colors.blue,
+                      duration: Duration(seconds: 4),
+                    ),
+                  );
+                }
+              } catch (e) {
+                print('[DashboardPage] Health Connect 설치 유도 실패: $e');
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Play Store로 이동할 수 없습니다: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.download),
+            label: const Text('설치하러 가기'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[700],
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -205,7 +360,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildPermissionDeniedCard(BuildContext context) {
+    Widget _buildPermissionDeniedCard(BuildContext context) {
     final healthServiceName = Platform.isIOS ? 'HealthKit' : 'Health Connect';
 
     return Card(
@@ -509,135 +664,6 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
       ],
-    );
-  }
-
-  /// Health Connect 설치 안내 다이얼로그
-  void _showHealthConnectInstallDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.health_and_safety, color: Colors.blue[700]),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text('Health Connect 앱 필요'),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Co-WorkFit은 Health Connect를 통해 여러 피트니스 앱의 운동 데이터를 통합합니다.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '📱 지원되는 앱:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[900],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('• Samsung Health'),
-                  const Text('• Google Fit'),
-                  const Text('• Garmin Connect'),
-                  const Text('• 기타 피트니스 앱'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Play Store에서 Health Connect를 설치하시겠습니까?',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('나중에'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              // Health Connect 설치 유도
-              try {
-                final repository = di.sl<WorkoutRepository>();
-                await repository.installHealthConnect();
-
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Health Connect 설치 후 다시 돌아와서 권한을 허용해주세요.',
-                      ),
-                      backgroundColor: Colors.blue,
-                      duration: Duration(seconds: 4),
-                    ),
-                  );
-                }
-              } catch (e) {
-                print('[DashboardPage] Health Connect 설치 유도 실패: $e');
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Play Store로 이동할 수 없습니다: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            icon: const Icon(Icons.download),
-            label: const Text('설치하러 가기'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[700],
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('정말 로그아웃 하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              context.read<AuthBloc>().add(const SignOutRequested());
-            },
-            child: const Text(
-              '로그아웃',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

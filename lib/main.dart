@@ -9,6 +9,7 @@ import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
+import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 
 void main() async {
@@ -43,6 +44,9 @@ class CoWorkFitApp extends StatelessWidget {
         ),
         BlocProvider<AuthBloc>(
           create: (_) => di.sl<AuthBloc>()..add(const AuthCheckRequested()),
+        ),
+        BlocProvider<ProfileBloc>(
+          create: (_) => di.sl<ProfileBloc>(),
         ),
       ],
       child: MaterialApp(
