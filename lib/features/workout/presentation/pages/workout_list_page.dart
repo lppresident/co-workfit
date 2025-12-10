@@ -25,6 +25,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   final ScrollController _scrollController = ScrollController();
   int _loadedDays = 30;
   bool _isLoadingMore = false;
+  List<WorkoutEntity> _allWorkouts = []; // 로컬에서 관리하는 전체 데이터
 
   @override
   void initState() {
@@ -55,21 +56,16 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   }
 
   void _loadMoreData() {
+    if (_isLoadingMore) return;
+
     setState(() {
       _isLoadingMore = true;
-      _loadedDays += 30; // 30일씩 더 로드
     });
 
-    context.read<WorkoutBloc>().add(FetchRecentWorkoutsEvent(days: _loadedDays));
+    final newDays = _loadedDays + 30;
 
-    // 로딩 완료 후 플래그 해제
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          _isLoadingMore = false;
-        });
-      }
-    });
+    // 새로운 범위의 데이터 요청
+    context.read<WorkoutBloc>().add(FetchRecentWorkoutsEvent(days: newDays));
   }
 
   @override
@@ -136,13 +132,29 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
           ),
         ],
       ),
-      body: BlocBuilder<WorkoutBloc, WorkoutState>(
+      body: BlocConsumer<WorkoutBloc, WorkoutState>(
+        listener: (context, state) {
+          if (state is WorkoutLoaded) {
+            setState(() {
+              _allWorkouts = state.workouts;
+              _loadedDays = (_allWorkouts.isNotEmpty)
+                  ? DateTime.now().difference(_allWorkouts.last.startTime).inDays + 1
+                  : 30;
+              _isLoadingMore = false;
+            });
+          } else if (state is WorkoutError) {
+            setState(() {
+              _isLoadingMore = false;
+            });
+          }
+        },
         builder: (context, state) {
-          if (state is WorkoutLoading) {
+          // 초기 로딩 중일 때만 로딩 인디케이터 표시 (데이터가 없을 때)
+          if (state is WorkoutLoading && _allWorkouts.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (state is WorkoutError) {
+          if (state is WorkoutError && _allWorkouts.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -174,7 +186,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
             );
           }
 
-          if (state is WorkoutEmpty) {
+          if (state is WorkoutEmpty && _allWorkouts.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -203,8 +215,9 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
             );
           }
 
-          if (state is WorkoutLoaded) {
-            var workouts = state.workouts;
+          // 로컬 데이터 사용
+          if (_allWorkouts.isNotEmpty) {
+            var workouts = _allWorkouts;
 
             // 필터 적용
             if (_selectedType != null) {
@@ -271,9 +284,10 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
               onRefresh: () async {
                 setState(() {
                   _loadedDays = 30;
+                  _allWorkouts = [];
                 });
                 context.read<WorkoutBloc>().add(
-                      const RefreshWorkoutsEvent(),
+                      const FetchRecentWorkoutsEvent(days: 30),
                     );
                 await Future.delayed(const Duration(seconds: 1));
               },
