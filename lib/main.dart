@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:co_workfit/shared/theme/app_theme.dart';
 import 'package:co_workfit/features/workout/presentation/pages/dashboard_page.dart';
 import 'package:co_workfit/features/auth/presentation/pages/login_page.dart';
@@ -14,12 +15,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
-  // NOTE: Firebase 설정 파일 필요:
-  // - iOS: ios/Runner/GoogleService-Info.plist
-  // - Android: android/app/google-services.json
-  // FlutterFire CLI로 자동 설정: flutter pub global activate flutterfire_cli && flutterfire configure
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     print('[Firebase] Firebase initialized successfully');
   } catch (e) {
     print('[Firebase] Firebase initialization failed: $e');
