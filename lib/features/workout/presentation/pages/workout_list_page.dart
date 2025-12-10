@@ -22,12 +22,53 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   WorkoutSource? _selectedSource;
   String _sortBy = 'latest'; // 'latest', 'oldest', 'score_high', 'score_low'
 
+  final ScrollController _scrollController = ScrollController();
+  int _loadedDays = 30;
+  bool _isLoadingMore = false;
+
   @override
   void initState() {
     super.initState();
     // 최근 30일 데이터 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WorkoutBloc>().add(const FetchRecentWorkoutsEvent(days: 30));
+    });
+
+    // 스크롤 리스너 추가
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isLoadingMore) return;
+
+    // 스크롤이 끝에서 200px 이내에 도달하면 더 로드
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreData();
+    }
+  }
+
+  void _loadMoreData() {
+    setState(() {
+      _isLoadingMore = true;
+      _loadedDays += 30; // 30일씩 더 로드
+    });
+
+    context.read<WorkoutBloc>().add(FetchRecentWorkoutsEvent(days: _loadedDays));
+
+    // 로딩 완료 후 플래그 해제
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
     });
   }
 
@@ -228,15 +269,31 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
 
             return RefreshIndicator(
               onRefresh: () async {
+                setState(() {
+                  _loadedDays = 30;
+                });
                 context.read<WorkoutBloc>().add(
                       const RefreshWorkoutsEvent(),
                     );
                 await Future.delayed(const Duration(seconds: 1));
               },
               child: ListView.builder(
+                controller: _scrollController,
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: groupedWorkouts.length,
+                itemCount: groupedWorkouts.length + 1, // +1 for loading indicator
                 itemBuilder: (context, index) {
+                  // 마지막 아이템은 로딩 인디케이터
+                  if (index == groupedWorkouts.length) {
+                    return _isLoadingMore
+                        ? const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : const SizedBox(height: 16);
+                  }
+
                   final entry = groupedWorkouts[index];
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
