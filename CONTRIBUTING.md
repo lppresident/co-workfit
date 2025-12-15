@@ -60,6 +60,230 @@
 
 새 기능을 추가할 때 이 템플릿을 사용하세요:
 
+### 0. UI Structure (페이지 템플릿)
+
+모든 페이지는 `BasePage`를 상속하여 일관된 구조를 유지합니다.
+
+#### Simple Page Template
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:co_workfit/core/widgets/base_page.dart';
+import 'package:co_workfit/core/widgets/standard_app_bar.dart';
+import 'package:co_workfit/core/widgets/app_bar_actions.dart';
+
+class {Name}Page extends BasePage {
+  const {Name}Page({super.key});
+
+  @override
+  State<{Name}Page> createState() => _{Name}PageState();
+}
+
+class _{Name}PageState extends BasePageState<{Name}Page> {
+  @override
+  void loadInitialData() {
+    // 초기 데이터 로드 (자동으로 addPostFrameCallback 처리)
+    context.read<{Name}Bloc>().add(Load{Name}Data());
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: '{Page Title}',
+      actions: [
+        AppBarActions.refresh(() => loadInitialData()),
+      ],
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return BlocBuilder<{Name}Bloc, {Name}State>(
+      builder: (context, state) {
+        if (state is {Name}Loading) {
+          return const CommonLoadingWidget();
+        }
+
+        if (state is {Name}Loaded) {
+          return ListView(...);
+        }
+
+        return const SizedBox();
+      },
+    );
+  }
+}
+```
+
+#### Tabbed Page Template
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:co_workfit/core/widgets/base_page.dart';
+import 'package:co_workfit/core/widgets/mixins/tabbed_mixin.dart';
+import 'package:co_workfit/core/widgets/standard_app_bar.dart';
+
+class {Name}Page extends BasePage {
+  const {Name}Page({super.key});
+
+  @override
+  State<{Name}Page> createState() => _{Name}PageState();
+}
+
+class _{Name}PageState extends BasePageState<{Name}Page>
+    with SingleTickerProviderStateMixin, TabbedMixin {
+
+  @override
+  int get tabCount => 2;
+
+  @override
+  List<String> get tabLabels => ['탭1', '탭2'];
+
+  @override
+  List<Widget> get tabViews => [
+    _buildTab1(),
+    _buildTab2(),
+  ];
+
+  @override
+  void loadInitialData() {
+    context.read<{Name}Bloc>().add(LoadAllTabs());
+  }
+
+  @override
+  void onTabChanged(int index) {
+    // 탭 변경 시 필요한 동작
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: '{Page Title}',
+      bottom: buildTabBar(),
+      actions: [
+        AppBarActions.refresh(() => loadInitialData()),
+      ],
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return buildTabBarView();
+  }
+
+  Widget _buildTab1() {
+    return BlocBuilder<{Name}Bloc, {Name}State>(
+      builder: (context, state) {
+        // Tab 1 content
+      },
+    );
+  }
+
+  Widget _buildTab2() {
+    return BlocBuilder<{Name}Bloc, {Name}State>(
+      builder: (context, state) {
+        // Tab 2 content
+      },
+    );
+  }
+}
+```
+
+#### Refreshable List Page Template
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:co_workfit/core/widgets/base_page.dart';
+import 'package:co_workfit/core/widgets/mixins/refreshable_mixin.dart';
+import 'package:co_workfit/core/widgets/mixins/loadable_mixin.dart';
+import 'package:co_workfit/core/widgets/standard_app_bar.dart';
+import 'package:co_workfit/core/widgets/app_bar_actions.dart';
+
+class {Name}Page extends BasePage {
+  const {Name}Page({super.key});
+
+  @override
+  State<{Name}Page> createState() => _{Name}PageState();
+}
+
+class _{Name}PageState extends BasePageState<{Name}Page>
+    with RefreshableMixin, LoadableMixin {
+
+  @override
+  void loadInitialData() {
+    context.read<{Name}Bloc>().add(Load{Name}List());
+  }
+
+  @override
+  Future<void> onRefresh() async {
+    context.read<{Name}Bloc>().add(Refresh{Name}List());
+    await context.read<{Name}Bloc>().stream.firstWhere(
+      (state) => state is! {Name}Loading,
+    );
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: '{Page Title}',
+      actions: [
+        AppBarActions.filter(() => _showFilter()),
+        AppBarActions.sort(() => _showSort()),
+      ],
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return BlocBuilder<{Name}Bloc, {Name}State>(
+      builder: (context, state) {
+        return buildRefreshableContent(
+          child: handleStates(
+            state: state,
+            isLoading: (s) => s is {Name}Loading,
+            isError: (s) => s is {Name}Error,
+            isEmpty: (s) => s is {Name}Loaded && s.items.isEmpty,
+            getErrorMessage: (s) => (s as {Name}Error).message,
+            buildContent: (s) => ListView.builder(
+              itemCount: (s as {Name}Loaded).items.length,
+              itemBuilder: (context, index) => _buildItem(s.items[index]),
+            ),
+            emptyMessage: 'No items available',
+            onRetry: loadInitialData,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildItem({Name}Entity item) {
+    return ListTile(
+      title: Text(item.name),
+    );
+  }
+
+  void _showFilter() {
+    // Show filter dialog
+  }
+
+  void _showSort() {
+    // Show sort options
+  }
+}
+```
+
+**UI Best Practices**:
+- ✅ 항상 `BasePage`를 상속
+- ✅ `loadInitialData()` 사용 (initState 대신)
+- ✅ `StandardAppBar` 사용
+- ✅ Mixin 활용 (TabbedMixin, RefreshableMixin, LoadableMixin)
+- ✅ Common widgets 사용 (CommonLoadingWidget, CommonErrorWidget, CommonEmptyWidget)
+- ❌ 수동으로 Scaffold 생성하지 않기
+- ❌ 수동으로 TabController 관리하지 않기
+- ❌ 커스텀 로딩/에러 UI 만들지 않기
+
+**참고**: `UI_STRUCTURE.md`에서 더 자세한 UI 가이드를 확인하세요.
+
 ### 1. Entity Template
 ```dart
 import 'package:equatable/equatable.dart';
@@ -652,9 +876,14 @@ Before creating PR, verify:
 
 ## 🎓 Learning Resources
 
+- `UI_STRUCTURE.md` - Complete UI structure guide (BasePage, Mixins, Patterns)
 - `ARCHITECTURE.md` - Architecture guide
-- `lib/features/social/` - Reference implementation
-- `lib/core/` - Common utilities and base classes
+- `lib/features/social/` - Reference implementation (FriendsPage, LeaderboardPage with tabs)
+- `lib/core/widgets/` - Base classes and common widgets
+  - `base_page.dart` - BasePage and BasePageState
+  - `mixins/` - TabbedMixin, RefreshableMixin, LoadableMixin
+  - `standard_app_bar.dart` - StandardAppBar component
+  - `app_bar_actions.dart` - AppBar action helpers
 - Existing BLoCs - State management patterns
 
 ## 💡 Tips for AI Assistants

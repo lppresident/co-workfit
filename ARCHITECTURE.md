@@ -173,6 +173,150 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
 
 ### Presentation Layer (UI)
 
+Presentation Layer는 BasePage와 Mixins를 통해 일관된 UI 구조를 제공합니다.
+
+#### BasePage & BasePageState
+
+모든 페이지는 `BasePage`를 상속하여 표준화된 구조를 갖습니다:
+
+```dart
+class MyPage extends BasePage {
+  const MyPage({super.key});
+
+  @override
+  State<MyPage> createState() => _MyPageState();
+}
+
+class _MyPageState extends BasePageState<MyPage> {
+  @override
+  void loadInitialData() {
+    // 초기 데이터 로드 (자동으로 addPostFrameCallback 처리)
+    context.read<MyBloc>().add(LoadData());
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: 'My Page',
+      actions: [AppBarActions.refresh(() => loadInitialData())],
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return BlocBuilder<MyBloc, MyState>(
+      builder: (context, state) {
+        // UI 구성
+      },
+    );
+  }
+}
+```
+
+**BasePage 장점**:
+- 자동 Scaffold 제공
+- 안전한 초기화 (`loadInitialData()`)
+- 일관된 구조
+- Mixin 지원
+
+#### UI Mixins
+
+**TabbedMixin** - 탭 페이지:
+```dart
+class _MyPageState extends BasePageState<MyPage>
+    with SingleTickerProviderStateMixin, TabbedMixin {
+
+  @override
+  int get tabCount => 2;
+
+  @override
+  List<String> get tabLabels => ['탭1', '탭2'];
+
+  @override
+  List<Widget> get tabViews => [Tab1(), Tab2()];
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: 'Tabbed Page',
+      bottom: buildTabBar(), // TabbedMixin 제공
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return buildTabBarView(); // TabbedMixin 제공
+  }
+}
+```
+
+**RefreshableMixin** - Pull-to-refresh:
+```dart
+class _MyPageState extends BasePageState<MyPage>
+    with RefreshableMixin {
+
+  @override
+  Future<void> onRefresh() async {
+    context.read<MyBloc>().add(RefreshEvent());
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return buildRefreshableContent(child: ListView(...));
+  }
+}
+```
+
+**LoadableMixin** - 상태 관리:
+```dart
+class _MyPageState extends BasePageState<MyPage>
+    with LoadableMixin {
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return BlocBuilder<MyBloc, MyState>(
+      builder: (context, state) {
+        return handleStates(
+          state: state,
+          isLoading: (s) => s is MyLoading,
+          isError: (s) => s is MyError,
+          isEmpty: (s) => s is MyLoaded && s.items.isEmpty,
+          getErrorMessage: (s) => (s as MyError).message,
+          buildContent: (s) => MyContentWidget(),
+          onRetry: loadInitialData,
+        );
+      },
+    );
+  }
+}
+```
+
+#### StandardAppBar
+
+일관된 AppBar 디자인:
+```dart
+StandardAppBar(
+  title: '페이지 제목',
+  actions: [
+    AppBarActions.refresh(() => _refresh()),
+    AppBarActions.filter(() => _openFilter()),
+    AppBarActions.sort(() => _openSort()),
+  ],
+  bottom: TabBar(...), // optional
+)
+```
+
+**사용 가능한 액션**:
+- `AppBarActions.refresh()` - 새로고침
+- `AppBarActions.filter()` - 필터
+- `AppBarActions.sort()` - 정렬
+- `AppBarActions.search()` - 검색
+- `AppBarActions.settings()` - 설정
+- `AppBarActions.menu()` - 팝업 메뉴
+
+**더 자세한 내용**: `UI_STRUCTURE.md` 참고
+
 #### BLoC Event
 ```dart
 /// 사용자 액션
@@ -246,12 +390,35 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
 }
 ```
 
-#### Widget
+#### Page (BasePage 사용)
 ```dart
 /// UI 렌더링
-class WorkoutPage extends StatelessWidget {
+class WorkoutPage extends BasePage {
+  const WorkoutPage({super.key});
+
   @override
-  Widget build(BuildContext context) {
+  State<WorkoutPage> createState() => _WorkoutPageState();
+}
+
+class _WorkoutPageState extends BasePageState<WorkoutPage> {
+  @override
+  void loadInitialData() {
+    context.read<WorkoutBloc>().add(const LoadWorkouts(7));
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: 'Workouts',
+      actions: [
+        AppBarActions.refresh(() => loadInitialData()),
+        AppBarActions.filter(() => _showFilter()),
+      ],
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
     return BlocBuilder<WorkoutBloc, WorkoutState>(
       builder: (context, state) {
         if (state is WorkoutLoading) {
@@ -261,9 +428,7 @@ class WorkoutPage extends StatelessWidget {
         if (state is WorkoutError) {
           return CommonErrorWidget(
             message: state.message,
-            onRetry: () {
-              context.read<WorkoutBloc>().add(const LoadWorkouts(7));
-            },
+            onRetry: loadInitialData,
           );
         }
 
@@ -279,6 +444,10 @@ class WorkoutPage extends StatelessWidget {
         return const SizedBox();
       },
     );
+  }
+
+  void _showFilter() {
+    // Show filter dialog
   }
 }
 ```
@@ -431,9 +600,13 @@ lib/features/{feature_name}/
 ## ✅ Best Practices
 
 ### DO ✅
+- Use `BasePage` for all pages (not StatelessWidget/StatefulWidget directly)
+- Use `StandardAppBar` for consistent AppBar design
+- Use appropriate Mixins (TabbedMixin, RefreshableMixin, LoadableMixin)
+- Use `loadInitialData()` for initial data loading (not initState)
 - Use `const` constructors whenever possible
 - Use `Equatable` for value equality
-- Use common widgets (`CommonLoadingWidget`, etc.)
+- Use common widgets (`CommonLoadingWidget`, `CommonErrorWidget`, `CommonEmptyWidget`)
 - Use `AppLogger` instead of `print()`
 - Use constants from `AppConstants`
 - Follow naming conventions
@@ -441,13 +614,79 @@ lib/features/{feature_name}/
 - Add comments for complex logic
 
 ### DON'T ❌
+- Don't create custom Scaffold - use `BasePage`
+- Don't manually manage TabController - use `TabbedMixin`
+- Don't create custom loading/error UI - use common widgets
 - Don't use `print()` - use `AppLogger`
 - Don't use magic numbers - use `AppConstants`
-- Don't create duplicate widgets - extract to common
 - Don't skip error handling
 - Don't ignore lint warnings
 - Don't bypass dependency injection
 - Don't mix business logic with UI
+- Don't call BLoC in initState - use `loadInitialData()`
+
+### UI Structure Guidelines ✅
+
+**Page Structure**:
+```dart
+// ✅ GOOD - Use BasePage
+class MyPage extends BasePage {
+  const MyPage({super.key});
+  @override
+  State<MyPage> createState() => _MyPageState();
+}
+
+class _MyPageState extends BasePageState<MyPage> {
+  @override
+  void loadInitialData() {
+    context.read<MyBloc>().add(LoadEvent());
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(title: 'My Page');
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return BlocBuilder<MyBloc, MyState>(...);
+  }
+}
+
+// ❌ BAD - Manual Scaffold
+class MyPage extends StatefulWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(...),
+      body: ...,
+    );
+  }
+}
+```
+
+**Tabs**:
+```dart
+// ✅ GOOD - Use TabbedMixin
+class _MyPageState extends BasePageState<MyPage>
+    with SingleTickerProviderStateMixin, TabbedMixin {
+  @override
+  int get tabCount => 2;
+  @override
+  List<String> get tabLabels => ['탭1', '탭2'];
+}
+
+// ❌ BAD - Manual TabController
+class _MyPageState extends State<MyPage> {
+  late TabController _tabController;
+  @override
+  void initState() {
+    _tabController = TabController(length: 2, vsync: this);
+  }
+}
+```
+
+**더 자세한 내용**: `UI_STRUCTURE.md` 참고
 
 ## 🧪 Testing Strategy
 

@@ -39,6 +39,252 @@ features/{feature_name}/
     └── widgets/
 ```
 
+## 🎨 UI Structure
+
+### Quick UI Templates
+
+모든 페이지는 `BasePage`를 사용하여 일관된 구조를 유지합니다.
+
+#### Simple Page (기본 페이지)
+```dart
+class MyPage extends BasePage {
+  const MyPage({super.key});
+
+  @override
+  State<MyPage> createState() => _MyPageState();
+}
+
+class _MyPageState extends BasePageState<MyPage> {
+  @override
+  void loadInitialData() {
+    context.read<MyBloc>().add(LoadData());
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: 'My Page',
+      actions: [AppBarActions.refresh(() => loadInitialData())],
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return BlocBuilder<MyBloc, MyState>(
+      builder: (context, state) {
+        if (state is MyLoading) return const CommonLoadingWidget();
+        if (state is MyLoaded) return ListView(...);
+        return const SizedBox();
+      },
+    );
+  }
+}
+```
+
+#### Tabbed Page (탭 페이지)
+```dart
+class MyTabbedPage extends BasePage {
+  @override
+  State<MyTabbedPage> createState() => _MyTabbedPageState();
+}
+
+class _MyTabbedPageState extends BasePageState<MyTabbedPage>
+    with SingleTickerProviderStateMixin, TabbedMixin {
+
+  @override
+  int get tabCount => 2;
+
+  @override
+  List<String> get tabLabels => ['탭1', '탭2'];
+
+  @override
+  List<Widget> get tabViews => [Tab1Widget(), Tab2Widget()];
+
+  @override
+  void loadInitialData() {
+    context.read<MyBloc>().add(LoadAllTabs());
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: 'Tabbed Page',
+      bottom: buildTabBar(),
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return buildTabBarView();
+  }
+}
+```
+
+#### Refreshable List Page (새로고침 가능한 목록)
+```dart
+class MyListPage extends BasePage {
+  @override
+  State<MyListPage> createState() => _MyListPageState();
+}
+
+class _MyListPageState extends BasePageState<MyListPage>
+    with RefreshableMixin, LoadableMixin {
+
+  @override
+  void loadInitialData() {
+    context.read<MyBloc>().add(LoadList());
+  }
+
+  @override
+  Future<void> onRefresh() async {
+    context.read<MyBloc>().add(RefreshList());
+    await context.read<MyBloc>().stream.firstWhere(
+      (state) => state is! MyLoading,
+    );
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: 'My List',
+      actions: [
+        AppBarActions.filter(() => _showFilter()),
+        AppBarActions.sort(() => _showSort()),
+      ],
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return BlocBuilder<MyBloc, MyState>(
+      builder: (context, state) {
+        return buildRefreshableContent(
+          child: handleStates(
+            state: state,
+            isLoading: (s) => s is MyLoading,
+            isError: (s) => s is MyError,
+            isEmpty: (s) => s is MyLoaded && s.items.isEmpty,
+            getErrorMessage: (s) => (s as MyError).message,
+            buildContent: (s) => ListView.builder(
+              itemCount: (s as MyLoaded).items.length,
+              itemBuilder: (context, index) => _buildItem(s.items[index]),
+            ),
+            emptyMessage: 'No items',
+            onRetry: loadInitialData,
+          ),
+        );
+      },
+    );
+  }
+}
+```
+
+### BasePage Usage Examples
+
+**Key Points**:
+- `loadInitialData()`: 초기 데이터 로딩 (자동으로 addPostFrameCallback 처리)
+- `buildAppBar()`: StandardAppBar 사용
+- `buildBody()`: UI 컨텐츠
+- `buildFloatingActionButton()`: FAB (optional)
+- `buildBottomNavigationBar()`: Bottom Nav (optional)
+
+### Mixin Usage Examples
+
+#### TabbedMixin
+```dart
+class _MyPageState extends BasePageState<MyPage>
+    with SingleTickerProviderStateMixin, TabbedMixin {
+
+  @override
+  int get tabCount => 3;
+
+  @override
+  List<String> get tabLabels => ['탭1', '탭2', '탭3'];
+
+  @override
+  List<Widget> get tabViews => [Widget1(), Widget2(), Widget3()];
+
+  @override
+  void onTabChanged(int index) {
+    // 탭 변경 시 동작
+  }
+}
+```
+
+#### RefreshableMixin
+```dart
+class _MyPageState extends BasePageState<MyPage>
+    with RefreshableMixin {
+
+  @override
+  Future<void> onRefresh() async {
+    context.read<MyBloc>().add(RefreshEvent());
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return buildRefreshableContent(child: ListView(...));
+  }
+}
+```
+
+#### LoadableMixin
+```dart
+class _MyPageState extends BasePageState<MyPage>
+    with LoadableMixin {
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return BlocBuilder<MyBloc, MyState>(
+      builder: (context, state) {
+        return handleStates(
+          state: state,
+          isLoading: (s) => s is MyLoading,
+          isError: (s) => s is MyError,
+          isEmpty: (s) => s is MyLoaded && s.items.isEmpty,
+          getErrorMessage: (s) => (s as MyError).message,
+          buildContent: (s) => MyContentWidget(),
+          onRetry: () => context.read<MyBloc>().add(LoadEvent()),
+        );
+      },
+    );
+  }
+}
+```
+
+### UI Components Quick Reference
+
+**StandardAppBar Actions**:
+```dart
+StandardAppBar(
+  title: '페이지 제목',
+  actions: [
+    AppBarActions.refresh(() => _refresh()),
+    AppBarActions.filter(() => _openFilter()),
+    AppBarActions.sort(() => _openSort()),
+    AppBarActions.search(() => _openSearch()),
+    AppBarActions.settings(() => _openSettings()),
+    AppBarActions.menu([
+      PopupMenuItem(value: 1, child: Text('메뉴1')),
+      PopupMenuItem(value: 2, child: Text('메뉴2')),
+    ], (value) => _handleMenu(value)),
+  ],
+)
+```
+
+**Common Widgets**:
+```dart
+// Loading
+const CommonLoadingWidget(message: 'Loading...')
+
+// Error
+CommonErrorWidget(message: 'Error message', onRetry: () => retry())
+
+// Empty
+const CommonEmptyWidget(icon: Icons.inbox, message: 'No data')
+```
+
 ## 🎯 Most Used Code Snippets
 
 ### 1. Entity (복사 후 이름만 변경)
@@ -271,17 +517,43 @@ class NameBloc extends Bloc<NameEvent, NameState> {
 }
 ```
 
-### 8. Widget (BLoC 사용)
+### 8. Page Template (BasePage 사용)
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:co_workfit/core/widgets/base_page.dart';
+import 'package:co_workfit/core/widgets/standard_app_bar.dart';
+import 'package:co_workfit/core/widgets/app_bar_actions.dart';
 import 'package:co_workfit/core/widgets/common_loading_widget.dart';
 import 'package:co_workfit/core/widgets/common_error_widget.dart';
 import 'package:co_workfit/core/widgets/common_empty_widget.dart';
 
-class NamePage extends StatelessWidget {
+class NamePage extends BasePage {
+  const NamePage({super.key});
+
   @override
-  Widget build(BuildContext context) {
+  State<NamePage> createState() => _NamePageState();
+}
+
+class _NamePageState extends BasePageState<NamePage> {
+  @override
+  void loadInitialData() {
+    context.read<NameBloc>().add(LoadNames());
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: 'Name Page',
+      actions: [
+        AppBarActions.refresh(() => loadInitialData()),
+        AppBarActions.filter(() => _showFilter()),
+      ],
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
     return BlocBuilder<NameBloc, NameState>(
       builder: (context, state) {
         if (state is NameLoading) {
@@ -320,6 +592,10 @@ class NamePage extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _showFilter() {
+    // Show filter dialog
   }
 }
 ```
@@ -550,10 +826,11 @@ flutter test     # Run tests
 
 ## 📚 Quick Reference Files
 
+- `UI_STRUCTURE.md` - Complete UI structure guide (BasePage, Mixins, Patterns)
 - `ARCHITECTURE.md` - Full architecture guide
 - `CONTRIBUTING.md` - Detailed contribution guide
-- `lib/features/social/` - Reference implementation
-- `lib/core/` - Utilities and base classes
+- `lib/features/social/` - Reference implementation (FriendsPage, LeaderboardPage)
+- `lib/core/widgets/` - Base classes (BasePage, Mixins, Common widgets)
 
 ## 🏃‍♂️ Speed Tips for AI
 

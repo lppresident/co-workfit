@@ -52,6 +52,7 @@ lib/
 - `presentation/`: UI 레이어 (BLoC, 페이지, 위젯)
 
 **📚 개발자 가이드**:
+- [`UI_STRUCTURE.md`](UI_STRUCTURE.md) - UI 구조 가이드 (BasePage, Mixins, Patterns)
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) - 상세한 아키텍처 가이드
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) - 기여 가이드 (AI Assistant용)
 - [`AI_QUICK_REFERENCE.md`](AI_QUICK_REFERENCE.md) - 빠른 참조 가이드
