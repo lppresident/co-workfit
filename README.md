@@ -29,24 +29,32 @@
 
 ```
 lib/
-├── core/                    # 핵심 유틸리티
-│   ├── constants/
-│   ├── utils/
-│   └── errors/
+├── core/                    # 공통 기능
+│   ├── constants/          # 앱 전역 상수
+│   ├── di/                 # 의존성 주입
+│   ├── error/              # 에러 정의
+│   ├── platform/           # 플랫폼별 코드
+│   ├── usecases/           # UseCase 베이스 클래스
+│   ├── utils/              # 유틸리티 (Logger 등)
+│   └── widgets/            # 공통 위젯 (Loading, Error, Empty)
 ├── features/                # 기능별 모듈 (Clean Architecture)
 │   ├── auth/               # 사용자 인증
 │   ├── workout/            # 운동 데이터 관리
-│   ├── calibration/        # 캘리브레이션 로직
-│   └── social/             # 소셜 기능
-└── shared/                  # 공유 위젯 & 테마
-    ├── widgets/
-    └── theme/
+│   ├── profile/            # 사용자 프로필
+│   └── social/             # 소셜 기능 (친구, 리더보드)
+└── shared/                  # 공유 리소스
+    └── theme/              # 테마 설정
 ```
 
 각 feature는 Clean Architecture 원칙을 따릅니다:
-- `data/`: 데이터 소스 및 모델
-- `domain/`: 비즈니스 로직 (엔티티, 유스케이스)
+- `domain/`: 비즈니스 로직 (엔티티, Repository 인터페이스, UseCases)
+- `data/`: 데이터 접근 (모델, DataSources, Repository 구현체)
 - `presentation/`: UI 레이어 (BLoC, 페이지, 위젯)
+
+**📚 개발자 가이드**:
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) - 상세한 아키텍처 가이드
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) - 기여 가이드 (AI Assistant용)
+- [`AI_QUICK_REFERENCE.md`](AI_QUICK_REFERENCE.md) - 빠른 참조 가이드
 
 ## 🛠️ 기술 스택
 
@@ -67,6 +75,7 @@ lib/
 ### 필수 요구사항
 - Flutter SDK >= 3.10.0
 - Dart SDK >= 3.10.0
+- Firebase 프로젝트 설정
 
 ### 설치
 
@@ -74,18 +83,43 @@ lib/
 # 의존성 설치
 flutter pub get
 
+# Firebase 설정
+flutterfire configure
+
 # 앱 실행
 flutter run
 ```
 
-### 테스트
+### 개발
 
 ```bash
-# 전체 테스트 실행
-flutter test
-
 # 코드 분석
 flutter analyze
+
+# 테스트 실행
+flutter test
+
+# 빌드
+flutter build ios
+flutter build apk
+```
+
+### AI Assistant 개발 가이드
+
+새 기능을 추가하거나 코드를 수정할 때는 다음 문서를 참고하세요:
+
+1. **시작하기**: [`AI_QUICK_REFERENCE.md`](AI_QUICK_REFERENCE.md) - 가장 빠른 시작
+2. **아키텍처 이해**: [`ARCHITECTURE.md`](ARCHITECTURE.md) - Clean Architecture 패턴
+3. **기여 규칙**: [`CONTRIBUTING.md`](CONTRIBUTING.md) - 코딩 컨벤션 및 베스트 프랙티스
+
+**기본 워크플로우**:
+```
+1. Domain Layer  → Entity, Repository, UseCases 작성
+2. Data Layer    → Model, DataSource, Repository 구현
+3. BLoC Layer    → Event, State, BLoC 작성
+4. UI Layer      → Page, Widgets 작성
+5. DI Setup      → injection.dart 및 main.dart 등록
+6. Quality Check → flutter analyze (0 errors)
 ```
 
 ## 📊 캘리브레이션 알고리즘
