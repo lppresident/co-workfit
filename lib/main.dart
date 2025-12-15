@@ -11,6 +11,8 @@ import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
+import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderboard_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,6 +49,12 @@ class CoWorkFitApp extends StatelessWidget {
         ),
         BlocProvider<ProfileBloc>(
           create: (_) => di.sl<ProfileBloc>(),
+        ),
+        BlocProvider<SocialBloc>(
+          create: (_) => di.sl<SocialBloc>(),
+        ),
+        BlocProvider<LeaderboardBloc>(
+          create: (_) => di.sl<LeaderboardBloc>(),
         ),
       ],
       child: MaterialApp(

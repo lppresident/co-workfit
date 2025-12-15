@@ -2,19 +2,19 @@ import 'package:bloc/bloc.dart';
 import 'package:co_workfit/core/errors/failure.dart';
 import 'package:co_workfit/features/profile/domain/usecases/get_profile_data.dart';
 import 'package:co_workfit/features/profile/domain/usecases/logout_user.dart';
-import 'package:co_workfit/features/profile/domain/usecases/update_display_name_use_case.dart';
+import 'package:co_workfit/features/profile/domain/usecases/update_display_name.dart' as usecases;
 
 import 'profile_event.dart';
 import 'profile_state.dart';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final GetProfileData _getProfileDataUseCase;
-  final UpdateDisplayNameUseCase _updateDisplayNameUseCase;
+  final usecases.UpdateDisplayName _updateDisplayNameUseCase;
   final LogoutUser _logoutUserUseCase;
 
   ProfileBloc({
     required GetProfileData getProfileData,
-    required UpdateDisplayNameUseCase updateDisplayName,
+    required usecases.UpdateDisplayName updateDisplayName,
     required LogoutUser logoutUser,
   })  : _getProfileDataUseCase = getProfileData,
         _updateDisplayNameUseCase = updateDisplayName,
