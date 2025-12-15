@@ -51,7 +51,10 @@ import 'package:co_workfit/features/social/domain/usecases/accept_friend_request
 import 'package:co_workfit/features/social/domain/usecases/reject_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/cancel_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/search_users_by_email.dart';
+import 'package:co_workfit/features/social/domain/usecases/get_leaderboard.dart';
+import 'package:co_workfit/features/social/domain/usecases/get_friends_leaderboard.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
+import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderboard_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -195,7 +198,7 @@ Future<void> initializeDependencies() async {
     () => SocialRepositoryImpl(sl()),
   );
 
-  // Use Cases
+  // Use Cases - Friends
   sl.registerLazySingleton(() => GetFriends(sl()));
   sl.registerLazySingleton(() => SendFriendRequest(sl()));
   sl.registerLazySingleton(() => GetReceivedFriendRequests(sl()));
@@ -204,6 +207,10 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => RejectFriendRequest(sl()));
   sl.registerLazySingleton(() => CancelFriendRequest(sl()));
   sl.registerLazySingleton(() => SearchUsersByEmail(sl()));
+
+  // Use Cases - Leaderboard
+  sl.registerLazySingleton(() => GetLeaderboard(sl()));
+  sl.registerLazySingleton(() => GetFriendsLeaderboard(sl()));
 
   // BLoC
   sl.registerFactory(
@@ -216,6 +223,13 @@ Future<void> initializeDependencies() async {
       rejectFriendRequest: sl(),
       cancelFriendRequest: sl(),
       searchUsersByEmail: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => LeaderboardBloc(
+      getLeaderboard: sl(),
+      getFriendsLeaderboard: sl(),
     ),
   );
 }
