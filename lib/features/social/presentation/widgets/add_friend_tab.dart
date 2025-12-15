@@ -5,6 +5,8 @@ import 'package:co_workfit/features/social/presentation/bloc/social_state.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import 'package:co_workfit/core/widgets/common_empty_widget.dart';
+import 'package:co_workfit/core/constants/app_constants.dart';
 
 class AddFriendTab extends StatefulWidget {
   const AddFriendTab({super.key});
@@ -62,7 +64,7 @@ class _AddFriendTabState extends State<AddFriendTab> {
         final currentUserId = authState is Authenticated ? authState.user.id : null;
 
         return Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppConstants.defaultPadding),
           child: Column(
             children: [
               TextField(
@@ -82,7 +84,7 @@ class _AddFriendTabState extends State<AddFriendTab> {
                 ),
                 onSubmitted: (_) => _searchUsers(),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppConstants.defaultPadding),
               ElevatedButton(
                 onPressed: isSearching ? null : _searchUsers,
                 child: isSearching
@@ -96,18 +98,9 @@ class _AddFriendTabState extends State<AddFriendTab> {
               const SizedBox(height: 24),
               if (searchResults.isEmpty && !isSearching)
                 const Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.person_search, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          '이메일로 친구를 검색하세요',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                      ],
-                    ),
+                  child: CommonEmptyWidget(
+                    icon: Icons.person_search,
+                    message: '이메일로 친구를 검색하세요',
                   ),
                 )
               else

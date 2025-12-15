@@ -6,6 +6,7 @@ import 'package:co_workfit/features/workout/data/datasources/health_kit_datasour
 import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_data_mapper.dart';
 import 'package:co_workfit/features/workout/data/datasources/garmin/garmin_datasource.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// WorkoutRepository 구현체
 /// iOS에서는 HealthKit, Android에서는 Health Connect를 사용합니다.
@@ -38,10 +39,10 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   @override
   Future<Either<String, bool>> requestHealthAuthorization() async {
     if (_isIOS) {
-      print('[WorkoutRepo] iOS - HealthKit 권한 요청');
+      AppLogger.info('WorkoutRepo', 'iOS - HealthKit 권한 요청');
       return await _healthKitDataSource.requestAuthorization();
     } else if (_isAndroid) {
-      print('[WorkoutRepo] Android - Health Connect 권한 요청');
+      AppLogger.info('WorkoutRepo', 'Android - Health Connect 권한 요청');
       return await _healthConnectDataSource.requestAuthorization();
     } else {
       return Left('지원하지 않는 플랫폼입니다.');
@@ -124,7 +125,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       );
       healthKitResult.fold(
         (error) {
-          print('[WorkoutRepo] HealthKit 오류: $error');
+          AppLogger.error('WorkoutRepo', 'HealthKit 오류: $error');
           platformError = error;
         },
         (workouts) => allWorkouts.addAll(workouts),
@@ -136,7 +137,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       );
       healthConnectResult.fold(
         (error) {
-          print('[WorkoutRepo] Health Connect 오류: $error');
+          AppLogger.error('WorkoutRepo', 'Health Connect 오류: $error');
           platformError = error;
         },
         (workouts) => allWorkouts.addAll(workouts),
@@ -152,7 +153,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
           errorLower.contains('authorized') ||
           errorLower.contains('access denied') ||
           errorLower.contains('not available')) {
-        print('[WorkoutRepo] 권한 에러 감지 - 즉시 반환: $platformError');
+        AppLogger.warning('WorkoutRepo', '권한 에러 감지 - 즉시 반환: $platformError');
         return Left(platformError!);
       }
       // 기타 에러는 계속 진행 (Garmin 등 다른 소스에서 데이터 가져올 수 있음)
@@ -166,7 +167,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
         userId: _userId,
       );
       garminResult.fold(
-        (error) => print('[WorkoutRepo] Garmin 오류: $error'),
+        (error) => AppLogger.error('WorkoutRepo', 'Garmin 오류: $error'),
         (workouts) => allWorkouts.addAll(workouts),
       );
     }
@@ -281,7 +282,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   Future<Either<String, List<WorkoutEntity>>> getRecentWorkouts({
     int days = 7,
   }) async {
-    print('[WorkoutRepo] 최근 $days일 운동 데이터 요청');
+    AppLogger.info('WorkoutRepo', '최근 $days일 운동 데이터 요청');
 
     final now = DateTime.now();
     final startDate = now.subtract(Duration(days: days));
@@ -290,18 +291,18 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
 
     return result.fold(
       (error) {
-        print('[WorkoutRepo] 데이터 가져오기 실패: $error');
+        AppLogger.error('WorkoutRepo', '데이터 가져오기 실패: $error');
         return Left(error);
       },
       (workouts) {
-        print('[WorkoutRepo] 최종 운동 데이터: ${workouts.length}개');
+        AppLogger.info('WorkoutRepo', '최종 운동 데이터: ${workouts.length}개');
 
         // 소스별 통계 로깅
         final sourceStats = <WorkoutSource, int>{};
         for (final workout in workouts) {
           sourceStats[workout.source] = (sourceStats[workout.source] ?? 0) + 1;
         }
-        print('[WorkoutRepo] 소스별 데이터: $sourceStats');
+        AppLogger.debug('WorkoutRepo', '소스별 데이터: $sourceStats');
 
         return Right(workouts);
       },

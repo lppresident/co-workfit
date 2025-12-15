@@ -3,6 +3,7 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 import 'package:co_workfit/core/constants/health_data_types.dart';
 import 'package:co_workfit/features/calibration/domain/usecases/calibrate_workout.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// Health 데이터를 WorkoutEntity로 변환하는 매퍼
 /// Apple HealthKit, Google Fit, Samsung Health 데이터 모두 지원
@@ -43,14 +44,14 @@ class HealthDataMapper {
       // 단위에 따라 킬로미터로 변환
       if (unit == HealthDataUnit.METER) {
         distance = rawDistance / 1000.0;
-        print('[HealthDataMapper] WORKOUT 거리: ${rawDistance}m → ${distance}km');
+        AppLogger.debug('HealthDataMapper', 'WORKOUT 거리: ${rawDistance}m → ${distance}km');
       } else if (unit == HealthDataUnit.MILE) {
         distance = rawDistance * 1.60934;
-        print('[HealthDataMapper] WORKOUT 거리: ${rawDistance}mi → ${distance}km');
+        AppLogger.debug('HealthDataMapper', 'WORKOUT 거리: ${rawDistance}mi → ${distance}km');
       } else {
         // 알 수 없는 단위는 미터로 가정
         distance = rawDistance / 1000.0;
-        print('[HealthDataMapper] WORKOUT 거리 (알 수 없는 단위 $unit): ${rawDistance} → ${distance}km');
+        AppLogger.debug('HealthDataMapper', 'WORKOUT 거리 (알 수 없는 단위 $unit): ${rawDistance} → ${distance}km');
       }
     }
 

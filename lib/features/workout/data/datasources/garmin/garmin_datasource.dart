@@ -3,6 +3,7 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 import 'garmin_config.dart';
 import 'garmin_auth_service.dart';
 import 'garmin_api_client.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// Garmin Health API 데이터 소스
 ///
@@ -91,7 +92,7 @@ class GarminDataSource {
             }
           }
 
-          print('[Garmin] ${activities.length}개 운동 데이터 조회됨');
+          AppLogger.info('Garmin', '${activities.length}개 운동 데이터 조회됨');
           return Right(activities);
         },
       );

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:co_workfit/core/config/firebase_config.dart';
 import 'package:co_workfit/features/auth/data/models/user_model.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// Firebase Auth 데이터소스
 class FirebaseAuthDataSource {
@@ -23,7 +24,7 @@ class FirebaseAuthDataSource {
       _googleSignIn = googleSignIn ?? GoogleSignIn();
       _initialized = true;
     } catch (e) {
-      print('[FirebaseAuthDataSource] Firebase not initialized: $e');
+      AppLogger.warning('FirebaseAuthDataSource', 'Firebase not initialized: $e');
       _initialized = false;
     }
   }

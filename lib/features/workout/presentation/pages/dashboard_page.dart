@@ -17,6 +17,7 @@ import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// 메인 대시보드 페이지 (네비게이션 허브)
 class DashboardPage extends StatefulWidget {
@@ -193,7 +194,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
               _showHealthConnectInstallDialog(context);
             });
           } else if (state.message == 'HEALTH_PERMISSION_DENIED') {
-            print('[DashboardPage] Health Connect 권한이 거부됨');
+            AppLogger.warning('DashboardPage', 'Health Connect 권한이 거부됨');
           }
         } else if (state is WorkoutError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -314,7 +315,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
                   );
                 }
               } catch (e) {
-                print('[DashboardPage] Health Connect 설치 유도 실패: $e');
+                AppLogger.error('DashboardPage', 'Health Connect 설치 유도 실패', e);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -416,7 +417,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
                           final repository = di.sl<WorkoutRepository>();
                           await repository.openHealthConnectSettings();
                         } catch (e) {
-                          print('[DashboardPage] 설정 열기 실패: $e');
+                          AppLogger.error('DashboardPage', '설정 열기 실패', e);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(

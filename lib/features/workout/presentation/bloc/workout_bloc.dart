@@ -4,6 +4,7 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart
 import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
 import 'package:co_workfit/features/workout/domain/usecases/request_health_permission.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_workouts.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// 운동 BLoC
 class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
@@ -29,25 +30,25 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     RequestHealthPermissionEvent event,
     Emitter<WorkoutState> emit,
   ) async {
-    print('[WorkoutBloc] 권한 요청 시작');
+    AppLogger.info('WorkoutBloc', '권한 요청 시작');
     emit(const WorkoutPermissionRequesting());
 
     final result = await requestHealthPermission();
 
     result.fold(
       (error) {
-        print('[WorkoutBloc] 권한 요청 실패: $error');
+        AppLogger.error('WorkoutBloc', '권한 요청 실패: $error');
         emit(WorkoutPermissionDenied(error));
       },
       (granted) {
-        print('[WorkoutBloc] 권한 요청 결과: $granted');
+        AppLogger.info('WorkoutBloc', '권한 요청 결과: $granted');
         if (granted) {
-          print('[WorkoutBloc] 권한 승인됨 - 최근 운동 데이터 로드 시작');
+          AppLogger.info('WorkoutBloc', '권한 승인됨 - 최근 운동 데이터 로드 시작');
           emit(const WorkoutPermissionGranted());
           // 권한 승인 후 자동으로 최근 7일 운동 가져오기
           add(const FetchRecentWorkoutsEvent(days: 7));
         } else {
-          print('[WorkoutBloc] 권한 거부됨');
+          AppLogger.warning('WorkoutBloc', '권한 거부됨');
           emit(const WorkoutPermissionDenied('권한이 거부되었습니다.'));
         }
       },
@@ -78,7 +79,7 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     FetchRecentWorkoutsEvent event,
     Emitter<WorkoutState> emit,
   ) async {
-    print('[WorkoutBloc] 최근 ${event.days}일 운동 데이터 로드 시작');
+    AppLogger.info('WorkoutBloc', '최근 ${event.days}일 운동 데이터 로드 시작');
     emit(const WorkoutLoading());
 
     await _loadWorkoutsWithPermissionCheck(emit, days: event.days);
@@ -111,7 +112,7 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     RefreshWorkoutsEvent event,
     Emitter<WorkoutState> emit,
   ) async {
-    print('[WorkoutBloc] 새로고침 요청 - 데이터 로드 시도');
+    AppLogger.info('WorkoutBloc', '새로고침 요청 - 데이터 로드 시도');
     emit(const WorkoutLoading());
 
     await _loadWorkoutsWithPermissionCheck(emit, days: 7);
@@ -128,59 +129,60 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     required int days,
   }) async {
     final startTime = DateTime.now();
-    print('[WorkoutBloc] ⏱️ 시작 시간: ${startTime.toIso8601String()}');
+    AppLogger.debug('WorkoutBloc', '시작 시간: ${startTime.toIso8601String()}');
 
     try {
       // 전체 로드 프로세스에 15초 타임아웃 적용
-      print('[WorkoutBloc] ⏱️ 데이터 로드 시작...');
+      AppLogger.debug('WorkoutBloc', '데이터 로드 시작...');
       final dataLoadStart = DateTime.now();
 
       final result = await getRecentWorkouts(days: days).timeout(
         const Duration(seconds: 15),
         onTimeout: () {
           final elapsed = DateTime.now().difference(dataLoadStart).inMilliseconds;
-          print('[WorkoutBloc] ⏱️ 데이터 로드 타임아웃 (${elapsed}ms)');
+          AppLogger.performance('WorkoutBloc', '데이터 로드 타임아웃', elapsed);
           return Left('데이터 로드 시간 초과');
         },
       );
 
       final dataLoadElapsed = DateTime.now().difference(dataLoadStart).inMilliseconds;
-      print('[WorkoutBloc] ⏱️ 데이터 로드 완료 (${dataLoadElapsed}ms)');
+      AppLogger.performance('WorkoutBloc', '데이터 로드 완료', dataLoadElapsed);
 
       // fold 대신 isLeft/isRight로 처리 (async 콜백 문제 방지)
       if (result.isLeft()) {
         final error = result.fold((l) => l, (r) => '');
         final totalElapsed = DateTime.now().difference(startTime).inMilliseconds;
-        print('[WorkoutBloc] ⏱️ 데이터 로드 실패 (총 ${totalElapsed}ms): $error');
+        AppLogger.performance('WorkoutBloc', '데이터 로드 실패', totalElapsed);
+        AppLogger.error('WorkoutBloc', '데이터 로드 실패: $error');
 
         // 권한 관련 에러인지 확인
         final errorLower = error.toLowerCase();
         if (error == 'HEALTH_CONNECT_NOT_INSTALLED' ||
             errorLower.contains('not installed') ||
             errorLower.contains('not available')) {
-          print('[WorkoutBloc] Health Connect 미설치 - 권한 UI 표시');
+          AppLogger.warning('WorkoutBloc', 'Health Connect 미설치 - 권한 UI 표시');
           emit(const WorkoutPermissionDenied('HEALTH_CONNECT_NOT_INSTALLED'));
         } else if (error == 'HEALTH_PERMISSION_DENIED' ||
             errorLower.contains('permission') ||
             errorLower.contains('권한') ||
             errorLower.contains('authorized') ||
             errorLower.contains('access denied')) {
-          print('[WorkoutBloc] 권한 거부됨 - 권한 UI 표시');
+          AppLogger.warning('WorkoutBloc', '권한 거부됨 - 권한 UI 표시');
           emit(const WorkoutPermissionDenied('HEALTH_PERMISSION_DENIED'));
         } else {
           // 기타 에러 (타임아웃 포함) - 초기 상태로 전환
-          print('[WorkoutBloc] 일반 에러 - 초기 상태로 전환');
+          AppLogger.info('WorkoutBloc', '일반 에러 - 초기 상태로 전환');
           emit(const WorkoutInitial());
         }
       } else {
         final workouts = result.getOrElse(() => []);
         final totalElapsed = DateTime.now().difference(startTime).inMilliseconds;
-        print('[WorkoutBloc] ⏱️ 데이터 로드 성공 (총 ${totalElapsed}ms): ${workouts.length}개');
+        AppLogger.performance('WorkoutBloc', '데이터 로드 성공: ${workouts.length}개', totalElapsed);
 
         if (workouts.isEmpty) {
           // 데이터가 비어있을 때: 권한 부족인지 실제로 데이터가 없는지 확인 (5초 타임아웃)
-          print('[WorkoutBloc] 데이터 없음 - 권한 상태 확인 중');
-          print('[WorkoutBloc] ⏱️ 권한 확인 시작...');
+          AppLogger.info('WorkoutBloc', '데이터 없음 - 권한 상태 확인 중');
+          AppLogger.debug('WorkoutBloc', '권한 확인 시작...');
           final permissionCheckStart = DateTime.now();
 
           try {
@@ -188,36 +190,38 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
               const Duration(seconds: 5),
               onTimeout: () {
                 final elapsed = DateTime.now().difference(permissionCheckStart).inMilliseconds;
-                print('[WorkoutBloc] ⏱️ 권한 확인 타임아웃 (${elapsed}ms) - 초기 상태로');
+                AppLogger.performance('WorkoutBloc', '권한 확인 타임아웃 - 초기 상태로', elapsed);
                 return Left('권한 확인 시간 초과');
               },
             );
 
             final permissionCheckElapsed = DateTime.now().difference(permissionCheckStart).inMilliseconds;
-            print('[WorkoutBloc] ⏱️ 권한 확인 완료 (${permissionCheckElapsed}ms)');
+            AppLogger.performance('WorkoutBloc', '권한 확인 완료', permissionCheckElapsed);
 
             if (permissionResult.isLeft()) {
               // 권한 확인 실패 = 권한 없음
               final permError = permissionResult.fold((l) => l, (r) => '');
               final totalElapsed2 = DateTime.now().difference(startTime).inMilliseconds;
-              print('[WorkoutBloc] ⏱️ 권한 없음 확인됨 (총 ${totalElapsed2}ms) - 초기 상태로 전환: $permError');
+              AppLogger.performance('WorkoutBloc', '권한 없음 확인됨 - 초기 상태로 전환', totalElapsed2);
+              AppLogger.warning('WorkoutBloc', '권한 확인 실패: $permError');
               emit(const WorkoutInitial());
             } else {
               final granted = permissionResult.fold((l) => false, (r) => r);
               final totalElapsed2 = DateTime.now().difference(startTime).inMilliseconds;
               if (granted) {
                 // 권한은 있는데 데이터가 없음
-                print('[WorkoutBloc] ⏱️ 권한 있음 (총 ${totalElapsed2}ms) - 실제로 운동 데이터 없음');
+                AppLogger.performance('WorkoutBloc', '권한 있음 - 실제로 운동 데이터 없음', totalElapsed2);
                 emit(const WorkoutEmpty());
               } else {
                 // 권한 없음
-                print('[WorkoutBloc] ⏱️ 권한 거부됨 (총 ${totalElapsed2}ms) - 초기 상태로 전환');
+                AppLogger.performance('WorkoutBloc', '권한 거부됨 - 초기 상태로 전환', totalElapsed2);
                 emit(const WorkoutInitial());
               }
             }
           } catch (e) {
             final totalElapsed2 = DateTime.now().difference(startTime).inMilliseconds;
-            print('[WorkoutBloc] ⏱️ 권한 확인 예외 발생 (총 ${totalElapsed2}ms): $e - 초기 상태로');
+            AppLogger.performance('WorkoutBloc', '권한 확인 예외 발생 - 초기 상태로', totalElapsed2);
+            AppLogger.error('WorkoutBloc', '권한 확인 예외', e);
             if (!emit.isDone) {
               emit(const WorkoutInitial());
             }
@@ -225,21 +229,22 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
         } else {
           emit(WorkoutLoaded.fromWorkouts(workouts));
           final totalElapsed2 = DateTime.now().difference(startTime).inMilliseconds;
-          print('[WorkoutBloc] ⏱️ WorkoutLoaded emit 완료 (총: ${totalElapsed2}ms)');
+          AppLogger.performance('WorkoutBloc', 'WorkoutLoaded emit 완료', totalElapsed2);
         }
       }
     } catch (e) {
       final totalElapsed = DateTime.now().difference(startTime).inMilliseconds;
-      print('[WorkoutBloc] ⏱️ 데이터 로드 예외 발생 (총 ${totalElapsed}ms): $e - 초기 상태로');
+      AppLogger.performance('WorkoutBloc', '데이터 로드 예외 발생 - 초기 상태로', totalElapsed);
+      AppLogger.error('WorkoutBloc', '데이터 로드 예외', e);
       if (!emit.isDone) {
         final emitStart = DateTime.now();
         emit(const WorkoutInitial());
         final emitElapsed = DateTime.now().difference(emitStart).inMilliseconds;
-        print('[WorkoutBloc] ⏱️ emit 완료 (${emitElapsed}ms)');
+        AppLogger.performance('WorkoutBloc', 'emit 완료', emitElapsed);
       }
     }
 
     final totalElapsed = DateTime.now().difference(startTime).inMilliseconds;
-    print('[WorkoutBloc] ⏱️ 전체 프로세스 완료 (총 ${totalElapsed}ms)');
+    AppLogger.performance('WorkoutBloc', '전체 프로세스 완료', totalElapsed);
   }
 }

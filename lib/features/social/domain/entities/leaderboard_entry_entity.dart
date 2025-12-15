@@ -4,7 +4,31 @@ import 'package:equatable/equatable.dart';
 enum LeaderboardType {
   weekly,
   monthly,
-  allTime,
+  allTime;
+
+  /// Get display name for UI
+  String getDisplayName() {
+    switch (this) {
+      case LeaderboardType.allTime:
+        return '전체 기간';
+      case LeaderboardType.monthly:
+        return '이번 달';
+      case LeaderboardType.weekly:
+        return '이번 주';
+    }
+  }
+
+  /// Get number of days for this period (null for all-time)
+  int? getDays() {
+    switch (this) {
+      case LeaderboardType.allTime:
+        return null;
+      case LeaderboardType.monthly:
+        return 30;
+      case LeaderboardType.weekly:
+        return 7;
+    }
+  }
 }
 
 /// 리더보드 엔트리 엔티티

@@ -11,6 +11,7 @@ import '../../domain/repositories/health_repository.dart';
 import '../datasources/health_kit_datasource.dart';
 import '../datasources/health_connect_datasource.dart';
 import '../datasources/health_data_mapper.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// Health Repository Implementation
 class HealthRepositoryImpl implements HealthRepository {
@@ -56,10 +57,10 @@ class HealthRepositoryImpl implements HealthRepository {
   Future<Either<String, bool>> requestHealthPermission() async {
     try {
       if (_isIOS) {
-        print('[HealthRepo] iOS - Requesting HealthKit permission');
+        AppLogger.info('HealthRepo', 'iOS - Requesting HealthKit permission');
         return await _healthKitDataSource.requestAuthorization();
       } else if (_isAndroid) {
-        print('[HealthRepo] Android - Requesting Health Connect permission');
+        AppLogger.info('HealthRepo', 'Android - Requesting Health Connect permission');
         return await _healthConnectDataSource.requestAuthorization();
       } else {
         return Left('Unsupported platform');
@@ -105,7 +106,7 @@ class HealthRepositoryImpl implements HealthRepository {
     try {
       final isInstalled =
           await _healthConnectDataSource.isHealthConnectInstalled();
-      print('[HealthRepo] Health Connect installed: $isInstalled');
+      AppLogger.info('HealthRepo', 'Health Connect installed: $isInstalled');
       return Right(isInstalled);
     } catch (e) {
       return Left('Error checking Health Connect installation: ${e.toString()}');
@@ -236,7 +237,7 @@ class HealthRepositoryImpl implements HealthRepository {
     DateTime startDate,
     DateTime endDate,
   ) async {
-    print('[HealthRepo] Fetching iOS workout data: $startDate to $endDate');
+    AppLogger.debug('HealthRepo', 'Fetching iOS workout data: $startDate to $endDate');
 
     final result = await _healthKitDataSource.fetchWorkoutData(
       startDate: startDate,
@@ -245,11 +246,11 @@ class HealthRepositoryImpl implements HealthRepository {
 
     return result.fold(
       (error) {
-        print('[HealthRepo] iOS fetch error: $error');
+        AppLogger.error('HealthRepo', 'iOS fetch error: $error');
         return Left(error);
       },
       (healthDataPoints) async {
-        print('[HealthRepo] iOS fetched ${healthDataPoints.length} data points');
+        AppLogger.info('HealthRepo', 'iOS fetched ${healthDataPoints.length} data points');
 
         if (healthDataPoints.isEmpty) {
           return const Right([]);
@@ -271,7 +272,7 @@ class HealthRepositoryImpl implements HealthRepository {
           userId: _userId,
         );
 
-        print('[HealthRepo] Converted to ${workouts.length} workout entities');
+        AppLogger.info('HealthRepo', 'Converted to ${workouts.length} workout entities');
         return Right(workouts);
       },
     );
@@ -282,7 +283,7 @@ class HealthRepositoryImpl implements HealthRepository {
     DateTime startDate,
     DateTime endDate,
   ) async {
-    print('[HealthRepo] Fetching Android workout data: $startDate to $endDate');
+    AppLogger.debug('HealthRepo', 'Fetching Android workout data: $startDate to $endDate');
 
     final result = await _healthConnectDataSource.fetchWorkoutDataWithSource(
       startDate: startDate,
@@ -291,12 +292,11 @@ class HealthRepositoryImpl implements HealthRepository {
 
     return result.fold(
       (error) {
-        print('[HealthRepo] Android fetch error: $error');
+        AppLogger.error('HealthRepo', 'Android fetch error: $error');
         return Left(error);
       },
       (healthDataPoints) async {
-        print(
-            '[HealthRepo] Android fetched ${healthDataPoints.length} data points');
+        AppLogger.info('HealthRepo', 'Android fetched ${healthDataPoints.length} data points');
 
         if (healthDataPoints.isEmpty) {
           return const Right([]);
@@ -319,7 +319,7 @@ class HealthRepositoryImpl implements HealthRepository {
           userId: _userId,
         );
 
-        print('[HealthRepo] Converted to ${workouts.length} workout entities');
+        AppLogger.info('HealthRepo', 'Converted to ${workouts.length} workout entities');
         return Right(workouts);
       },
     );

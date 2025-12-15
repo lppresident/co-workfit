@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// Health Connect 앱 설치 여부를 확인하는 플랫폼 채널 헬퍼
 class HealthConnectChecker {
@@ -24,11 +25,11 @@ class HealthConnectChecker {
       final bool? isInstalled =
           await _channel.invokeMethod('isHealthConnectInstalled');
       return isInstalled ?? false;
-    } on PlatformException catch (e) {
-      print('[HealthConnectChecker] 플랫폼 예외: ${e.message}');
+    } on PlatformException {
+      AppLogger.error('HealthConnectChecker', '플랫폼 예외 발생');
       return false;
     } catch (e) {
-      print('[HealthConnectChecker] 예외 발생: $e');
+      AppLogger.error('HealthConnectChecker', '예외 발생', e);
       return false;
     }
   }

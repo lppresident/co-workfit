@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:co_workfit/features/social/domain/entities/leaderboard_entry_entity.dart';
+import 'package:co_workfit/core/constants/app_constants.dart';
 
 class LeaderboardEntryWidget extends StatelessWidget {
   final LeaderboardEntryEntity entry;
@@ -14,7 +15,7 @@ class LeaderboardEntryWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: AppConstants.defaultPadding, vertical: 4),
       elevation: isCurrentUser ? 4 : 1,
       color: isCurrentUser ? Colors.blue.shade50 : null,
       child: ListTile(
@@ -88,14 +89,14 @@ class LeaderboardEntryWidget extends StatelessWidget {
     IconData? icon;
     Color iconColor = Colors.white;
 
-    if (rank == 1) {
-      backgroundColor = const Color(0xFFFFD700); // Gold
+    if (rank == AppConstants.goldRank) {
+      backgroundColor = const Color(AppConstants.goldColor);
       icon = Icons.emoji_events;
-    } else if (rank == 2) {
-      backgroundColor = const Color(0xFFC0C0C0); // Silver
+    } else if (rank == AppConstants.silverRank) {
+      backgroundColor = const Color(AppConstants.silverColor);
       icon = Icons.emoji_events;
-    } else if (rank == 3) {
-      backgroundColor = const Color(0xFFCD7F32); // Bronze
+    } else if (rank == AppConstants.bronzeRank) {
+      backgroundColor = const Color(AppConstants.bronzeColor);
       icon = Icons.emoji_events;
     } else {
       backgroundColor = Colors.grey.shade300;
