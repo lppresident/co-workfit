@@ -77,58 +77,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterSheet,
-            tooltip: '필터',
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort),
-            tooltip: '정렬',
-            onSelected: (value) {
-              setState(() {
-                _sortBy = value;
-              });
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'latest',
-                child: Row(
-                  children: [
-                    if (_sortBy == 'latest') const Icon(Icons.check, size: 20),
-                    if (_sortBy == 'latest') const SizedBox(width: 8),
-                    const Text('최신순'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'oldest',
-                child: Row(
-                  children: [
-                    if (_sortBy == 'oldest') const Icon(Icons.check, size: 20),
-                    if (_sortBy == 'oldest') const SizedBox(width: 8),
-                    const Text('오래된순'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'score_high',
-                child: Row(
-                  children: [
-                    if (_sortBy == 'score_high') const Icon(Icons.check, size: 20),
-                    if (_sortBy == 'score_high') const SizedBox(width: 8),
-                    const Text('점수 높은순'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'score_low',
-                child: Row(
-                  children: [
-                    if (_sortBy == 'score_low') const Icon(Icons.check, size: 20),
-                    if (_sortBy == 'score_low') const SizedBox(width: 8),
-                    const Text('점수 낮은순'),
-                  ],
-                ),
-              ),
-            ],
+            tooltip: '필터 및 정렬',
           ),
         ],
       ),
@@ -359,10 +308,12 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
       builder: (context) => FilterBottomSheet(
         selectedType: _selectedType,
         selectedSource: _selectedSource,
-        onApply: (type, source) {
+        sortBy: _sortBy,
+        onApply: (type, source, sortBy) {
           setState(() {
             _selectedType = type;
             _selectedSource = source;
+            _sortBy = sortBy;
           });
         },
       ),

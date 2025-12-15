@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
-/// 운동 필터 바텀시트
+/// 운동 필터 및 정렬 바텀시트
 class FilterBottomSheet extends StatefulWidget {
   final WorkoutType? selectedType;
   final WorkoutSource? selectedSource;
-  final Function(WorkoutType?, WorkoutSource?) onApply;
+  final String sortBy;
+  final Function(WorkoutType?, WorkoutSource?, String) onApply;
 
   const FilterBottomSheet({
     super.key,
     this.selectedType,
     this.selectedSource,
+    required this.sortBy,
     required this.onApply,
   });
 
@@ -21,12 +23,14 @@ class FilterBottomSheet extends StatefulWidget {
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
   WorkoutType? _selectedType;
   WorkoutSource? _selectedSource;
+  String _sortBy = 'latest';
 
   @override
   void initState() {
     super.initState();
     _selectedType = widget.selectedType;
     _selectedSource = widget.selectedSource;
+    _sortBy = widget.sortBy;
   }
 
   @override
@@ -102,6 +106,20 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           ),
           const SizedBox(height: 24),
 
+          // 정렬 기준
+          Text(
+            '정렬',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 12),
+          _buildSortOption('latest', '최신순', Icons.schedule),
+          _buildSortOption('oldest', '오래된순', Icons.history),
+          _buildSortOption('score_high', '점수 높은순', Icons.arrow_upward),
+          _buildSortOption('score_low', '점수 낮은순', Icons.arrow_downward),
+          const SizedBox(height: 24),
+
           // 버튼
           Row(
             children: [
@@ -111,6 +129,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                     setState(() {
                       _selectedType = null;
                       _selectedSource = null;
+                      _sortBy = 'latest';
                     });
                   },
                   child: const Text('초기화'),
@@ -121,7 +140,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 flex: 2,
                 child: ElevatedButton(
                   onPressed: () {
-                    widget.onApply(_selectedType, _selectedSource);
+                    widget.onApply(_selectedType, _selectedSource, _sortBy);
                     Navigator.pop(context);
                   },
                   child: const Text('적용'),
@@ -245,5 +264,27 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       case WorkoutSource.manual:
         return '수동';
     }
+  }
+
+  Widget _buildSortOption(String value, String label, IconData icon) {
+    return RadioListTile<String>(
+      value: value,
+      groupValue: _sortBy,
+      onChanged: (newValue) {
+        setState(() {
+          _sortBy = newValue!;
+        });
+      },
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+    );
   }
 }
