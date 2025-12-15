@@ -114,51 +114,21 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
             tooltip: '기간 선택',
             onSelected: _changeLeaderboardType,
             itemBuilder: (context) => [
-              PopupMenuItem(
-                value: LeaderboardType.allTime,
+              ...LeaderboardType.values.map((type) => PopupMenuItem(
+                value: type,
                 child: Row(
                   children: [
                     Icon(
-                      _selectedType == LeaderboardType.allTime
+                      _selectedType == type
                           ? Icons.radio_button_checked
                           : Icons.radio_button_unchecked,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
-                    const Text('전체 기간'),
+                    Text(type.getDisplayName()),
                   ],
                 ),
-              ),
-              PopupMenuItem(
-                value: LeaderboardType.monthly,
-                child: Row(
-                  children: [
-                    Icon(
-                      _selectedType == LeaderboardType.monthly
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_unchecked,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('이번 달'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: LeaderboardType.weekly,
-                child: Row(
-                  children: [
-                    Icon(
-                      _selectedType == LeaderboardType.weekly
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_unchecked,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('이번 주'),
-                  ],
-                ),
-              ),
+              )),
             ],
           ),
         ],

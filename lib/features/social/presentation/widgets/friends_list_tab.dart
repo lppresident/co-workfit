@@ -5,6 +5,10 @@ import 'package:co_workfit/features/social/presentation/bloc/social_state.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import 'package:co_workfit/core/widgets/common_loading_widget.dart';
+import 'package:co_workfit/core/widgets/common_error_widget.dart';
+import 'package:co_workfit/core/widgets/common_empty_widget.dart';
+import 'package:co_workfit/core/constants/app_constants.dart';
 
 class FriendsListTab extends StatelessWidget {
   const FriendsListTab({super.key});
@@ -14,27 +18,18 @@ class FriendsListTab extends StatelessWidget {
     return BlocBuilder<SocialBloc, SocialState>(
       builder: (context, state) {
         if (state is SocialLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const CommonLoadingWidget(message: '친구 목록 불러오는 중...');
         }
 
         if (state is SocialError && state.previousState == null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('오류: ${state.message}'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    final authState = context.read<AuthBloc>().state;
-                    if (authState is Authenticated) {
-                      context.read<SocialBloc>().add(LoadFriends(authState.user.id));
-                    }
-                  },
-                  child: const Text('다시 시도'),
-                ),
-              ],
-            ),
+          return CommonErrorWidget(
+            message: state.message,
+            onRetry: () {
+              final authState = context.read<AuthBloc>().state;
+              if (authState is Authenticated) {
+                context.read<SocialBloc>().add(LoadFriends(authState.user.id));
+              }
+            },
           );
         }
 
@@ -49,23 +44,9 @@ class FriendsListTab extends StatelessWidget {
                         : <dynamic>[];
 
         if (friends.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                const Text(
-                  '아직 친구가 없습니다',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  '친구 추가 탭에서 친구를 추가해보세요!',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
+          return const CommonEmptyWidget(
+            icon: Icons.people_outline,
+            message: '아직 친구가 없습니다\n친구 추가 탭에서 친구를 추가해보세요!',
           );
         }
 
@@ -81,7 +62,10 @@ class FriendsListTab extends StatelessWidget {
             itemBuilder: (context, index) {
               final friend = friends[index];
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.defaultPadding,
+                  vertical: 8,
+                ),
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundImage: friend.friendPhotoUrl != null

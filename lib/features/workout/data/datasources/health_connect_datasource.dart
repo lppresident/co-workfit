@@ -4,6 +4,7 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 import 'package:co_workfit/core/platform/health_connect_checker.dart';
 import 'package:dartz/dartz.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// Health Connect 데이터 소스
 /// Android에서 Health Connect를 통해 여러 소스(Google Fit, Samsung Health 등)의 데이터를 통합 관리합니다.
@@ -25,11 +26,11 @@ class HealthConnectDataSource {
       final isInstalled = await HealthConnectChecker.isHealthConnectInstalled();
 
       if (!isInstalled) {
-        print('[HealthConnect] Health Connect 앱이 설치되지 않음');
+        AppLogger.warning('HealthConnect', 'Health Connect 앱이 설치되지 않음');
         return const Left('HEALTH_CONNECT_NOT_INSTALLED');
       }
 
-      print('[HealthConnect] Health Connect 앱 설치 확인됨, 권한 요청 시작');
+      AppLogger.info('HealthConnect', 'Health Connect 앱 설치 확인됨, 권한 요청 시작');
 
       // 2단계: 전체 권한 요청 (10초 타임아웃)
       final authorized = await _health
@@ -42,21 +43,21 @@ class HealthConnectDataSource {
           .timeout(
             const Duration(seconds: 10),
             onTimeout: () {
-              print('[HealthConnect] 권한 요청 타임아웃 (10초)');
+              AppLogger.warning('HealthConnect', '권한 요청 타임아웃 (10초)');
               return false;
             },
           );
 
-      print('[HealthConnect] requestAuthorization 결과: $authorized');
+      AppLogger.info('HealthConnect', 'requestAuthorization 결과: $authorized');
 
       // 3단계: authorized가 false여도 실제 데이터 접근으로 재확인
       // Health Connect는 이미 권한이 있을 때도 false를 반환하는 버그가 있음
       if (!authorized) {
-        print('[HealthConnect] false 반환됨 - 실제 데이터 접근 테스트 시도');
+        AppLogger.debug('HealthConnect', 'false 반환됨 - 실제 데이터 접근 테스트 시도');
 
         try {
           // 간단한 데이터 조회로 실제 권한 확인
-          final testData = await _health
+          await _health
               .getHealthDataFromTypes(
                 types: [HealthDataType.STEPS],
                 startTime: DateTime.now().subtract(const Duration(days: 1)),
@@ -64,19 +65,19 @@ class HealthConnectDataSource {
               )
               .timeout(const Duration(seconds: 3));
 
-          print('[HealthConnect] 테스트 데이터 조회 성공 - 실제로는 권한 있음');
+          AppLogger.info('HealthConnect', '테스트 데이터 조회 성공 - 실제로는 권한 있음');
           return const Right(true);
         } catch (e) {
-          print('[HealthConnect] 테스트 데이터 조회 실패: $e');
+          AppLogger.warning('HealthConnect', '테스트 데이터 조회 실패: $e');
           // 실제로 권한이 없는 것으로 판단
           return const Left('HEALTH_PERMISSION_DENIED');
         }
       }
 
-      print('[HealthConnect] 권한 승인됨');
+      AppLogger.info('HealthConnect', '권한 승인됨');
       return const Right(true);
     } catch (e) {
-      print('[HealthConnect] 권한 요청 중 예외 발생: $e');
+      AppLogger.error('HealthConnect', '권한 요청 중 예외 발생', e);
       final errorString = e.toString().toLowerCase();
 
       // 혹시 모를 fallback: health 패키지가 'not available' 반환하는 경우
@@ -126,7 +127,7 @@ class HealthConnectDataSource {
         }
       }
     } catch (e) {
-      print('[HealthConnect] 설정 화면 열기 실패: $e');
+      AppLogger.error('HealthConnect', '설정 화면 열기 실패', e);
       throw Exception('Health Connect 설정을 열 수 없습니다: $e');
     }
   }
@@ -137,7 +138,7 @@ class HealthConnectDataSource {
     required DateTime endDate,
   }) async {
     try {
-      print('[HealthConnect] 운동 데이터 요청: $startDate ~ $endDate');
+      AppLogger.debug('HealthConnect', '운동 데이터 요청: $startDate ~ $endDate');
 
       final healthData = await _health
           .getHealthDataFromTypes(
@@ -148,7 +149,7 @@ class HealthConnectDataSource {
           .timeout(
             const Duration(seconds: 10),
             onTimeout: () {
-              print('[HealthConnect] 데이터 조회 타임아웃 (10초)');
+              AppLogger.warning('HealthConnect', '데이터 조회 타임아웃 (10초)');
               return [];
             },
           );
@@ -162,18 +163,18 @@ class HealthConnectDataSource {
         );
       }).toList();
 
-      print('[HealthConnect] 운동 데이터 ${dataWithSource.length}개 조회됨');
+      AppLogger.info('HealthConnect', '운동 데이터 ${dataWithSource.length}개 조회됨');
 
       // 소스별 통계 출력
       final sourceStats = <WorkoutSource, int>{};
       for (final data in dataWithSource) {
         sourceStats[data.detectedSource] = (sourceStats[data.detectedSource] ?? 0) + 1;
       }
-      print('[HealthConnect] 소스별 데이터: $sourceStats');
+      AppLogger.debug('HealthConnect', '소스별 데이터: $sourceStats');
 
       return Right(dataWithSource);
     } catch (e) {
-      print('[HealthConnect] 운동 데이터 가져오기 실패: $e');
+      AppLogger.error('HealthConnect', '운동 데이터 가져오기 실패', e);
       return Left('운동 데이터 가져오기 실패: ${e.toString()}');
     }
   }
@@ -319,7 +320,7 @@ class HealthConnectDataSource {
     try {
       return Health().isDataTypeAvailable(HealthDataType.STEPS);
     } catch (e) {
-      print('[HealthConnect] 사용 가능 여부 확인 실패: $e');
+      AppLogger.error('HealthConnect', '사용 가능 여부 확인 실패', e);
       return false;
     }
   }
@@ -331,7 +332,7 @@ class HealthConnectDataSource {
     try {
       return await HealthConnectChecker.isHealthConnectInstalled();
     } catch (e) {
-      print('[HealthConnect] 설치 여부 확인 실패: $e');
+      AppLogger.error('HealthConnect', '설치 여부 확인 실패', e);
       return false;
     }
   }
@@ -362,10 +363,10 @@ class HealthConnectDataSource {
       );
 
       final sources = healthData.map((point) => point.sourceName).toSet().toList();
-      print('[HealthConnect] 연결된 소스: $sources');
+      AppLogger.debug('HealthConnect', '연결된 소스: $sources');
       return sources;
     } catch (e) {
-      print('[HealthConnect] 연결된 소스 조회 실패: $e');
+      AppLogger.error('HealthConnect', '연결된 소스 조회 실패', e);
       return [];
     }
   }

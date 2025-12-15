@@ -7,6 +7,9 @@ import 'package:co_workfit/features/social/domain/entities/leaderboard_entry_ent
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/social/presentation/widgets/leaderboard/leaderboard_entry_widget.dart';
+import 'package:co_workfit/core/widgets/common_loading_widget.dart';
+import 'package:co_workfit/core/widgets/common_error_widget.dart';
+import 'package:co_workfit/core/widgets/common_empty_widget.dart';
 
 class FriendsLeaderboardTab extends StatelessWidget {
   const FriendsLeaderboardTab({super.key});
@@ -16,32 +19,23 @@ class FriendsLeaderboardTab extends StatelessWidget {
     return BlocBuilder<LeaderboardBloc, LeaderboardState>(
       builder: (context, state) {
         if (state is LeaderboardLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const CommonLoadingWidget(message: '친구 리더보드 불러오는 중...');
         }
 
         if (state is LeaderboardError && state.previousState == null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('오류: ${state.message}'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    final authState = context.read<AuthBloc>().state;
-                    if (authState is Authenticated) {
-                      context.read<LeaderboardBloc>().add(
-                        LoadFriendsLeaderboard(
-                          userId: authState.user.id,
-                          type: state.previousState?.currentType ?? LeaderboardType.allTime,
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text('다시 시도'),
-                ),
-              ],
-            ),
+          return CommonErrorWidget(
+            message: state.message,
+            onRetry: () {
+              final authState = context.read<AuthBloc>().state;
+              if (authState is Authenticated) {
+                context.read<LeaderboardBloc>().add(
+                  LoadFriendsLeaderboard(
+                    userId: authState.user.id,
+                    type: state.previousState?.currentType ?? LeaderboardType.allTime,
+                  ),
+                );
+              }
+            },
           );
         }
 
@@ -56,23 +50,9 @@ class FriendsLeaderboardTab extends StatelessWidget {
             : LeaderboardType.allTime;
 
         if (leaderboard.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  '친구가 없거나 데이터가 없습니다',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '친구 탭에서 친구를 추가해보세요!',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
+          return const CommonEmptyWidget(
+            icon: Icons.people_outline,
+            message: '친구가 없거나 데이터가 없습니다\n친구 탭에서 친구를 추가해보세요!',
           );
         }
 

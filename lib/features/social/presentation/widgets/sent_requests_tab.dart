@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_state.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
+import 'package:co_workfit/core/widgets/common_loading_widget.dart';
+import 'package:co_workfit/core/widgets/common_empty_widget.dart';
+import 'package:co_workfit/core/constants/app_constants.dart';
 
 class SentRequestsTab extends StatelessWidget {
   const SentRequestsTab({super.key});
@@ -12,7 +15,7 @@ class SentRequestsTab extends StatelessWidget {
     return BlocBuilder<SocialBloc, SocialState>(
       builder: (context, state) {
         if (state is SocialLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const CommonLoadingWidget(message: '보낸 요청 불러오는 중...');
         }
 
         final requests = state is SocialLoaded
@@ -26,18 +29,9 @@ class SentRequestsTab extends StatelessWidget {
                         : <dynamic>[];
 
         if (requests.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.send_outlined, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  '보낸 친구 요청이 없습니다',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-              ],
-            ),
+          return const CommonEmptyWidget(
+            icon: Icons.send_outlined,
+            message: '보낸 친구 요청이 없습니다',
           );
         }
 
@@ -46,7 +40,7 @@ class SentRequestsTab extends StatelessWidget {
           itemBuilder: (context, index) {
             final request = requests[index];
             return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: AppConstants.defaultPadding, vertical: 8),
               child: ListTile(
                 leading: const CircleAvatar(
                   child: Icon(Icons.person_outline),

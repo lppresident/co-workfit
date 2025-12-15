@@ -13,6 +13,7 @@ import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart'
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderboard_bloc.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,10 +23,10 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print('[Firebase] Firebase initialized successfully');
+    AppLogger.info('Firebase', 'Firebase initialized successfully');
   } catch (e) {
-    print('[Firebase] Firebase initialization failed: $e');
-    print('[Firebase] 앱은 Firebase 없이 실행되지만 인증/소셜 기능은 작동하지 않습니다.');
+    AppLogger.error('Firebase', 'Firebase initialization failed', e);
+    AppLogger.warning('Firebase', '앱은 Firebase 없이 실행되지만 인증/소셜 기능은 작동하지 않습니다.');
   }
 
   // Initialize dependencies

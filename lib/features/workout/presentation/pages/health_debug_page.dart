@@ -4,12 +4,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
-import 'package:co_workfit/features/workout/data/datasources/health_data_mapper.dart';
 import 'package:co_workfit/core/platform/health_connect_checker.dart';
 import 'package:health/health.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 class HealthDebugPage extends StatefulWidget {
-  const HealthDebugPage({Key? key}) : super(key: key);
+  const HealthDebugPage({super.key});
 
   @override
   State<HealthDebugPage> createState() => _HealthDebugPageState();
@@ -17,7 +17,6 @@ class HealthDebugPage extends StatefulWidget {
 
 class _HealthDebugPageState extends State<HealthDebugPage> {
   final _healthConnect = HealthConnectDataSource();
-  final _mapper = HealthDataMapper();
 
   String _log = '';
   bool _isLoading = false;
@@ -27,7 +26,7 @@ class _HealthDebugPageState extends State<HealthDebugPage> {
       final timestamp = DateTime.now().toIso8601String().substring(11, 23);
       _log += '[$timestamp] $message\n';
     });
-    print('[HealthDebug] $message');
+    AppLogger.debug('HealthDebug', message);
   }
 
   void _clearLog() {

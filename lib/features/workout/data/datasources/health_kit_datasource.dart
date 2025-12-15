@@ -1,6 +1,7 @@
 import 'package:health/health.dart';
 import 'package:co_workfit/core/constants/health_data_types.dart';
 import 'package:dartz/dartz.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// HealthKit 데이터 소스
 class HealthKitDataSource {
@@ -15,28 +16,28 @@ class HealthKitDataSource {
   /// 따라서 권한 요청 후 실제로 데이터를 읽을 수 있는지 테스트합니다.
   Future<Either<String, bool>> requestAuthorization() async {
     try {
-      print('[HealthKit] 권한 요청 시작');
+      AppLogger.info('HealthKit', '권한 요청 시작');
 
       // health 패키지는 iOS에서만 동작하므로 플랫폼 체크
       final isAvailable = await isHealthKitAvailable();
-      print('[HealthKit] HealthKit 사용 가능 여부: $isAvailable');
+      AppLogger.info('HealthKit', 'HealthKit 사용 가능 여부: $isAvailable');
 
       if (!isAvailable) {
-        print('[HealthKit] HealthKit 사용 불가');
+        AppLogger.warning('HealthKit', 'HealthKit 사용 불가');
         return Left('HealthKit을 사용할 수 없습니다. iOS 기기에서만 사용 가능합니다.');
       }
 
-      print('[HealthKit] requestAuthorization 호출');
+      AppLogger.info('HealthKit', 'requestAuthorization 호출');
       // requestAuthorization은 types만 받고, 읽기 권한으로 자동 요청됨
       await _health.requestAuthorization(
         HealthDataTypes.readTypes,
       );
 
-      print('[HealthKit] 권한 다이얼로그 표시 완료');
+      AppLogger.info('HealthKit', '권한 다이얼로그 표시 완료');
 
       // iOS HealthKit은 프라이버시 보호를 위해 권한 상태를 정확히 알려주지 않습니다.
       // 대신 실제로 데이터를 읽을 수 있는지 테스트합니다.
-      print('[HealthKit] 실제 데이터 접근 가능 여부 테스트');
+      AppLogger.info('HealthKit', '실제 데이터 접근 가능 여부 테스트');
       final now = DateTime.now();
       final yesterday = now.subtract(const Duration(days: 1));
 
@@ -47,17 +48,17 @@ class HealthKitDataSource {
           endTime: now,
         );
 
-        print('[HealthKit] 데이터 접근 성공 (${testData.length}개 항목)');
+        AppLogger.info('HealthKit', '데이터 접근 성공 (${testData.length}개 항목)');
         // 데이터 접근이 성공하면 권한이 있는 것으로 간주
         return Right(true);
       } catch (e) {
-        print('[HealthKit] 데이터 접근 실패: $e');
+        AppLogger.warning('HealthKit', '데이터 접근 실패: $e');
         // 데이터 접근 실패 시에도 권한은 요청되었으므로 성공으로 처리
         // (사용자가 데이터가 없을 수도 있음)
         return Right(true);
       }
     } catch (e) {
-      print('[HealthKit] 권한 요청 중 오류: $e');
+      AppLogger.error('HealthKit', '권한 요청 중 오류', e);
       return Left('HealthKit 권한 요청 중 오류 발생: ${e.toString()}');
     }
   }

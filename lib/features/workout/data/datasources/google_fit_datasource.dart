@@ -1,6 +1,7 @@
 import 'package:health/health.dart';
 import 'package:co_workfit/core/constants/health_data_types.dart';
 import 'package:dartz/dartz.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// Google Fit 데이터 소스
 /// Android 기기에서 Google Fit 데이터를 가져옵니다.
@@ -13,18 +14,18 @@ class GoogleFitDataSource {
   /// Returns: Right(true) if authorized, Left(error) if failed
   Future<Either<String, bool>> requestAuthorization() async {
     try {
-      print('[GoogleFit] 권한 요청 시작');
+      AppLogger.info('GoogleFit', '권한 요청 시작');
 
       // Google Fit 사용 가능 여부 체크
       final isAvailable = await isGoogleFitAvailable();
-      print('[GoogleFit] Google Fit 사용 가능 여부: $isAvailable');
+      AppLogger.info('GoogleFit', 'Google Fit 사용 가능 여부: $isAvailable');
 
       if (!isAvailable) {
-        print('[GoogleFit] Google Fit 사용 불가');
+        AppLogger.warning('GoogleFit', 'Google Fit 사용 불가');
         return Left('Google Fit을 사용할 수 없습니다. Android 기기에서만 사용 가능합니다.');
       }
 
-      print('[GoogleFit] requestAuthorization 호출');
+      AppLogger.info('GoogleFit', 'requestAuthorization 호출');
       // health 패키지는 Android에서 Google Fit 권한 요청
       final authorized = await _health.requestAuthorization(
         HealthDataTypes.readTypes,
@@ -33,14 +34,14 @@ class GoogleFitDataSource {
             .toList(),
       );
 
-      print('[GoogleFit] 권한 요청 결과: $authorized');
+      AppLogger.info('GoogleFit', '권한 요청 결과: $authorized');
 
       if (authorized) {
         return Right(true);
       } else {
         // 권한이 완전히 거부된 경우에도, 일부 데이터는 접근 가능할 수 있음
         // 실제 데이터 접근 테스트
-        print('[GoogleFit] 실제 데이터 접근 가능 여부 테스트');
+        AppLogger.info('GoogleFit', '실제 데이터 접근 가능 여부 테스트');
         final now = DateTime.now();
         final yesterday = now.subtract(const Duration(days: 1));
 
@@ -50,15 +51,15 @@ class GoogleFitDataSource {
             startTime: yesterday,
             endTime: now,
           );
-          print('[GoogleFit] 데이터 접근 성공');
+          AppLogger.info('GoogleFit', '데이터 접근 성공');
           return Right(true);
         } catch (e) {
-          print('[GoogleFit] 데이터 접근 실패: $e');
+          AppLogger.warning('GoogleFit', '데이터 접근 실패: $e');
           return Left('Google Fit 권한이 거부되었습니다. 설정에서 권한을 허용해주세요.');
         }
       }
     } catch (e) {
-      print('[GoogleFit] 권한 요청 중 오류: $e');
+      AppLogger.error('GoogleFit', '권한 요청 중 오류', e);
       return Left('Google Fit 권한 요청 중 오류 발생: ${e.toString()}');
     }
   }
@@ -72,7 +73,7 @@ class GoogleFitDataSource {
     required DateTime endDate,
   }) async {
     try {
-      print('[GoogleFit] 운동 데이터 요청: $startDate ~ $endDate');
+      AppLogger.info('GoogleFit', '운동 데이터 요청: $startDate ~ $endDate');
 
       // WORKOUT 타입 데이터 가져오기
       final healthData = await _health.getHealthDataFromTypes(
@@ -81,10 +82,10 @@ class GoogleFitDataSource {
         endTime: endDate,
       );
 
-      print('[GoogleFit] 운동 데이터 ${healthData.length}개 조회됨');
+      AppLogger.info('GoogleFit', '운동 데이터 ${healthData.length}개 조회됨');
       return Right(healthData);
     } catch (e) {
-      print('[GoogleFit] 운동 데이터 가져오기 실패: $e');
+      AppLogger.error('GoogleFit', '운동 데이터 가져오기 실패', e);
       return Left('운동 데이터 가져오기 실패: ${e.toString()}');
     }
   }
@@ -194,7 +195,7 @@ class GoogleFitDataSource {
         }
       } catch (e) {
         // FLIGHTS_CLIMBED가 지원되지 않을 수 있음
-        print('[GoogleFit] 고도 데이터 가져오기 실패 (지원되지 않을 수 있음): $e');
+        AppLogger.debug('GoogleFit', '고도 데이터 가져오기 실패 (지원되지 않을 수 있음): $e');
       }
 
       return Right(details);
@@ -210,7 +211,7 @@ class GoogleFitDataSource {
       // health 패키지는 Android에서 자동으로 Google Fit을 사용
       return Health().isDataTypeAvailable(HealthDataType.STEPS);
     } catch (e) {
-      print('[GoogleFit] 사용 가능 여부 확인 실패: $e');
+      AppLogger.error('GoogleFit', '사용 가능 여부 확인 실패', e);
       return false;
     }
   }

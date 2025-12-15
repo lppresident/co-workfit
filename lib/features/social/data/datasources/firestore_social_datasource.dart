@@ -5,6 +5,7 @@ import 'package:co_workfit/features/social/data/models/friend_request_model.dart
 import 'package:co_workfit/features/social/domain/entities/friend_request_entity.dart';
 import 'package:co_workfit/features/social/domain/entities/friendship_entity.dart';
 import 'package:co_workfit/features/social/domain/entities/leaderboard_entry_entity.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 
 /// Firestore 소셜 데이터소스
 class FirestoreSocialDataSource {
@@ -16,7 +17,7 @@ class FirestoreSocialDataSource {
       _firestore = firestore ?? FirebaseFirestore.instance;
       _initialized = true;
     } catch (e) {
-      print('[FirestoreSocialDataSource] Firebase not initialized: $e');
+      AppLogger.warning('FirestoreSocialDataSource', 'Firebase not initialized: $e');
       _initialized = false;
     }
   }
