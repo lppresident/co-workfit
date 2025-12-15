@@ -107,18 +107,26 @@ flutter build apk
 
 ### AI Assistant 개발 가이드
 
-새 기능을 추가하거나 코드를 수정할 때는 다음 문서를 참고하세요:
+이 프로젝트는 AI Assistant와 협업하기 위해 최적화되어 있습니다.
 
-1. **시작하기**: [`AI_QUICK_REFERENCE.md`](AI_QUICK_REFERENCE.md) - 가장 빠른 시작
-2. **아키텍처 이해**: [`ARCHITECTURE.md`](ARCHITECTURE.md) - Clean Architecture 패턴
-3. **기여 규칙**: [`CONTRIBUTING.md`](CONTRIBUTING.md) - 코딩 컨벤션 및 베스트 프랙티스
+**Claude Code를 사용하는 경우:**
+- Claude Code는 자동으로 [`.claud`](.claud) 파일을 읽어들입니다
+- 모든 개발 규칙과 패턴이 이 파일에 통합되어 있습니다
+
+**새 기능을 추가하거나 코드를 수정할 때 참고 문서:**
+
+1. **개발 규칙**: [`.claud`](.claud) - AI 개발 규칙 (Claude Code 자동 참조)
+2. **UI 구조**: [`UI_STRUCTURE.md`](UI_STRUCTURE.md) - 페이지/위젯 패턴
+3. **빠른 템플릿**: [`AI_QUICK_REFERENCE.md`](AI_QUICK_REFERENCE.md) - 코드 스니펫
+4. **아키텍처**: [`ARCHITECTURE.md`](ARCHITECTURE.md) - Clean Architecture 패턴
+5. **기여 가이드**: [`CONTRIBUTING.md`](CONTRIBUTING.md) - 전체 프로세스
 
 **기본 워크플로우**:
 ```
 1. Domain Layer  → Entity, Repository, UseCases 작성
 2. Data Layer    → Model, DataSource, Repository 구현
-3. BLoC Layer    → Event, State, BLoC 작성
-4. UI Layer      → Page, Widgets 작성
+3. Presentation  → Event, State, BLoC 작성
+4. UI Layer      → BasePage + Mixins 사용 (필수!)
 5. DI Setup      → injection.dart 및 main.dart 등록
 6. Quality Check → flutter analyze (0 errors)
 ```
