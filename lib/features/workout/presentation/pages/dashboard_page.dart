@@ -2,8 +2,8 @@ import 'dart:io' show Platform;
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
 import 'package:co_workfit/features/profile/presentation/screens/profile_screen.dart';
-import 'package:co_workfit/features/social/presentation/pages/friends_page.dart';
-import 'package:co_workfit/features/social/presentation/pages/leaderboard_page.dart';
+import 'package:co_workfit/features/social/presentation/pages/community_page.dart';
+import 'package:co_workfit/features/log_run/presentation/pages/log_run_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
@@ -37,14 +37,9 @@ class _DashboardPageState extends State<DashboardPage> {
       case 1:
         return const WorkoutListPage();
       case 2:
-        return const FriendsPage();
+        return const LogRunPage();
       case 3:
-        return const LeaderboardPage();
-      case 4:
-        return BlocProvider<ProfileBloc>(
-          create: (context) => di.sl<ProfileBloc>()..add(FetchProfileData()),
-          child: const ProfileScreen(),
-        );
+        return const CommunityPage();
       default:
         return const _DashboardHome();
     }
@@ -86,11 +81,23 @@ class _DashboardPageState extends State<DashboardPage> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.person),
             onSelected: (value) {
-              if (value == 'logout') {
+              if (value == 'profile') {
+                _showProfile(context);
+              } else if (value == 'logout') {
                 _showLogoutDialog(context);
               }
             },
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.person),
+                    SizedBox(width: 8),
+                    Text('프로필'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'logout',
                 child: Row(
@@ -121,20 +128,27 @@ class _DashboardPageState extends State<DashboardPage> {
             label: '운동',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: '친구',
+            icon: Icon(Icons.workspaces),
+            label: '통나무런',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.leaderboard),
-            label: '리더보드',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: '프로필',
+            icon: Icon(Icons.diversity_3),
+            label: '커뮤니티',
           ),
         ],
         type: BottomNavigationBarType.fixed,
+      ),
+    );
+  }
+
+  void _showProfile(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider<ProfileBloc>(
+          create: (context) => di.sl<ProfileBloc>()..add(FetchProfileData()),
+          child: const ProfileScreen(),
+        ),
       ),
     );
   }
