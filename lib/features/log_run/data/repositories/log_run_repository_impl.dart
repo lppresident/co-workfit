@@ -4,7 +4,6 @@ import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_en
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
 import 'package:co_workfit/features/log_run/data/datasources/firestore_log_run_datasource.dart';
-import 'package:co_workfit/core/utils/logger.dart';
 
 class LogRunRepositoryImpl implements LogRunRepository {
   final FirestoreLogRunDataSource dataSource;
