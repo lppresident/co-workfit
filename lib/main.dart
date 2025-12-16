@@ -13,6 +13,7 @@ import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart'
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderboard_bloc.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 void main() async {
@@ -56,6 +57,9 @@ class CoWorkFitApp extends StatelessWidget {
         ),
         BlocProvider<LeaderboardBloc>(
           create: (_) => di.sl<LeaderboardBloc>(),
+        ),
+        BlocProvider<LogRunBloc>(
+          create: (_) => di.sl<LogRunBloc>(),
         ),
       ],
       child: MaterialApp(
