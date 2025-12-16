@@ -1,9 +1,6 @@
 import 'dart:io' show Platform;
-import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
-import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
-import 'package:co_workfit/features/profile/presentation/screens/profile_screen.dart';
-import 'package:co_workfit/features/social/presentation/pages/friends_page.dart';
-import 'package:co_workfit/features/social/presentation/pages/leaderboard_page.dart';
+import 'package:co_workfit/features/social/presentation/pages/community_page.dart';
+import 'package:co_workfit/features/log_run/presentation/pages/log_run_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
@@ -13,8 +10,6 @@ import 'package:co_workfit/features/workout/presentation/widgets/workout_list_it
 import 'package:co_workfit/features/workout/presentation/pages/health_debug_page.dart';
 import 'package:co_workfit/features/workout/presentation/pages/workout_list_page.dart';
 import 'package:co_workfit/features/workout/presentation/pages/workout_detail_page.dart';
-import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 import 'package:co_workfit/core/utils/logger.dart';
@@ -37,14 +32,9 @@ class _DashboardPageState extends State<DashboardPage> {
       case 1:
         return const WorkoutListPage();
       case 2:
-        return const FriendsPage();
+        return const LogRunPage();
       case 3:
-        return const LeaderboardPage();
-      case 4:
-        return BlocProvider<ProfileBloc>(
-          create: (context) => di.sl<ProfileBloc>()..add(FetchProfileData()),
-          child: const ProfileScreen(),
-        );
+        return const CommunityPage();
       default:
         return const _DashboardHome();
     }
@@ -59,55 +49,7 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Co-WorkFit'),
-        actions: [
-          // Android용 디버그 버튼
-          if (Platform.isAndroid && _selectedIndex == 0)
-            IconButton(
-              icon: const Icon(Icons.bug_report),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const HealthDebugPage(),
-                  ),
-                );
-              },
-              tooltip: 'Health Connect Debug',
-            ),
-          if (_selectedIndex == 0)
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                context.read<WorkoutBloc>().add(const RefreshWorkoutsEvent());
-              },
-            ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.person),
-            onSelected: (value) {
-              if (value == 'logout') {
-                _showLogoutDialog(context);
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 8),
-                    Text('로그아웃'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: Center(
-        child: _getPageForIndex(_selectedIndex),
-      ),
+      body: _getPageForIndex(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
@@ -121,17 +63,12 @@ class _DashboardPageState extends State<DashboardPage> {
             label: '운동',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.workspaces),
+            label: '통나무런',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.people),
             label: '친구',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.leaderboard),
-            label: '리더보드',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: '프로필',
           ),
         ],
         type: BottomNavigationBarType.fixed,
@@ -139,31 +76,6 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('정말 로그아웃 하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              context.read<AuthBloc>().add(const SignOutRequested());
-            },
-            child: const Text(
-              '로그아웃',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 
@@ -186,55 +98,82 @@ class _DashboardHomeState extends State<_DashboardHome> {
   
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<WorkoutBloc, WorkoutState>(
-      listener: (context, state) {
-        if (state is WorkoutPermissionDenied) {
-          if (state.message == 'HEALTH_CONNECT_NOT_INSTALLED') {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _showHealthConnectInstallDialog(context);
-            });
-          } else if (state.message == 'HEALTH_PERMISSION_DENIED') {
-            AppLogger.warning('DashboardPage', 'Health Connect 권한이 거부됨');
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('홈'),
+        actions: [
+          // Android용 디버그 버튼
+          if (Platform.isAndroid)
+            IconButton(
+              icon: const Icon(Icons.bug_report),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HealthDebugPage(),
+                  ),
+                );
+              },
+              tooltip: 'Health Connect Debug',
+            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              context.read<WorkoutBloc>().add(const RefreshWorkoutsEvent());
+            },
+          ),
+        ],
+      ),
+      body: BlocConsumer<WorkoutBloc, WorkoutState>(
+        listener: (context, state) {
+          if (state is WorkoutPermissionDenied) {
+            if (state.message == 'HEALTH_CONNECT_NOT_INSTALLED') {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _showHealthConnectInstallDialog(context);
+              });
+            } else if (state.message == 'HEALTH_PERMISSION_DENIED') {
+              AppLogger.warning('DashboardPage', 'Health Connect 권한이 거부됨');
+            }
+          } else if (state is WorkoutError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
-        } else if (state is WorkoutError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
+        },
+        builder: (context, state) {
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<WorkoutBloc>().add(const RefreshWorkoutsEvent());
+              await Future.delayed(const Duration(seconds: 1));
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (state is WorkoutPermissionRequesting)
+                    _buildPermissionRequestingCard(context),
+
+                  if (state is WorkoutPermissionDenied)
+                    _buildPermissionDeniedCard(context),
+
+                  if (state is WorkoutInitial)
+                    _buildInitialPermissionCard(context),
+
+                  _buildTodaySummaryCard(context, state),
+                  const SizedBox(height: 16),
+
+                  _buildRecentWorkouts(context, state),
+                ],
+              ),
             ),
           );
-        }
-      },
-      builder: (context, state) {
-        return RefreshIndicator(
-          onRefresh: () async {
-            context.read<WorkoutBloc>().add(const RefreshWorkoutsEvent());
-            await Future.delayed(const Duration(seconds: 1));
-          },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (state is WorkoutPermissionRequesting)
-                  _buildPermissionRequestingCard(context),
-
-                if (state is WorkoutPermissionDenied)
-                  _buildPermissionDeniedCard(context),
-
-                if (state is WorkoutInitial)
-                  _buildInitialPermissionCard(context),
-
-                _buildTodaySummaryCard(context, state),
-                const SizedBox(height: 16),
-
-                _buildRecentWorkouts(context, state),
-              ],
-            ),
-          ),
-        );
-      },
+        },
+      ),
     );
   }
   void _showHealthConnectInstallDialog(BuildContext context) {
