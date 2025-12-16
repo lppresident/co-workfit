@@ -67,8 +67,8 @@ class _DashboardPageState extends State<DashboardPage> {
             label: '통나무런',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.diversity_3),
-            label: '커뮤니티',
+            icon: Icon(Icons.people),
+            label: '친구',
           ),
         ],
         type: BottomNavigationBarType.fixed,
