@@ -94,17 +94,19 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
         }
       },
       builder: (context, state) {
+        // 초기 로딩 상태
         if (state is LogRunLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
+        // Empty 상태
         if (state is LogRunEmpty) {
           return EmptyLogRunWidget(
             onCreateOrJoin: _showCreateChallengeSheet,
           );
         }
 
-        // ChallengesLoaded 또는 ChallengeDetailLoaded 상태 모두 처리
+        // ChallengesLoaded 또는 ChallengeDetailLoaded 상태 처리
         if (state is ChallengesLoaded || state is ChallengeDetailLoaded) {
           final activeChallenges = state is ChallengesLoaded
               ? state.activeChallenges
@@ -123,6 +125,12 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           }
 
           return _buildUnifiedChallengeList(allChallenges);
+        }
+
+        // WorkoutSubmitted, ChallengeCreated 등 일시적인 상태는 로딩 표시
+        // (이후 WatchContributions가 새로운 ChallengeDetailLoaded를 emit할 것임)
+        if (state is WorkoutSubmitted || state is ChallengeCreated || state is ChallengeJoined) {
+          return const Center(child: CircularProgressIndicator());
         }
 
         // 기본 Empty 상태
