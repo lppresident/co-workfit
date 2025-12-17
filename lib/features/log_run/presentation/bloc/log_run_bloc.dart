@@ -276,19 +276,30 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
           },
           (challenge) {
             AppLogger.debug('LogRunBloc', '🔄 Challenge updated: ${challenge.id}');
-            // 현재 기여 내역 유지하면서 챌린지만 업데이트
+
+            // 매 업데이트마다 현재 state에서 정보 추출
+            List<LogRunContributionEntity> currentContributions = [];
+            List<LogRunChallengeEntity> activeChallenges = [];
+            List<LogRunChallengeEntity> completedChallenges = [];
+
             if (state is ChallengeDetailLoaded) {
-              final currentState = state as ChallengeDetailLoaded;
-              return ChallengeDetailLoaded(
-                challenge: challenge,
-                contributions: currentState.contributions,
-                activeChallenges: currentState.activeChallenges,
-                completedChallenges: currentState.completedChallenges,
-              );
-            } else {
-              // 폴백: 기존 동작 유지
-              return ChallengeUpdated(challenge);
+              final s = state as ChallengeDetailLoaded;
+              currentContributions = s.contributions;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
+            } else if (state is ChallengesLoaded) {
+              final s = state as ChallengesLoaded;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
             }
+
+            AppLogger.debug('LogRunBloc', '   ✅ Converting to ChallengeDetailLoaded - Preserving contributions:${currentContributions.length} active:${activeChallenges.length} completed:${completedChallenges.length}');
+            return ChallengeDetailLoaded(
+              challenge: challenge,
+              contributions: currentContributions,
+              activeChallenges: activeChallenges,
+              completedChallenges: completedChallenges,
+            );
           },
         );
       },
@@ -314,27 +325,35 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
             AppLogger.info('LogRunBloc', '🔄 Contributions updated: ${contributions.length} contributions');
             AppLogger.debug('LogRunBloc', '   Current state: ${state.runtimeType}');
 
-            // 현재 챌린지 상태 유지하면서 기여 내역만 업데이트
+            // 매 업데이트마다 현재 state에서 정보 추출
+            LogRunChallengeEntity? currentChallenge;
+            List<LogRunChallengeEntity> activeChallenges = [];
+            List<LogRunChallengeEntity> completedChallenges = [];
+
             if (state is ChallengeDetailLoaded) {
-              final currentState = state as ChallengeDetailLoaded;
-              AppLogger.debug('LogRunBloc', '   ✅ ChallengeDetailLoaded - Preserving active:${currentState.activeChallenges.length} completed:${currentState.completedChallenges.length}');
-              return ChallengeDetailLoaded(
-                challenge: currentState.challenge,
-                contributions: contributions,
-                activeChallenges: currentState.activeChallenges,
-                completedChallenges: currentState.completedChallenges,
-              );
+              final s = state as ChallengeDetailLoaded;
+              currentChallenge = s.challenge;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
             } else if (state is ChallengeUpdated) {
-              AppLogger.debug('LogRunBloc', '   ⚠️ ChallengeUpdated - Converting to ChallengeDetailLoaded');
-              // ChallengeUpdated 상태에서도 챌린지 정보 유지
-              final currentState = state as ChallengeUpdated;
+              currentChallenge = (state as ChallengeUpdated).challenge;
+            } else if (state is ChallengesLoaded) {
+              final s = state as ChallengesLoaded;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
+            }
+
+            // 챌린지 정보가 있으면 ChallengeDetailLoaded로 변환
+            if (currentChallenge != null) {
+              AppLogger.debug('LogRunBloc', '   ✅ Converting to ChallengeDetailLoaded - Preserving active:${activeChallenges.length} completed:${completedChallenges.length}');
               return ChallengeDetailLoaded(
-                challenge: currentState.challenge,
+                challenge: currentChallenge,
                 contributions: contributions,
+                activeChallenges: activeChallenges,
+                completedChallenges: completedChallenges,
               );
             } else {
-              AppLogger.warning('LogRunBloc', '   ⚠️ Unexpected state (${state.runtimeType}) - Using fallback ContributionsUpdated');
-              // 폴백: 기존 동작 유지
+              AppLogger.warning('LogRunBloc', '   ⚠️ No challenge info - Using fallback ContributionsUpdated');
               return ContributionsUpdated(contributions);
             }
           },
