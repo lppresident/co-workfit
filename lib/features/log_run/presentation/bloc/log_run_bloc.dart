@@ -8,6 +8,7 @@ import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_en
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/create_log_run_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/join_log_run_challenge.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/join_challenge_by_invite_code.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_active_challenges.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contributions.dart';
@@ -18,6 +19,7 @@ import 'package:co_workfit/core/utils/logger.dart';
 class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
   final CreateLogRunChallenge createChallengeUseCase;
   final JoinLogRunChallenge joinChallengeUseCase;
+  final JoinChallengeByInviteCode joinChallengeByCodeUseCase;
   final SubmitWorkoutToChallenge submitWorkoutUseCase;
   final GetActiveChallenges getActiveChallengesUseCase;
   final GetChallengeContributions getChallengeContributionsUseCase;
@@ -29,6 +31,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
   LogRunBloc({
     required this.createChallengeUseCase,
     required this.joinChallengeUseCase,
+    required this.joinChallengeByCodeUseCase,
     required this.submitWorkoutUseCase,
     required this.getActiveChallengesUseCase,
     required this.getChallengeContributionsUseCase,
@@ -38,6 +41,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     on<LoadCompletedChallenges>(_onLoadCompletedChallenges);
     on<CreateChallenge>(_onCreateChallenge);
     on<JoinChallenge>(_onJoinChallenge);
+    on<JoinChallengeByCode>(_onJoinChallengeByCode);
     on<LeaveChallenge>(_onLeaveChallenge);
     on<SubmitWorkout>(_onSubmitWorkout);
     on<LoadChallengeDetail>(_onLoadChallengeDetail);
@@ -157,6 +161,29 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
       (_) {
         AppLogger.info('LogRunBloc', 'Joined challenge: ${event.challengeId}');
         emit(ChallengeJoined(event.challengeId));
+      },
+    );
+  }
+
+  Future<void> _onJoinChallengeByCode(
+    JoinChallengeByCode event,
+    Emitter<LogRunState> emit,
+  ) async {
+    emit(const LogRunLoading());
+
+    final result = await joinChallengeByCodeUseCase(
+      JoinByCodeParams(
+        inviteCode: event.inviteCode,
+        userId: event.userId,
+        userName: event.userName,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(LogRunError(failure.toString())),
+      (challenge) {
+        AppLogger.info('LogRunBloc', 'Joined challenge by code: ${challenge.id}');
+        emit(ChallengeJoined(challenge.id));
       },
     );
   }

@@ -4,11 +4,13 @@ import 'package:co_workfit/core/constants/app_constants.dart';
 /// 통나무런 그룹이 없을 때 표시하는 빈 상태 위젯
 class EmptyLogRunWidget extends StatelessWidget {
   final VoidCallback onCreateOrJoin;
+  final VoidCallback? onJoinByCode;
   final String? message;
 
   const EmptyLogRunWidget({
     super.key,
     required this.onCreateOrJoin,
+    this.onJoinByCode,
     this.message,
   });
 
