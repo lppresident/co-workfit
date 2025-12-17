@@ -4,13 +4,11 @@ import 'package:co_workfit/core/constants/app_constants.dart';
 /// 통나무런 그룹이 없을 때 표시하는 빈 상태 위젯
 class EmptyLogRunWidget extends StatelessWidget {
   final VoidCallback onCreateOrJoin;
-  final VoidCallback? onJoinByCode;
   final String? message;
 
   const EmptyLogRunWidget({
     super.key,
     required this.onCreateOrJoin,
-    this.onJoinByCode,
     this.message,
   });
 
@@ -76,27 +74,6 @@ class EmptyLogRunWidget extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-
-            // 초대 코드로 참가하기 버튼
-            if (onJoinByCode != null)
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: onJoinByCode,
-                  icon: const Icon(Icons.vpn_key_outlined, size: 24),
-                  label: const Text(
-                    '초대 코드로 참가하기',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.all(AppConstants.defaultPadding),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
             const SizedBox(height: 24),
 
             // 안내 카드

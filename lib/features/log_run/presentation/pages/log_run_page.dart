@@ -41,6 +41,32 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
     }
   }
 
+  void _showActionSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('통나무런'),
+        content: const Text('새 그룹을 만들거나\n초대 코드로 참가할 수 있습니다'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showCreateChallengeSheet();
+            },
+            child: const Text('새 그룹 만들기'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showJoinByCodeSheet();
+            },
+            child: const Text('초대 코드로 참가'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showCreateChallengeSheet() {
     showModalBottomSheet(
       context: context,
@@ -136,8 +162,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
         // Empty 상태
         if (state is LogRunEmpty) {
           return EmptyLogRunWidget(
-            onCreateOrJoin: _showCreateChallengeSheet,
-            onJoinByCode: _showJoinByCodeSheet,
+            onCreateOrJoin: _showActionSelectionDialog,
           );
         }
 
@@ -155,8 +180,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
           if (allChallenges.isEmpty) {
             return EmptyLogRunWidget(
-              onCreateOrJoin: _showCreateChallengeSheet,
-              onJoinByCode: _showJoinByCodeSheet,
+              onCreateOrJoin: _showActionSelectionDialog,
             );
           }
 
@@ -170,8 +194,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
         // 기본 Empty 상태
         return EmptyLogRunWidget(
-          onCreateOrJoin: _showCreateChallengeSheet,
-          onJoinByCode: _showJoinByCodeSheet,
+          onCreateOrJoin: _showActionSelectionDialog,
         );
       },
     );
