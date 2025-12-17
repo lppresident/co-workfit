@@ -34,18 +34,23 @@ class ChallengesLoaded extends LogRunState {
   List<Object?> get props => [activeChallenges, completedChallenges];
 }
 
-/// 챌린지 상세 로드 성공
+/// 챌린지 상세 로드 성공 (목록 상태 유지)
 class ChallengeDetailLoaded extends LogRunState {
   final LogRunChallengeEntity challenge;
   final List<LogRunContributionEntity> contributions;
+  // 목록 상태도 함께 유지
+  final List<LogRunChallengeEntity> activeChallenges;
+  final List<LogRunChallengeEntity> completedChallenges;
 
   const ChallengeDetailLoaded({
     required this.challenge,
     required this.contributions,
+    this.activeChallenges = const [],
+    this.completedChallenges = const [],
   });
 
   @override
-  List<Object?> get props => [challenge, contributions];
+  List<Object?> get props => [challenge, contributions, activeChallenges, completedChallenges];
 }
 
 /// 챌린지 생성 성공

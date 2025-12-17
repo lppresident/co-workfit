@@ -103,8 +103,13 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           );
         }
 
-        if (state is ChallengesLoaded) {
-          if (state.activeChallenges.isEmpty) {
+        // ChallengesLoaded 또는 ChallengeDetailLoaded 상태 모두 처리
+        if (state is ChallengesLoaded || state is ChallengeDetailLoaded) {
+          final activeChallenges = state is ChallengesLoaded
+              ? state.activeChallenges
+              : (state as ChallengeDetailLoaded).activeChallenges;
+
+          if (activeChallenges.isEmpty) {
             return EmptyLogRunWidget(
               onCreateOrJoin: _showCreateChallengeSheet,
             );
@@ -116,9 +121,9 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
             },
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: state.activeChallenges.length,
+              itemCount: activeChallenges.length,
               itemBuilder: (context, index) {
-                final challenge = state.activeChallenges[index];
+                final challenge = activeChallenges[index];
                 return ChallengeCardWidget(
                   challenge: challenge,
                   onTap: () {
@@ -150,7 +155,10 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
     return BlocBuilder<LogRunBloc, LogRunState>(
       builder: (context, state) {
         // 챌린지가 있을 때만 FloatingActionButton 표시
-        if (state is ChallengesLoaded && state.activeChallenges.isNotEmpty) {
+        final hasActiveChallenges = (state is ChallengesLoaded && state.activeChallenges.isNotEmpty) ||
+            (state is ChallengeDetailLoaded && state.activeChallenges.isNotEmpty);
+
+        if (hasActiveChallenges) {
           return FloatingActionButton(
             onPressed: _showCreateChallengeSheet,
             tooltip: '새 챌린지 생성',

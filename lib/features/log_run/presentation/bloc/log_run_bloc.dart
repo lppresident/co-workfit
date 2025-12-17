@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
+import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/create_log_run_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/join_log_run_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_challenge.dart';
@@ -181,7 +182,17 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     LoadChallengeDetail event,
     Emitter<LogRunState> emit,
   ) async {
-    emit(const LogRunLoading());
+    // 이전 목록 상태 저장
+    final previousActiveChallenges = state is ChallengesLoaded
+        ? (state as ChallengesLoaded).activeChallenges
+        : (state is ChallengeDetailLoaded
+            ? (state as ChallengeDetailLoaded).activeChallenges
+            : <LogRunChallengeEntity>[]);
+    final previousCompletedChallenges = state is ChallengesLoaded
+        ? (state as ChallengesLoaded).completedChallenges
+        : (state is ChallengeDetailLoaded
+            ? (state as ChallengeDetailLoaded).completedChallenges
+            : <LogRunChallengeEntity>[]);
 
     final challengeResult = await repository.getChallengeById(event.challengeId);
     final contributionsResult = await getChallengeContributionsUseCase(event.challengeId);
@@ -195,6 +206,8 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
             emit(ChallengeDetailLoaded(
               challenge: challenge,
               contributions: contributions,
+              activeChallenges: previousActiveChallenges,
+              completedChallenges: previousCompletedChallenges,
             ));
           },
         );
