@@ -133,6 +133,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
               backgroundColor: Colors.red,
             ),
           );
+          // 에러 후 목록 복구
+          refreshChallenges();
         } else if (state is ChallengeCreated) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
