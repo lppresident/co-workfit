@@ -49,7 +49,10 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     LoadActiveChallenges event,
     Emitter<LogRunState> emit,
   ) async {
-    emit(const LogRunLoading());
+    // 초기 로딩이 아닌 경우 로딩 상태를 emit하지 않음 (깜빡임 방지)
+    if (state is LogRunInitial) {
+      emit(const LogRunLoading());
+    }
 
     // 이전 완료 챌린지 상태 저장
     final previousCompletedChallenges = state is ChallengesLoaded
@@ -113,8 +116,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     CreateChallenge event,
     Emitter<LogRunState> emit,
   ) async {
-    emit(const LogRunLoading());
-
+    // 챌린지 생성 중에는 현재 상태 유지 (로딩 상태로 바꾸지 않음)
     final result = await createChallengeUseCase(
       CreateChallengeParams(
         userId: event.userId,
