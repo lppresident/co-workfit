@@ -238,8 +238,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
         if (hasActiveChallenges) {
           return FloatingActionButton(
-            onPressed: _showCreateChallengeSheet,
-            tooltip: '새 챌린지 생성',
+            onPressed: _showActionSelectionDialog,
+            tooltip: '챌린지 생성 또는 참가',
             child: const Icon(Icons.add),
           );
         }
