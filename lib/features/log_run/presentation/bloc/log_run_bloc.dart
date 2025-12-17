@@ -260,7 +260,21 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
       (result) {
         result.fold(
           (failure) => add(LoadChallengeDetail(event.challengeId)),
-          (challenge) => emit(ChallengeUpdated(challenge)),
+          (challenge) {
+            // 현재 기여 내역 유지하면서 챌린지만 업데이트
+            if (state is ChallengeDetailLoaded) {
+              final currentState = state as ChallengeDetailLoaded;
+              emit(ChallengeDetailLoaded(
+                challenge: challenge,
+                contributions: currentState.contributions,
+                activeChallenges: currentState.activeChallenges,
+                completedChallenges: currentState.completedChallenges,
+              ));
+            } else {
+              // 폴백: 기존 동작 유지
+              emit(ChallengeUpdated(challenge));
+            }
+          },
         );
       },
     );
@@ -276,7 +290,28 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
       (result) {
         result.fold(
           (failure) => AppLogger.error('LogRunBloc', 'Error watching contributions: $failure'),
-          (contributions) => emit(ContributionsUpdated(contributions)),
+          (contributions) {
+            // 현재 챌린지 상태 유지하면서 기여 내역만 업데이트
+            if (state is ChallengeDetailLoaded) {
+              final currentState = state as ChallengeDetailLoaded;
+              emit(ChallengeDetailLoaded(
+                challenge: currentState.challenge,
+                contributions: contributions,
+                activeChallenges: currentState.activeChallenges,
+                completedChallenges: currentState.completedChallenges,
+              ));
+            } else if (state is ChallengeUpdated) {
+              // ChallengeUpdated 상태에서도 챌린지 정보 유지
+              final currentState = state as ChallengeUpdated;
+              emit(ChallengeDetailLoaded(
+                challenge: currentState.challenge,
+                contributions: contributions,
+              ));
+            } else {
+              // 폴백: 기존 동작 유지
+              emit(ContributionsUpdated(contributions));
+            }
+          },
         );
       },
     );
