@@ -107,7 +107,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                             ),
                             subtitle: Text(
                               '${DateFormat('yyyy.MM.dd HH:mm').format(workout.startTime)} • '
-                              '${workout.distance.toStringAsFixed(2)} km',
+                              '${(workout.distance ?? 0.0).toStringAsFixed(2)} km',
                             ),
                             trailing: isSelected
                                 ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
@@ -151,7 +151,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                           : () {
                               widget.onSubmit(
                                 _selectedWorkout!.id,
-                                _selectedWorkout!.distance,
+                                _selectedWorkout!.distance ?? 0.0,
                                 _selectedWorkout!.type.toString().split('.').last,
                                 _selectedWorkout!.startTime,
                               );

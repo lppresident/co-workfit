@@ -3,7 +3,6 @@ import 'package:co_workfit/features/log_run/data/models/log_run_challenge_model.
 import 'package:co_workfit/features/log_run/data/models/log_run_contribution_model.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
-import 'package:co_workfit/core/utils/logger.dart';
 
 class FirestoreLogRunDataSource {
   final FirebaseFirestore firestore;
