@@ -80,17 +80,24 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                     }
 
                     if (state is WorkoutLoaded) {
-                      if (state.workouts.isEmpty) {
+                      // 러닝과 걷기만 필터링
+                      final validWorkouts = state.workouts
+                          .where((workout) =>
+                              workout.type == WorkoutType.running ||
+                              workout.type == WorkoutType.walking)
+                          .toList();
+
+                      if (validWorkouts.isEmpty) {
                         return const Center(
-                          child: Text('제출할 운동 기록이 없습니다.'),
+                          child: Text('제출할 러닝/걷기 기록이 없습니다.'),
                         );
                       }
 
                       return ListView.builder(
                         controller: scrollController,
-                        itemCount: state.workouts.length,
+                        itemCount: validWorkouts.length,
                         itemBuilder: (context, index) {
-                          final workout = state.workouts[index];
+                          final workout = validWorkouts[index];
                           final isSelected = _selectedWorkout?.id == workout.id;
 
                           return ListTile(
