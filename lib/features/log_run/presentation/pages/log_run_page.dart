@@ -24,6 +24,19 @@ class LogRunPage extends BasePage {
 class _LogRunPageState extends BasePageState<LogRunPage> {
   @override
   void loadInitialData() {
+    _refreshChallenges();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 페이지로 돌아올 때마다 새로고침
+    if (ModalRoute.of(context)?.isCurrent == true) {
+      _refreshChallenges();
+    }
+  }
+
+  void _refreshChallenges() {
     AppLogger.info('LogRunPage', 'Loading log run challenges');
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
@@ -119,8 +132,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
                 final challenge = state.activeChallenges[index];
                 return ChallengeCardWidget(
                   challenge: challenge,
-                  onTap: () {
-                    Navigator.push(
+                  onTap: () async {
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ChallengeDetailPage(
@@ -128,6 +141,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
                         ),
                       ),
                     );
+                    // 상세 페이지에서 돌아온 후 목록 새로고침
+                    _refreshChallenges();
                   },
                 );
               },
