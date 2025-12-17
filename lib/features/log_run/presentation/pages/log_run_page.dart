@@ -19,24 +19,19 @@ class LogRunPage extends BasePage {
 
   @override
   State<LogRunPage> createState() => _LogRunPageState();
+
+  // DashboardPage에서 새로고침을 트리거할 수 있도록 GlobalKey 제공
+  static final GlobalKey<_LogRunPageState> globalKey = GlobalKey<_LogRunPageState>();
 }
 
 class _LogRunPageState extends BasePageState<LogRunPage> {
   @override
   void loadInitialData() {
-    _refreshChallenges();
+    refreshChallenges();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 페이지로 돌아올 때마다 새로고침
-    if (ModalRoute.of(context)?.isCurrent == true) {
-      _refreshChallenges();
-    }
-  }
-
-  void _refreshChallenges() {
+  /// 챌린지 목록 새로고침 (탭 재클릭, 당겨서 새로고침에서 사용)
+  void refreshChallenges() {
     AppLogger.info('LogRunPage', 'Loading log run challenges');
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
@@ -94,10 +89,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
             ),
           );
           // 목록 새로고침
-          final authState = context.read<AuthBloc>().state;
-          if (authState is Authenticated) {
-            context.read<LogRunBloc>().add(RefreshChallenges(authState.user.id));
-          }
+          refreshChallenges();
         }
       },
       builder: (context, state) {
@@ -120,10 +112,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
           return RefreshIndicator(
             onRefresh: () async {
-              final authState = context.read<AuthBloc>().state;
-              if (authState is Authenticated) {
-                context.read<LogRunBloc>().add(RefreshChallenges(authState.user.id));
-              }
+              refreshChallenges();
             },
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -132,8 +121,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
                 final challenge = state.activeChallenges[index];
                 return ChallengeCardWidget(
                   challenge: challenge,
-                  onTap: () async {
-                    await Navigator.push(
+                  onTap: () {
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ChallengeDetailPage(
@@ -141,8 +130,6 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
                         ),
                       ),
                     );
-                    // 상세 페이지에서 돌아온 후 목록 새로고침
-                    _refreshChallenges();
                   },
                 );
               },

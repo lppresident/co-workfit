@@ -24,32 +24,70 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
+  late final PageController _pageController;
 
-  Widget _getPageForIndex(int index) {
-    switch (index) {
-      case 0:
-        return const _DashboardHome();
-      case 1:
-        return const WorkoutListPage();
-      case 2:
-        return const LogRunPage();
-      case 3:
-        return const CommunityPage();
-      default:
-        return const _DashboardHome();
-    }
+  // 페이지들을 미리 생성해서 상태 유지
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _pages = [
+      const _DashboardHome(),
+      const WorkoutListPage(),
+      LogRunPage(key: LogRunPage.globalKey),
+      const CommunityPage(),
+    ];
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (_selectedIndex == index) {
+      // 같은 탭을 다시 클릭한 경우 - 페이지 새로고침
+      _refreshCurrentPage(index);
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+      _pageController.jumpToPage(index);
+    }
+  }
+
+  void _refreshCurrentPage(int index) {
+    // 각 페이지별 새로고침 로직
+    switch (index) {
+      case 0:
+        // 홈 페이지 새로고침
+        context.read<WorkoutBloc>().add(const RefreshWorkoutsEvent());
+        break;
+      case 2:
+        // 통나무런 페이지 새로고침
+        LogRunPage.globalKey.currentState?.refreshChallenges();
+        break;
+      default:
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _getPageForIndex(_selectedIndex),
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(), // 스와이프로 페이지 전환 방지
+        onPageChanged: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
