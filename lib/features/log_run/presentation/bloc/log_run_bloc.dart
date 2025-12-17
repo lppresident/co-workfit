@@ -186,6 +186,18 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     AppLogger.info('LogRunBloc', '📤 Submitting workout to challenge: ${event.challengeId}');
     AppLogger.debug('LogRunBloc', '   Current state before submit: ${state.runtimeType}');
 
+    // 현재 상태에서 챌린지 및 목록 정보 추출
+    LogRunChallengeEntity? currentChallenge;
+    List<LogRunChallengeEntity> activeChallenges = [];
+    List<LogRunChallengeEntity> completedChallenges = [];
+
+    if (state is ChallengeDetailLoaded) {
+      final s = state as ChallengeDetailLoaded;
+      currentChallenge = s.challenge;
+      activeChallenges = s.activeChallenges;
+      completedChallenges = s.completedChallenges;
+    }
+
     final result = await submitWorkoutUseCase(
       SubmitWorkoutParams(
         challengeId: event.challengeId,
@@ -205,8 +217,20 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
       },
       (contribution) {
         AppLogger.info('LogRunBloc', '✅ Workout submitted successfully: ${contribution.id}');
-        AppLogger.debug('LogRunBloc', '   Emitting WorkoutSubmitted state');
-        emit(WorkoutSubmitted(contribution));
+        AppLogger.debug('LogRunBloc', '   Emitting WorkoutSubmitted state with challenge info');
+
+        if (currentChallenge != null) {
+          emit(WorkoutSubmitted(
+            contribution: contribution,
+            challenge: currentChallenge,
+            activeChallenges: activeChallenges,
+            completedChallenges: completedChallenges,
+          ));
+        } else {
+          // Fallback: 챌린지 정보 없이는 emit하지 않고 에러 처리
+          AppLogger.error('LogRunBloc', '❌ No challenge info available for WorkoutSubmitted');
+          emit(const LogRunError('챌린지 정보를 찾을 수 없습니다'));
+        }
       },
     );
   }
@@ -287,6 +311,10 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
               currentContributions = s.contributions;
               activeChallenges = s.activeChallenges;
               completedChallenges = s.completedChallenges;
+            } else if (state is WorkoutSubmitted) {
+              final s = state as WorkoutSubmitted;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
             } else if (state is ChallengesLoaded) {
               final s = state as ChallengesLoaded;
               activeChallenges = s.activeChallenges;
@@ -332,6 +360,11 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
 
             if (state is ChallengeDetailLoaded) {
               final s = state as ChallengeDetailLoaded;
+              currentChallenge = s.challenge;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
+            } else if (state is WorkoutSubmitted) {
+              final s = state as WorkoutSubmitted;
               currentChallenge = s.challenge;
               activeChallenges = s.activeChallenges;
               completedChallenges = s.completedChallenges;
