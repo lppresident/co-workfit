@@ -183,9 +183,6 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     SubmitWorkout event,
     Emitter<LogRunState> emit,
   ) async {
-    AppLogger.info('LogRunBloc', '📤 Submitting workout to challenge: ${event.challengeId}');
-    AppLogger.debug('LogRunBloc', '   Current state before submit: ${state.runtimeType}');
-
     // 현재 상태에서 챌린지 및 목록 정보 추출
     LogRunChallengeEntity? currentChallenge;
     List<LogRunChallengeEntity> activeChallenges = [];
@@ -211,14 +208,8 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     );
 
     result.fold(
-      (failure) {
-        AppLogger.error('LogRunBloc', '❌ Workout submission failed: $failure');
-        emit(LogRunError(failure.toString()));
-      },
+      (failure) => emit(LogRunError(failure.toString())),
       (contribution) {
-        AppLogger.info('LogRunBloc', '✅ Workout submitted successfully: ${contribution.id}');
-        AppLogger.debug('LogRunBloc', '   Emitting WorkoutSubmitted state with challenge info');
-
         if (currentChallenge != null) {
           emit(WorkoutSubmitted(
             contribution: contribution,
@@ -227,8 +218,6 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
             completedChallenges: completedChallenges,
           ));
         } else {
-          // Fallback: 챌린지 정보 없이는 emit하지 않고 에러 처리
-          AppLogger.error('LogRunBloc', '❌ No challenge info available for WorkoutSubmitted');
           emit(const LogRunError('챌린지 정보를 찾을 수 없습니다'));
         }
       },
@@ -294,13 +283,8 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
       repository.watchChallenge(event.challengeId),
       onData: (result) {
         return result.fold(
-          (failure) {
-            AppLogger.error('LogRunBloc', '❌ Error watching challenge: $failure');
-            return state; // Keep current state on error
-          },
+          (failure) => state,
           (challenge) {
-            AppLogger.debug('LogRunBloc', '🔄 Challenge updated: ${challenge.id}');
-
             // 매 업데이트마다 현재 state에서 정보 추출
             List<LogRunContributionEntity> currentContributions = [];
             List<LogRunChallengeEntity> activeChallenges = [];
@@ -321,7 +305,6 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
               completedChallenges = s.completedChallenges;
             }
 
-            AppLogger.debug('LogRunBloc', '   ✅ Converting to ChallengeDetailLoaded - Preserving contributions:${currentContributions.length} active:${activeChallenges.length} completed:${completedChallenges.length}');
             return ChallengeDetailLoaded(
               challenge: challenge,
               contributions: currentContributions,
@@ -338,21 +321,14 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     WatchContributions event,
     Emitter<LogRunState> emit,
   ) async {
-    AppLogger.info('LogRunBloc', '👀 Starting to watch contributions for challenge: ${event.challengeId}');
     await _contributionsSubscription?.cancel();
 
     await emit.forEach<Either<Failure, List<LogRunContributionEntity>>>(
       repository.watchContributions(event.challengeId),
       onData: (result) {
         return result.fold(
-          (failure) {
-            AppLogger.error('LogRunBloc', '❌ Error watching contributions: $failure');
-            return state; // Keep current state on error
-          },
+          (failure) => state,
           (contributions) {
-            AppLogger.info('LogRunBloc', '🔄 Contributions updated: ${contributions.length} contributions');
-            AppLogger.debug('LogRunBloc', '   Current state: ${state.runtimeType}');
-
             // 매 업데이트마다 현재 state에서 정보 추출
             LogRunChallengeEntity? currentChallenge;
             List<LogRunChallengeEntity> activeChallenges = [];
@@ -378,7 +354,6 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
 
             // 챌린지 정보가 있으면 ChallengeDetailLoaded로 변환
             if (currentChallenge != null) {
-              AppLogger.debug('LogRunBloc', '   ✅ Converting to ChallengeDetailLoaded - Preserving active:${activeChallenges.length} completed:${completedChallenges.length}');
               return ChallengeDetailLoaded(
                 challenge: currentChallenge,
                 contributions: contributions,
@@ -386,7 +361,6 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
                 completedChallenges: completedChallenges,
               );
             } else {
-              AppLogger.warning('LogRunBloc', '   ⚠️ No challenge info - Using fallback ContributionsUpdated');
               return ContributionsUpdated(contributions);
             }
           },

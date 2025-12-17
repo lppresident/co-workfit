@@ -75,10 +75,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
   Widget buildBody(BuildContext context) {
     return BlocConsumer<LogRunBloc, LogRunState>(
       listener: (context, state) {
-        AppLogger.debug('LogRunPage', '🔔 Listener - State: ${state.runtimeType}');
-
         if (state is LogRunError) {
-          AppLogger.error('LogRunPage', '❌ Error state: ${state.message}');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -86,7 +83,6 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
             ),
           );
         } else if (state is ChallengeCreated) {
-          AppLogger.info('LogRunPage', '✅ Challenge created');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('챌린지가 생성되었습니다!'),
@@ -98,17 +94,13 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
         }
       },
       builder: (context, state) {
-        AppLogger.debug('LogRunPage', '🎨 Builder - State: ${state.runtimeType}');
-
         // 초기 로딩 상태
         if (state is LogRunLoading) {
-          AppLogger.debug('LogRunPage', '⏳ Showing loading indicator');
           return const Center(child: CircularProgressIndicator());
         }
 
         // Empty 상태
         if (state is LogRunEmpty) {
-          AppLogger.debug('LogRunPage', '📭 Showing empty state');
           return EmptyLogRunWidget(
             onCreateOrJoin: _showCreateChallengeSheet,
           );
@@ -123,31 +115,24 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
               ? state.completedChallenges
               : (state as ChallengeDetailLoaded).completedChallenges;
 
-          AppLogger.debug('LogRunPage', '📋 Active: ${activeChallenges.length}, Completed: ${completedChallenges.length}');
-
           // 진행 중 챌린지를 먼저, 완료된 챌린지를 뒤에 표시
           final allChallenges = [...activeChallenges, ...completedChallenges];
 
           if (allChallenges.isEmpty) {
-            AppLogger.debug('LogRunPage', '📭 All challenges empty, showing empty state');
             return EmptyLogRunWidget(
               onCreateOrJoin: _showCreateChallengeSheet,
             );
           }
 
-          AppLogger.debug('LogRunPage', '✅ Showing ${allChallenges.length} challenges');
           return _buildUnifiedChallengeList(allChallenges);
         }
 
         // WorkoutSubmitted, ChallengeCreated 등 일시적인 상태는 로딩 표시
-        // (이후 WatchContributions가 새로운 ChallengeDetailLoaded를 emit할 것임)
         if (state is WorkoutSubmitted || state is ChallengeCreated || state is ChallengeJoined) {
-          AppLogger.debug('LogRunPage', '⏳ Temporary state (${state.runtimeType}), showing loading');
           return const Center(child: CircularProgressIndicator());
         }
 
         // 기본 Empty 상태
-        AppLogger.warning('LogRunPage', '⚠️ Unknown state: ${state.runtimeType}, showing empty');
         return EmptyLogRunWidget(
           onCreateOrJoin: _showCreateChallengeSheet,
         );
