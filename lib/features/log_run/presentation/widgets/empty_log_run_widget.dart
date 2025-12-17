@@ -76,6 +76,27 @@ class EmptyLogRunWidget extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+
+            // 초대 코드로 참가하기 버튼
+            if (onJoinByCode != null)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onJoinByCode,
+                  icon: const Icon(Icons.vpn_key_outlined, size: 24),
+                  label: const Text(
+                    '초대 코드로 참가하기',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.all(AppConstants.defaultPadding),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(height: 24),
 
             // 안내 카드

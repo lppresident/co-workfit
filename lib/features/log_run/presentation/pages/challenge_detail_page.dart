@@ -7,6 +7,7 @@ import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/contribution_feed_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/submit_workout_bottom_sheet.dart';
+import 'package:co_workfit/features/log_run/presentation/widgets/share_challenge_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
@@ -54,9 +55,46 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     );
   }
 
+  void _showShareSheet(String inviteCode, String challengeName) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => ShareChallengeBottomSheet(
+        inviteCode: inviteCode,
+        challengeName: challengeName,
+      ),
+    );
+  }
+
   @override
   PreferredSizeWidget buildAppBar(BuildContext context) {
-    return const StandardAppBar(title: '챌린지 상세');
+    return StandardAppBar(
+      title: '챌린지 상세',
+      actions: [
+        BlocBuilder<LogRunBloc, LogRunState>(
+          builder: (context, state) {
+            // 챌린지 정보가 있을 때만 공유 버튼 표시
+            if (state is ChallengeDetailLoaded || state is ChallengeUpdated) {
+              final challenge = state is ChallengeDetailLoaded
+                  ? state.challenge
+                  : (state as ChallengeUpdated).challenge;
+
+              return IconButton(
+                icon: const Icon(Icons.share),
+                onPressed: () => _showShareSheet(
+                  challenge.inviteCode,
+                  '${challenge.targetWeight.toStringAsFixed(0)}kg 통나무런',
+                ),
+                tooltip: '초대 코드 공유',
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+      ],
+    );
   }
 
   @override

@@ -5,6 +5,7 @@ import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/empty_log_run_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/challenge_card_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/create_challenge_bottom_sheet.dart';
+import 'package:co_workfit/features/log_run/presentation/widgets/invite_code_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
@@ -64,6 +65,30 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
     );
   }
 
+  void _showJoinByCodeSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => InviteCodeBottomSheet(
+        onJoin: (inviteCode) {
+          final authState = context.read<AuthBloc>().state;
+          if (authState is Authenticated) {
+            context.read<LogRunBloc>().add(
+                  JoinChallengeByCode(
+                    inviteCode: inviteCode,
+                    userId: authState.user.id,
+                    userName: authState.user.displayName,
+                  ),
+                );
+          }
+        },
+      ),
+    );
+  }
+
   @override
   PreferredSizeWidget buildAppBar(BuildContext context) {
     return const StandardAppBar(
@@ -91,6 +116,15 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           );
           // 목록 새로고침
           refreshChallenges();
+        } else if (state is ChallengeJoined) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('챌린지에 참가했습니다!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // 목록 새로고침
+          refreshChallenges();
         }
       },
       builder: (context, state) {
@@ -103,6 +137,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
         if (state is LogRunEmpty) {
           return EmptyLogRunWidget(
             onCreateOrJoin: _showCreateChallengeSheet,
+            onJoinByCode: _showJoinByCodeSheet,
           );
         }
 
@@ -121,6 +156,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           if (allChallenges.isEmpty) {
             return EmptyLogRunWidget(
               onCreateOrJoin: _showCreateChallengeSheet,
+              onJoinByCode: _showJoinByCodeSheet,
             );
           }
 
@@ -135,6 +171,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
         // 기본 Empty 상태
         return EmptyLogRunWidget(
           onCreateOrJoin: _showCreateChallengeSheet,
+          onJoinByCode: _showJoinByCodeSheet,
         );
       },
     );
