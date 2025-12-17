@@ -1,0 +1,83 @@
+import 'package:dartz/dartz.dart';
+import 'package:co_workfit/core/error/failures.dart';
+import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
+
+/// 통나무런 Repository 인터페이스
+abstract class LogRunRepository {
+  /// 챌린지 생성
+  Future<Either<Failure, LogRunChallengeEntity>> createChallenge({
+    required String userId,
+    required String userName,
+    required double targetWeight,
+    int? recordTimeLimit,
+    bool? allowFutureRecordsOnly,
+    DateTime? expiresAt,
+  });
+
+  /// 챌린지 참가
+  Future<Either<Failure, void>> joinChallenge({
+    required String challengeId,
+    required String userId,
+    required String userName,
+  });
+
+  /// 챌린지 탈퇴
+  Future<Either<Failure, void>> leaveChallenge({
+    required String challengeId,
+    required String userId,
+  });
+
+  /// 운동 기록 제출
+  Future<Either<Failure, LogRunContributionEntity>> submitWorkout({
+    required String challengeId,
+    required String userId,
+    required String userName,
+    required String workoutId,
+    required double distance,
+    required String workoutType,
+    required DateTime workoutDate,
+  });
+
+  /// 활성 챌린지 목록 조회
+  Future<Either<Failure, List<LogRunChallengeEntity>>> getActiveChallenges(
+    String userId,
+  );
+
+  /// 완료된 챌린지 목록 조회
+  Future<Either<Failure, List<LogRunChallengeEntity>>> getCompletedChallenges(
+    String userId,
+  );
+
+  /// 챌린지 상세 조회
+  Future<Either<Failure, LogRunChallengeEntity>> getChallengeById(
+    String challengeId,
+  );
+
+  /// 챌린지 기여 내역 조회
+  Future<Either<Failure, List<LogRunContributionEntity>>> getChallengeContributions(
+    String challengeId,
+  );
+
+  /// 특정 사용자의 기여 내역 조회
+  Future<Either<Failure, List<LogRunContributionEntity>>> getUserContributions({
+    required String challengeId,
+    required String userId,
+  });
+
+  /// 챌린지 실시간 스트림
+  Stream<Either<Failure, LogRunChallengeEntity>> watchChallenge(
+    String challengeId,
+  );
+
+  /// 기여 내역 실시간 스트림
+  Stream<Either<Failure, List<LogRunContributionEntity>>> watchContributions(
+    String challengeId,
+  );
+
+  /// 챌린지 삭제 (방장만 가능)
+  Future<Either<Failure, void>> deleteChallenge({
+    required String challengeId,
+    required String userId,
+  });
+}

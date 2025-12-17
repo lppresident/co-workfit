@@ -56,6 +56,17 @@ import 'package:co_workfit/features/social/domain/usecases/get_friends_leaderboa
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderboard_bloc.dart';
 
+// Log Run
+import 'package:co_workfit/features/log_run/data/datasources/firestore_log_run_datasource.dart';
+import 'package:co_workfit/features/log_run/data/repositories/log_run_repository_impl.dart';
+import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/create_log_run_challenge.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/join_log_run_challenge.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_challenge.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/get_active_challenges.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contributions.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> initializeDependencies() async {
@@ -230,6 +241,37 @@ Future<void> initializeDependencies() async {
     () => LeaderboardBloc(
       getLeaderboard: sl(),
       getFriendsLeaderboard: sl(),
+    ),
+  );
+
+  // ========== Log Run Feature ==========
+
+  // Data Sources
+  sl.registerLazySingleton<FirestoreLogRunDataSource>(
+    () => FirestoreLogRunDataSource(firestore: sl()),
+  );
+
+  // Repository
+  sl.registerLazySingleton<LogRunRepository>(
+    () => LogRunRepositoryImpl(dataSource: sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => CreateLogRunChallenge(sl()));
+  sl.registerLazySingleton(() => JoinLogRunChallenge(sl()));
+  sl.registerLazySingleton(() => SubmitWorkoutToChallenge(sl()));
+  sl.registerLazySingleton(() => GetActiveChallenges(sl()));
+  sl.registerLazySingleton(() => GetChallengeContributions(sl()));
+
+  // BLoC
+  sl.registerFactory(
+    () => LogRunBloc(
+      createChallengeUseCase: sl(),
+      joinChallengeUseCase: sl(),
+      submitWorkoutUseCase: sl(),
+      getActiveChallengesUseCase: sl(),
+      getChallengeContributionsUseCase: sl(),
+      repository: sl(),
     ),
   );
 }
