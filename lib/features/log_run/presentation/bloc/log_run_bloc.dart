@@ -180,6 +180,9 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     SubmitWorkout event,
     Emitter<LogRunState> emit,
   ) async {
+    AppLogger.info('LogRunBloc', '📤 Submitting workout to challenge: ${event.challengeId}');
+    AppLogger.debug('LogRunBloc', '   Current state before submit: ${state.runtimeType}');
+
     final result = await submitWorkoutUseCase(
       SubmitWorkoutParams(
         challengeId: event.challengeId,
@@ -193,9 +196,13 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     );
 
     result.fold(
-      (failure) => emit(LogRunError(failure.toString())),
+      (failure) {
+        AppLogger.error('LogRunBloc', '❌ Workout submission failed: $failure');
+        emit(LogRunError(failure.toString()));
+      },
       (contribution) {
-        AppLogger.info('LogRunBloc', 'Workout submitted: ${contribution.id}');
+        AppLogger.info('LogRunBloc', '✅ Workout submitted successfully: ${contribution.id}');
+        AppLogger.debug('LogRunBloc', '   Emitting WorkoutSubmitted state');
         emit(WorkoutSubmitted(contribution));
       },
     );
@@ -284,16 +291,21 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     WatchContributions event,
     Emitter<LogRunState> emit,
   ) async {
+    AppLogger.info('LogRunBloc', '👀 Starting to watch contributions for challenge: ${event.challengeId}');
     await _contributionsSubscription?.cancel();
 
     _contributionsSubscription = repository.watchContributions(event.challengeId).listen(
       (result) {
         result.fold(
-          (failure) => AppLogger.error('LogRunBloc', 'Error watching contributions: $failure'),
+          (failure) => AppLogger.error('LogRunBloc', '❌ Error watching contributions: $failure'),
           (contributions) {
+            AppLogger.info('LogRunBloc', '🔄 Contributions updated: ${contributions.length} contributions');
+            AppLogger.debug('LogRunBloc', '   Current state: ${state.runtimeType}');
+
             // 현재 챌린지 상태 유지하면서 기여 내역만 업데이트
             if (state is ChallengeDetailLoaded) {
               final currentState = state as ChallengeDetailLoaded;
+              AppLogger.debug('LogRunBloc', '   ✅ ChallengeDetailLoaded - Preserving active:${currentState.activeChallenges.length} completed:${currentState.completedChallenges.length}');
               emit(ChallengeDetailLoaded(
                 challenge: currentState.challenge,
                 contributions: contributions,
@@ -301,6 +313,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
                 completedChallenges: currentState.completedChallenges,
               ));
             } else if (state is ChallengeUpdated) {
+              AppLogger.debug('LogRunBloc', '   ⚠️ ChallengeUpdated - Converting to ChallengeDetailLoaded');
               // ChallengeUpdated 상태에서도 챌린지 정보 유지
               final currentState = state as ChallengeUpdated;
               emit(ChallengeDetailLoaded(
@@ -308,6 +321,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
                 contributions: contributions,
               ));
             } else {
+              AppLogger.warning('LogRunBloc', '   ⚠️ Unexpected state (${state.runtimeType}) - Using fallback ContributionsUpdated');
               // 폴백: 기존 동작 유지
               emit(ContributionsUpdated(contributions));
             }
