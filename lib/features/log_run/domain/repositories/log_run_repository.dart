@@ -54,6 +54,11 @@ abstract class LogRunRepository {
     String challengeId,
   );
 
+  /// 초대 코드로 챌린지 조회
+  Future<Either<Failure, LogRunChallengeEntity>> getChallengeByInviteCode(
+    String inviteCode,
+  );
+
   /// 챌린지 기여 내역 조회
   Future<Either<Failure, List<LogRunContributionEntity>>> getChallengeContributions(
     String challengeId,

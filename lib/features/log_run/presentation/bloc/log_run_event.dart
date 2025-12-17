@@ -73,6 +73,22 @@ class JoinChallenge extends LogRunEvent {
   List<Object?> get props => [challengeId, userId, userName];
 }
 
+/// 초대 코드로 챌린지 참가
+class JoinChallengeByCode extends LogRunEvent {
+  final String inviteCode;
+  final String userId;
+  final String userName;
+
+  const JoinChallengeByCode({
+    required this.inviteCode,
+    required this.userId,
+    required this.userName,
+  });
+
+  @override
+  List<Object?> get props => [inviteCode, userId, userName];
+}
+
 /// 챌린지 탈퇴
 class LeaveChallenge extends LogRunEvent {
   final String challengeId;

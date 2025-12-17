@@ -5,6 +5,7 @@ import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/empty_log_run_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/challenge_card_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/create_challenge_bottom_sheet.dart';
+import 'package:co_workfit/features/log_run/presentation/widgets/invite_code_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
@@ -40,6 +41,32 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
     }
   }
 
+  void _showActionSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('통나무런'),
+        content: const Text('새 그룹을 만들거나\n초대 코드로 참가할 수 있습니다'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showCreateChallengeSheet();
+            },
+            child: const Text('새 그룹 만들기'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showJoinByCodeSheet();
+            },
+            child: const Text('초대 코드로 참가'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showCreateChallengeSheet() {
     showModalBottomSheet(
       context: context,
@@ -56,6 +83,30 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
                     userId: authState.user.id,
                     userName: authState.user.displayName,
                     targetWeight: targetWeight,
+                  ),
+                );
+          }
+        },
+      ),
+    );
+  }
+
+  void _showJoinByCodeSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => InviteCodeBottomSheet(
+        onJoin: (inviteCode) {
+          final authState = context.read<AuthBloc>().state;
+          if (authState is Authenticated) {
+            context.read<LogRunBloc>().add(
+                  JoinChallengeByCode(
+                    inviteCode: inviteCode,
+                    userId: authState.user.id,
+                    userName: authState.user.displayName,
                   ),
                 );
           }
@@ -82,10 +133,21 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
               backgroundColor: Colors.red,
             ),
           );
+          // 에러 후 목록 복구
+          refreshChallenges();
         } else if (state is ChallengeCreated) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('챌린지가 생성되었습니다!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // 목록 새로고침
+          refreshChallenges();
+        } else if (state is ChallengeJoined) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('챌린지에 참가했습니다!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -102,7 +164,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
         // Empty 상태
         if (state is LogRunEmpty) {
           return EmptyLogRunWidget(
-            onCreateOrJoin: _showCreateChallengeSheet,
+            onCreateOrJoin: _showActionSelectionDialog,
           );
         }
 
@@ -120,7 +182,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
           if (allChallenges.isEmpty) {
             return EmptyLogRunWidget(
-              onCreateOrJoin: _showCreateChallengeSheet,
+              onCreateOrJoin: _showActionSelectionDialog,
             );
           }
 
@@ -134,7 +196,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
         // 기본 Empty 상태
         return EmptyLogRunWidget(
-          onCreateOrJoin: _showCreateChallengeSheet,
+          onCreateOrJoin: _showActionSelectionDialog,
         );
       },
     );
@@ -178,8 +240,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
         if (hasActiveChallenges) {
           return FloatingActionButton(
-            onPressed: _showCreateChallengeSheet,
-            tooltip: '새 챌린지 생성',
+            onPressed: _showActionSelectionDialog,
+            tooltip: '챌린지 생성 또는 참가',
             child: const Icon(Icons.add),
           );
         }
