@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:dartz/dartz.dart';
+import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/create_log_run_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/join_log_run_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_challenge.dart';
@@ -180,6 +183,18 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     SubmitWorkout event,
     Emitter<LogRunState> emit,
   ) async {
+    // 현재 상태에서 챌린지 및 목록 정보 추출
+    LogRunChallengeEntity? currentChallenge;
+    List<LogRunChallengeEntity> activeChallenges = [];
+    List<LogRunChallengeEntity> completedChallenges = [];
+
+    if (state is ChallengeDetailLoaded) {
+      final s = state as ChallengeDetailLoaded;
+      currentChallenge = s.challenge;
+      activeChallenges = s.activeChallenges;
+      completedChallenges = s.completedChallenges;
+    }
+
     final result = await submitWorkoutUseCase(
       SubmitWorkoutParams(
         challengeId: event.challengeId,
@@ -195,8 +210,16 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     result.fold(
       (failure) => emit(LogRunError(failure.toString())),
       (contribution) {
-        AppLogger.info('LogRunBloc', 'Workout submitted: ${contribution.id}');
-        emit(WorkoutSubmitted(contribution));
+        if (currentChallenge != null) {
+          emit(WorkoutSubmitted(
+            contribution: contribution,
+            challenge: currentChallenge,
+            activeChallenges: activeChallenges,
+            completedChallenges: completedChallenges,
+          ));
+        } else {
+          emit(const LogRunError('챌린지 정보를 찾을 수 없습니다'));
+        }
       },
     );
   }
@@ -256,24 +279,38 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
   ) async {
     await _challengeSubscription?.cancel();
 
-    _challengeSubscription = repository.watchChallenge(event.challengeId).listen(
-      (result) {
-        result.fold(
-          (failure) => add(LoadChallengeDetail(event.challengeId)),
+    await emit.forEach<Either<Failure, LogRunChallengeEntity>>(
+      repository.watchChallenge(event.challengeId),
+      onData: (result) {
+        return result.fold(
+          (failure) => state,
           (challenge) {
-            // 현재 기여 내역 유지하면서 챌린지만 업데이트
+            // 매 업데이트마다 현재 state에서 정보 추출
+            List<LogRunContributionEntity> currentContributions = [];
+            List<LogRunChallengeEntity> activeChallenges = [];
+            List<LogRunChallengeEntity> completedChallenges = [];
+
             if (state is ChallengeDetailLoaded) {
-              final currentState = state as ChallengeDetailLoaded;
-              emit(ChallengeDetailLoaded(
-                challenge: challenge,
-                contributions: currentState.contributions,
-                activeChallenges: currentState.activeChallenges,
-                completedChallenges: currentState.completedChallenges,
-              ));
-            } else {
-              // 폴백: 기존 동작 유지
-              emit(ChallengeUpdated(challenge));
+              final s = state as ChallengeDetailLoaded;
+              currentContributions = s.contributions;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
+            } else if (state is WorkoutSubmitted) {
+              final s = state as WorkoutSubmitted;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
+            } else if (state is ChallengesLoaded) {
+              final s = state as ChallengesLoaded;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
             }
+
+            return ChallengeDetailLoaded(
+              challenge: challenge,
+              contributions: currentContributions,
+              activeChallenges: activeChallenges,
+              completedChallenges: completedChallenges,
+            );
           },
         );
       },
@@ -286,30 +323,45 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
   ) async {
     await _contributionsSubscription?.cancel();
 
-    _contributionsSubscription = repository.watchContributions(event.challengeId).listen(
-      (result) {
-        result.fold(
-          (failure) => AppLogger.error('LogRunBloc', 'Error watching contributions: $failure'),
+    await emit.forEach<Either<Failure, List<LogRunContributionEntity>>>(
+      repository.watchContributions(event.challengeId),
+      onData: (result) {
+        return result.fold(
+          (failure) => state,
           (contributions) {
-            // 현재 챌린지 상태 유지하면서 기여 내역만 업데이트
+            // 매 업데이트마다 현재 state에서 정보 추출
+            LogRunChallengeEntity? currentChallenge;
+            List<LogRunChallengeEntity> activeChallenges = [];
+            List<LogRunChallengeEntity> completedChallenges = [];
+
             if (state is ChallengeDetailLoaded) {
-              final currentState = state as ChallengeDetailLoaded;
-              emit(ChallengeDetailLoaded(
-                challenge: currentState.challenge,
-                contributions: contributions,
-                activeChallenges: currentState.activeChallenges,
-                completedChallenges: currentState.completedChallenges,
-              ));
+              final s = state as ChallengeDetailLoaded;
+              currentChallenge = s.challenge;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
+            } else if (state is WorkoutSubmitted) {
+              final s = state as WorkoutSubmitted;
+              currentChallenge = s.challenge;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
             } else if (state is ChallengeUpdated) {
-              // ChallengeUpdated 상태에서도 챌린지 정보 유지
-              final currentState = state as ChallengeUpdated;
-              emit(ChallengeDetailLoaded(
-                challenge: currentState.challenge,
+              currentChallenge = (state as ChallengeUpdated).challenge;
+            } else if (state is ChallengesLoaded) {
+              final s = state as ChallengesLoaded;
+              activeChallenges = s.activeChallenges;
+              completedChallenges = s.completedChallenges;
+            }
+
+            // 챌린지 정보가 있으면 ChallengeDetailLoaded로 변환
+            if (currentChallenge != null) {
+              return ChallengeDetailLoaded(
+                challenge: currentChallenge,
                 contributions: contributions,
-              ));
+                activeChallenges: activeChallenges,
+                completedChallenges: completedChallenges,
+              );
             } else {
-              // 폴백: 기존 동작 유지
-              emit(ContributionsUpdated(contributions));
+              return ContributionsUpdated(contributions);
             }
           },
         );

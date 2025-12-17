@@ -76,11 +76,19 @@ class ChallengeJoined extends LogRunState {
 /// 운동 기록 제출 성공
 class WorkoutSubmitted extends LogRunState {
   final LogRunContributionEntity contribution;
+  final LogRunChallengeEntity challenge;
+  final List<LogRunChallengeEntity> activeChallenges;
+  final List<LogRunChallengeEntity> completedChallenges;
 
-  const WorkoutSubmitted(this.contribution);
+  const WorkoutSubmitted({
+    required this.contribution,
+    required this.challenge,
+    this.activeChallenges = const [],
+    this.completedChallenges = const [],
+  });
 
   @override
-  List<Object?> get props => [contribution];
+  List<Object?> get props => [contribution, challenge, activeChallenges, completedChallenges];
 }
 
 /// 챌린지 삭제 성공
