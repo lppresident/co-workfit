@@ -51,17 +51,24 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
   ) async {
     emit(const LogRunLoading());
 
+    // 이전 완료 챌린지 상태 저장
+    final previousCompletedChallenges = state is ChallengesLoaded
+        ? (state as ChallengesLoaded).completedChallenges
+        : (state is ChallengeDetailLoaded
+            ? (state as ChallengeDetailLoaded).completedChallenges
+            : <LogRunChallengeEntity>[]);
+
     final result = await getActiveChallengesUseCase(event.userId);
 
     result.fold(
       (failure) => emit(LogRunError(failure.toString())),
       (challenges) {
-        if (challenges.isEmpty) {
+        if (challenges.isEmpty && previousCompletedChallenges.isEmpty) {
           emit(const LogRunEmpty());
         } else {
           emit(ChallengesLoaded(
             activeChallenges: challenges,
-            completedChallenges: const [],
+            completedChallenges: previousCompletedChallenges,
           ));
         }
       },
@@ -81,6 +88,20 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
           final currentState = state as ChallengesLoaded;
           emit(ChallengesLoaded(
             activeChallenges: currentState.activeChallenges,
+            completedChallenges: challenges,
+          ));
+        } else if (state is ChallengeDetailLoaded) {
+          final currentState = state as ChallengeDetailLoaded;
+          emit(ChallengeDetailLoaded(
+            challenge: currentState.challenge,
+            contributions: currentState.contributions,
+            activeChallenges: currentState.activeChallenges,
+            completedChallenges: challenges,
+          ));
+        } else {
+          // 아직 활성 챌린지가 로드되지 않은 경우, 완료 챌린지만 먼저 로드
+          emit(ChallengesLoaded(
+            activeChallenges: const [],
             completedChallenges: challenges,
           ));
         }
