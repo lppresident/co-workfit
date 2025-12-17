@@ -65,10 +65,16 @@ class _InviteCodeBottomSheetState extends State<InviteCodeBottomSheet> {
             // 초대 코드 입력 필드
             TextFormField(
               controller: _codeController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '초대 코드',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
                 hintText: '예: A3K9M2',
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 24,
+                  fontWeight: FontWeight.normal,
+                  letterSpacing: 4,
+                ),
                 counterText: '',
               ),
               maxLength: 6,
