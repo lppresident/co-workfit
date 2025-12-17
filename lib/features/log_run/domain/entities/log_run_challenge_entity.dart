@@ -46,6 +46,12 @@ class LogRunChallengeEntity extends Equatable {
   /// 방 생성 후 기록만 허용할지 여부
   final bool allowFutureRecordsOnly;
 
+  /// 초대 코드 (6자리 영숫자)
+  final String inviteCode;
+
+  /// 최대 참가자 수 (null이면 무제한)
+  final int? maxParticipants;
+
   const LogRunChallengeEntity({
     required this.id,
     required this.createdBy,
@@ -58,9 +64,11 @@ class LogRunChallengeEntity extends Equatable {
     required this.participantNames,
     required this.status,
     required this.createdAt,
+    required this.inviteCode,
     this.expiresAt,
     this.recordTimeLimit = 7,
     this.allowFutureRecordsOnly = false,
+    this.maxParticipants,
   });
 
   /// 진행률 (0.0 ~ 1.0)
@@ -76,6 +84,12 @@ class LogRunChallengeEntity extends Equatable {
   bool get isExpired {
     if (expiresAt == null) return false;
     return DateTime.now().isAfter(expiresAt!);
+  }
+
+  /// 정원 초과 여부
+  bool get isFull {
+    if (maxParticipants == null) return false;
+    return participants.length >= maxParticipants!;
   }
 
   @override
@@ -94,6 +108,8 @@ class LogRunChallengeEntity extends Equatable {
         expiresAt,
         recordTimeLimit,
         allowFutureRecordsOnly,
+        inviteCode,
+        maxParticipants,
       ];
 }
 

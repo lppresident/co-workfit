@@ -15,9 +15,11 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
     required super.participantNames,
     required super.status,
     required super.createdAt,
+    required super.inviteCode,
     super.expiresAt,
     super.recordTimeLimit,
     super.allowFutureRecordsOnly,
+    super.maxParticipants,
   });
 
   /// Firestore 문서에서 모델 생성
@@ -36,11 +38,13 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       participantNames: Map<String, String>.from(data['participantNames'] as Map),
       status: ChallengeStatusExtension.fromFirestore(data['status'] as String),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      inviteCode: data['inviteCode'] as String,
       expiresAt: data['expiresAt'] != null
           ? (data['expiresAt'] as Timestamp).toDate()
           : null,
       recordTimeLimit: data['recordTimeLimit'] as int? ?? 7,
       allowFutureRecordsOnly: data['allowFutureRecordsOnly'] as bool? ?? false,
+      maxParticipants: data['maxParticipants'] as int?,
     );
   }
 
@@ -57,9 +61,11 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       'participantNames': participantNames,
       'status': status.toFirestore(),
       'createdAt': Timestamp.fromDate(createdAt),
+      'inviteCode': inviteCode,
       'expiresAt': expiresAt != null ? Timestamp.fromDate(expiresAt!) : null,
       'recordTimeLimit': recordTimeLimit,
       'allowFutureRecordsOnly': allowFutureRecordsOnly,
+      'maxParticipants': maxParticipants,
     };
   }
 
@@ -77,9 +83,11 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       participantNames: entity.participantNames,
       status: entity.status,
       createdAt: entity.createdAt,
+      inviteCode: entity.inviteCode,
       expiresAt: entity.expiresAt,
       recordTimeLimit: entity.recordTimeLimit,
       allowFutureRecordsOnly: entity.allowFutureRecordsOnly,
+      maxParticipants: entity.maxParticipants,
     );
   }
 }

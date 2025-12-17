@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:co_workfit/features/log_run/data/models/log_run_challenge_model.dart';
 import 'package:co_workfit/features/log_run/data/models/log_run_contribution_model.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
 class FirestoreLogRunDataSource {
@@ -18,6 +19,29 @@ class FirestoreLogRunDataSource {
   }) async {
     final now = DateTime.now();
     final challengeRef = firestore.collection(_challengesCollection).doc();
+
+    // 고유한 초대 코드 생성 (중복 체크)
+    String inviteCode;
+    bool isUnique = false;
+    int attempts = 0;
+    const maxAttempts = 10;
+
+    do {
+      inviteCode = InviteCodeGenerator.generate();
+      final existingChallenge = await firestore
+          .collection(_challengesCollection)
+          .where('inviteCode', isEqualTo: inviteCode)
+          .limit(1)
+          .get();
+
+      isUnique = existingChallenge.docs.isEmpty;
+      attempts++;
+    } while (!isUnique && attempts < maxAttempts);
+
+    if (!isUnique) {
+      throw Exception('초대 코드 생성에 실패했습니다. 다시 시도해주세요.');
+    }
+
     await challengeRef.set({
       'createdBy': userId, 'creatorName': userName,
       'targetWeight': targetWeight, 'targetDistance': targetWeight,
@@ -25,9 +49,11 @@ class FirestoreLogRunDataSource {
       'participants': [userId], 'participantNames': {userId: userName},
       'status': ChallengeStatus.active.toFirestore(),
       'createdAt': Timestamp.fromDate(now),
+      'inviteCode': inviteCode,
       'expiresAt': expiresAt != null ? Timestamp.fromDate(expiresAt) : null,
       'recordTimeLimit': recordTimeLimit ?? 7,
       'allowFutureRecordsOnly': allowFutureRecordsOnly ?? false,
+      'maxParticipants': null,
     });
     final doc = await challengeRef.get();
     return LogRunChallengeModel.fromFirestore(doc);
@@ -103,6 +129,20 @@ class FirestoreLogRunDataSource {
     final doc = await firestore.collection(_challengesCollection).doc(challengeId).get();
     if (!doc.exists) throw Exception('Challenge not found');
     return LogRunChallengeModel.fromFirestore(doc);
+  }
+
+  Future<LogRunChallengeModel> getChallengeByInviteCode(String inviteCode) async {
+    final query = await firestore
+        .collection(_challengesCollection)
+        .where('inviteCode', isEqualTo: inviteCode.toUpperCase())
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) {
+      throw Exception('초대 코드가 유효하지 않습니다');
+    }
+
+    return LogRunChallengeModel.fromFirestore(query.docs.first);
   }
 
   Future<List<LogRunContributionModel>> getChallengeContributions(String challengeId) async {
