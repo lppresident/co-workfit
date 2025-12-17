@@ -24,20 +24,7 @@ class LogRunPage extends BasePage {
   static final GlobalKey<_LogRunPageState> globalKey = GlobalKey<_LogRunPageState>();
 }
 
-class _LogRunPageState extends BasePageState<LogRunPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
+class _LogRunPageState extends BasePageState<LogRunPage> {
   @override
   void loadInitialData() {
     refreshChallenges();
@@ -79,15 +66,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> with SingleTickerProvid
 
   @override
   PreferredSizeWidget buildAppBar(BuildContext context) {
-    return StandardAppBar(
+    return const StandardAppBar(
       title: '통나무런',
-      bottom: TabBar(
-        controller: _tabController,
-        tabs: const [
-          Tab(text: '진행 중'),
-          Tab(text: '완료'),
-        ],
-      ),
     );
   }
 
@@ -133,15 +113,16 @@ class _LogRunPageState extends BasePageState<LogRunPage> with SingleTickerProvid
               ? state.completedChallenges
               : (state as ChallengeDetailLoaded).completedChallenges;
 
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              // 진행 중 탭
-              _buildChallengeList(activeChallenges, isEmpty: activeChallenges.isEmpty),
-              // 완료 탭
-              _buildChallengeList(completedChallenges, isEmpty: completedChallenges.isEmpty, isCompleted: true),
-            ],
-          );
+          // 진행 중 챌린지를 먼저, 완료된 챌린지를 뒤에 표시
+          final allChallenges = [...activeChallenges, ...completedChallenges];
+
+          if (allChallenges.isEmpty) {
+            return EmptyLogRunWidget(
+              onCreateOrJoin: _showCreateChallengeSheet,
+            );
+          }
+
+          return _buildUnifiedChallengeList(allChallenges);
         }
 
         // 기본 Empty 상태
@@ -152,14 +133,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> with SingleTickerProvid
     );
   }
 
-  Widget _buildChallengeList(List<dynamic> challenges, {required bool isEmpty, bool isCompleted = false}) {
-    if (isEmpty) {
-      return EmptyLogRunWidget(
-        onCreateOrJoin: _showCreateChallengeSheet,
-        message: isCompleted ? '완료된 챌린지가 없습니다' : null,
-      );
-    }
-
+  Widget _buildUnifiedChallengeList(List<dynamic> challenges) {
     return RefreshIndicator(
       onRefresh: () async {
         refreshChallenges();
