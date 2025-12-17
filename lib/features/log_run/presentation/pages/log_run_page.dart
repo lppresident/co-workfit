@@ -24,7 +24,20 @@ class LogRunPage extends BasePage {
   static final GlobalKey<_LogRunPageState> globalKey = GlobalKey<_LogRunPageState>();
 }
 
-class _LogRunPageState extends BasePageState<LogRunPage> {
+class _LogRunPageState extends BasePageState<LogRunPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   void loadInitialData() {
     refreshChallenges();
@@ -36,6 +49,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
       context.read<LogRunBloc>().add(LoadActiveChallenges(authState.user.id));
+      context.read<LogRunBloc>().add(LoadCompletedChallenges(authState.user.id));
     }
   }
 
@@ -65,8 +79,15 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
   @override
   PreferredSizeWidget buildAppBar(BuildContext context) {
-    return const StandardAppBar(
+    return StandardAppBar(
       title: '통나무런',
+      bottom: TabBar(
+        controller: _tabController,
+        tabs: const [
+          Tab(text: '진행 중'),
+          Tab(text: '완료'),
+        ],
+      ),
     );
   }
 
@@ -108,37 +129,18 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           final activeChallenges = state is ChallengesLoaded
               ? state.activeChallenges
               : (state as ChallengeDetailLoaded).activeChallenges;
+          final completedChallenges = state is ChallengesLoaded
+              ? state.completedChallenges
+              : (state as ChallengeDetailLoaded).completedChallenges;
 
-          if (activeChallenges.isEmpty) {
-            return EmptyLogRunWidget(
-              onCreateOrJoin: _showCreateChallengeSheet,
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              refreshChallenges();
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: activeChallenges.length,
-              itemBuilder: (context, index) {
-                final challenge = activeChallenges[index];
-                return ChallengeCardWidget(
-                  challenge: challenge,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChallengeDetailPage(
-                          challengeId: challenge.id,
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              // 진행 중 탭
+              _buildChallengeList(activeChallenges, isEmpty: activeChallenges.isEmpty),
+              // 완료 탭
+              _buildChallengeList(completedChallenges, isEmpty: completedChallenges.isEmpty, isCompleted: true),
+            ],
           );
         }
 
@@ -147,6 +149,41 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           onCreateOrJoin: _showCreateChallengeSheet,
         );
       },
+    );
+  }
+
+  Widget _buildChallengeList(List<dynamic> challenges, {required bool isEmpty, bool isCompleted = false}) {
+    if (isEmpty) {
+      return EmptyLogRunWidget(
+        onCreateOrJoin: _showCreateChallengeSheet,
+        message: isCompleted ? '완료된 챌린지가 없습니다' : null,
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        refreshChallenges();
+      },
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: challenges.length,
+        itemBuilder: (context, index) {
+          final challenge = challenges[index];
+          return ChallengeCardWidget(
+            challenge: challenge,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChallengeDetailPage(
+                    challengeId: challenge.id,
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
