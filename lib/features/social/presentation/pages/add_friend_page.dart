@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:co_workfit/core/presentation/base_page.dart';
+import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_state.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
@@ -8,20 +10,25 @@ import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/core/widgets/common_empty_widget.dart';
 import 'package:co_workfit/core/constants/app_constants.dart';
 
-class AddFriendTab extends StatefulWidget {
-  const AddFriendTab({super.key});
+class AddFriendPage extends BasePage {
+  const AddFriendPage({super.key});
 
   @override
-  State<AddFriendTab> createState() => _AddFriendTabState();
+  State<AddFriendPage> createState() => _AddFriendPageState();
 }
 
-class _AddFriendTabState extends State<AddFriendTab> {
+class _AddFriendPageState extends BasePageState<AddFriendPage> {
   final TextEditingController _emailController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     super.dispose();
+  }
+
+  @override
+  void loadInitialData() {
+    // 초기 데이터 로딩 없음
   }
 
   void _searchUsers() {
@@ -46,7 +53,14 @@ class _AddFriendTabState extends State<AddFriendTab> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return const StandardAppBar(
+      title: '친구 추가',
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
     return BlocBuilder<SocialBloc, SocialState>(
       builder: (context, state) {
         final searchResults = state is SocialLoaded

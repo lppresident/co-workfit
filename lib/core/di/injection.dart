@@ -44,12 +44,11 @@ import 'package:co_workfit/features/social/data/datasources/firestore_social_dat
 import 'package:co_workfit/features/social/data/repositories/social_repository_impl.dart';
 import 'package:co_workfit/features/social/domain/repositories/social_repository.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_friends.dart';
+import 'package:co_workfit/features/social/domain/usecases/get_friends_data.dart';
 import 'package:co_workfit/features/social/domain/usecases/send_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_received_friend_requests.dart';
-import 'package:co_workfit/features/social/domain/usecases/get_sent_friend_requests.dart';
 import 'package:co_workfit/features/social/domain/usecases/accept_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/reject_friend_request.dart';
-import 'package:co_workfit/features/social/domain/usecases/cancel_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/search_users_by_email.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_leaderboard.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_friends_leaderboard.dart';
@@ -212,12 +211,11 @@ Future<void> initializeDependencies() async {
 
   // Use Cases - Friends
   sl.registerLazySingleton(() => GetFriends(sl()));
+  sl.registerLazySingleton(() => GetFriendsData(sl()));
   sl.registerLazySingleton(() => SendFriendRequest(sl()));
   sl.registerLazySingleton(() => GetReceivedFriendRequests(sl()));
-  sl.registerLazySingleton(() => GetSentFriendRequests(sl()));
   sl.registerLazySingleton(() => AcceptFriendRequest(sl()));
   sl.registerLazySingleton(() => RejectFriendRequest(sl()));
-  sl.registerLazySingleton(() => CancelFriendRequest(sl()));
   sl.registerLazySingleton(() => SearchUsersByEmail(sl()));
 
   // Use Cases - Leaderboard
@@ -228,12 +226,11 @@ Future<void> initializeDependencies() async {
   sl.registerFactory(
     () => SocialBloc(
       getFriends: sl(),
+      getFriendsData: sl(),
       sendFriendRequest: sl(),
       getReceivedFriendRequests: sl(),
-      getSentFriendRequests: sl(),
       acceptFriendRequest: sl(),
       rejectFriendRequest: sl(),
-      cancelFriendRequest: sl(),
       searchUsersByEmail: sl(),
     ),
   );

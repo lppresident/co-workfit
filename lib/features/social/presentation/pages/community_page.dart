@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:co_workfit/core/presentation/base_page.dart';
-import 'package:co_workfit/core/presentation/mixins/tabbed_mixin.dart';
 import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
 import 'package:co_workfit/features/social/presentation/widgets/friends_list_tab.dart';
-import 'package:co_workfit/features/social/presentation/widgets/add_friend_tab.dart';
-import 'package:co_workfit/features/social/presentation/widgets/received_requests_tab.dart';
-import 'package:co_workfit/features/social/presentation/widgets/sent_requests_tab.dart';
+import 'package:co_workfit/features/social/presentation/pages/add_friend_page.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
@@ -26,53 +23,21 @@ class CommunityPage extends BasePage {
   State<CommunityPage> createState() => _CommunityPageState();
 }
 
-class _CommunityPageState extends BasePageState<CommunityPage>
-    with SingleTickerProviderStateMixin, TabbedMixin {
-  @override
-  int get tabCount => 4; // 친구 목록, 친구 추가, 받은 요청, 보낸 요청
-
-  @override
-  List<String> get tabLabels => const ['친구', '추가', '받은 요청', '보낸 요청'];
-
-  @override
-  List<Widget> get tabViews => const [
-        FriendsListTab(),
-        AddFriendTab(),
-        ReceivedRequestsTab(),
-        SentRequestsTab(),
-      ];
-
+class _CommunityPageState extends BasePageState<CommunityPage> {
   @override
   void loadInitialData() {
     AppLogger.info('CommunityPage', 'Loading initial data');
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
       final userId = authState.user.id;
-      context.read<SocialBloc>().add(LoadFriends(userId));
-      context.read<SocialBloc>().add(LoadReceivedFriendRequests(userId));
-      context.read<SocialBloc>().add(LoadSentFriendRequests(userId));
+      context.read<SocialBloc>().add(LoadFriendsData(userId));
     }
-  }
-
-  @override
-  void onTabChanged(int index) {
-    AppLogger.info('CommunityPage', 'Tab changed to: $index');
-  }
-
-  @override
-  PreferredSizeWidget buildTabBar() {
-    return TabBar(
-      controller: tabController,
-      isScrollable: true,
-      tabs: tabLabels.map((label) => Tab(text: label)).toList(),
-    );
   }
 
   @override
   PreferredSizeWidget buildAppBar(BuildContext context) {
     return StandardAppBar(
       title: '친구',
-      bottom: buildTabBar(),
       actions: [
         // 프로필/로그아웃 메뉴
         PopupMenuButton<String>(
@@ -113,7 +78,22 @@ class _CommunityPageState extends BasePageState<CommunityPage>
 
   @override
   Widget buildBody(BuildContext context) {
-    return buildTabBarView();
+    return const FriendsListTab();
+  }
+
+  @override
+  Widget? buildFloatingActionButton(BuildContext context) {
+    return FloatingActionButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const AddFriendPage(),
+          ),
+        );
+      },
+      child: const Icon(Icons.person_add),
+    );
   }
 
   void _showProfile(BuildContext context) {

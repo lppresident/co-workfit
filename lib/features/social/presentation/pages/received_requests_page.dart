@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:co_workfit/core/presentation/base_page.dart';
+import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_state.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
@@ -7,11 +9,28 @@ import 'package:co_workfit/core/widgets/common_loading_widget.dart';
 import 'package:co_workfit/core/widgets/common_empty_widget.dart';
 import 'package:co_workfit/core/constants/app_constants.dart';
 
-class ReceivedRequestsTab extends StatelessWidget {
-  const ReceivedRequestsTab({super.key});
+class ReceivedRequestsPage extends BasePage {
+  const ReceivedRequestsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<ReceivedRequestsPage> createState() => _ReceivedRequestsPageState();
+}
+
+class _ReceivedRequestsPageState extends BasePageState<ReceivedRequestsPage> {
+  @override
+  void loadInitialData() {
+    // 데이터는 이미 로드되어 있음
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return const StandardAppBar(
+      title: '받은 친구 요청',
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
     return BlocBuilder<SocialBloc, SocialState>(
       builder: (context, state) {
         if (state is SocialLoading) {
@@ -40,7 +59,10 @@ class ReceivedRequestsTab extends StatelessWidget {
           itemBuilder: (context, index) {
             final request = requests[index];
             return Card(
-              margin: const EdgeInsets.symmetric(horizontal: AppConstants.defaultPadding, vertical: 8),
+              margin: const EdgeInsets.symmetric(
+                horizontal: AppConstants.defaultPadding,
+                vertical: 8,
+              ),
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundImage: request.senderPhotoUrl != null
@@ -62,8 +84,8 @@ class ReceivedRequestsTab extends StatelessWidget {
                       icon: const Icon(Icons.check, color: Colors.green),
                       onPressed: () {
                         context.read<SocialBloc>().add(
-                          AcceptFriendRequestEvent(request.id),
-                        );
+                              AcceptFriendRequestEvent(request.id),
+                            );
                       },
                       tooltip: '수락',
                     ),
@@ -71,8 +93,8 @@ class ReceivedRequestsTab extends StatelessWidget {
                       icon: const Icon(Icons.close, color: Colors.red),
                       onPressed: () {
                         context.read<SocialBloc>().add(
-                          RejectFriendRequestEvent(request.id),
-                        );
+                              RejectFriendRequestEvent(request.id),
+                            );
                       },
                       tooltip: '거절',
                     ),
