@@ -4,6 +4,7 @@ import 'package:co_workfit/core/config/firebase_config.dart';
 import 'package:co_workfit/features/social/data/models/friend_request_model.dart';
 import 'package:co_workfit/features/social/domain/entities/friend_request_entity.dart';
 import 'package:co_workfit/features/social/domain/entities/friendship_entity.dart';
+import 'package:co_workfit/features/social/domain/entities/friends_data_entity.dart';
 import 'package:co_workfit/features/social/domain/entities/leaderboard_entry_entity.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
@@ -254,6 +255,80 @@ class FirestoreSocialDataSource {
   }
 
   // ========== 친구 관계 관련 ==========
+
+  /// 친구 데이터 통합 조회 (친구 목록 + 받은 요청)
+  Future<Either<String, FriendsDataEntity>> getFriendsData(
+    String userId,
+  ) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
+    try {
+      AppLogger.info('FirestoreSocialDataSource', 'getFriendsData 시작 - userId: $userId');
+      AppLogger.info('FirestoreSocialDataSource', 'friendRequestsCollection: ${FirebaseConfig.friendRequestsCollection}');
+
+      // 두 쿼리를 병렬로 실행
+      final results = await Future.wait([
+        // 1. 친구 목록 조회
+        _firestore
+            .collection(FirebaseConfig.friendsCollection)
+            .where('userId', isEqualTo: userId)
+            .orderBy('createdAt', descending: true)
+            .get(),
+        // 2. 받은 친구 요청 조회 (pending만)
+        _firestore
+            .collection(FirebaseConfig.friendRequestsCollection)
+            .where('receiverId', isEqualTo: userId)
+            .where('status', isEqualTo: FriendRequestStatus.pending.name)
+            .orderBy('createdAt', descending: true)
+            .get(),
+      ]);
+
+      final friendsSnapshot = results[0];
+      final requestsSnapshot = results[1];
+
+      AppLogger.info('FirestoreSocialDataSource', 'friends 개수: ${friendsSnapshot.docs.length}');
+      AppLogger.info('FirestoreSocialDataSource', 'requests 개수: ${requestsSnapshot.docs.length}');
+
+      // Friends 파싱
+      final friends = friendsSnapshot.docs.map((doc) {
+        final data = doc.data();
+        return FriendshipEntity(
+          id: doc.id,
+          userId: data['userId'] as String,
+          friendId: data['friendId'] as String,
+          friendName: data['friendName'] as String,
+          friendEmail: data['friendEmail'] as String,
+          friendPhotoUrl: data['friendPhotoUrl'] as String?,
+          friendTotalScore: (data['friendTotalScore'] as num?)?.toInt() ?? 0,
+          friendWorkoutCount:
+              (data['friendWorkoutCount'] as num?)?.toInt() ?? 0,
+          createdAt: (data['createdAt'] as Timestamp).toDate(),
+        );
+      }).toList();
+
+      // Requests 파싱
+      final requests = requestsSnapshot.docs
+          .map((doc) => FriendRequestModel.fromFirestore(doc))
+          .toList();
+
+      return Right(FriendsDataEntity(
+        friends: friends,
+        pendingRequests: requests,
+        requestCount: requests.length,
+      ));
+    } catch (e) {
+      AppLogger.error('FirestoreSocialDataSource', '친구 데이터 조회 실패', e);
+      print('========================================');
+      print('친구 데이터 조회 에러 상세 정보:');
+      print('Error: $e');
+      print('UserId: $userId');
+      print('Collection: ${FirebaseConfig.friendRequestsCollection}');
+      print('========================================');
+      return Left('친구 데이터 조회에 실패했습니다: $e');
+    }
+  }
 
   /// 친구 목록 가져오기
   Future<Either<String, List<FriendshipEntity>>> getFriends(

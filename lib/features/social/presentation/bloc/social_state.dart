@@ -21,30 +21,30 @@ class SocialLoading extends SocialState {
 class SocialLoaded extends SocialState {
   final List<FriendshipEntity> friends;
   final List<FriendRequestEntity> receivedRequests;
-  final List<FriendRequestEntity> sentRequests;
   final List<UserEntity> searchResults;
+  final int requestCount;
 
   const SocialLoaded({
     this.friends = const [],
     this.receivedRequests = const [],
-    this.sentRequests = const [],
     this.searchResults = const [],
+    this.requestCount = 0,
   });
 
   @override
-  List<Object?> get props => [friends, receivedRequests, sentRequests, searchResults];
+  List<Object?> get props => [friends, receivedRequests, searchResults, requestCount];
 
   SocialLoaded copyWith({
     List<FriendshipEntity>? friends,
     List<FriendRequestEntity>? receivedRequests,
-    List<FriendRequestEntity>? sentRequests,
     List<UserEntity>? searchResults,
+    int? requestCount,
   }) {
     return SocialLoaded(
       friends: friends ?? this.friends,
       receivedRequests: receivedRequests ?? this.receivedRequests,
-      sentRequests: sentRequests ?? this.sentRequests,
       searchResults: searchResults ?? this.searchResults,
+      requestCount: requestCount ?? this.requestCount,
     );
   }
 }

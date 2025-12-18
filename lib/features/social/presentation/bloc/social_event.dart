@@ -8,6 +8,16 @@ abstract class SocialEvent extends Equatable {
 }
 
 // Friends Events
+/// 친구 데이터 통합 로드 (친구 목록 + 받은 요청)
+class LoadFriendsData extends SocialEvent {
+  final String userId;
+
+  const LoadFriendsData(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
+}
+
 class LoadFriends extends SocialEvent {
   final String userId;
 
@@ -31,15 +41,6 @@ class LoadReceivedFriendRequests extends SocialEvent {
   final String userId;
 
   const LoadReceivedFriendRequests(this.userId);
-
-  @override
-  List<Object?> get props => [userId];
-}
-
-class LoadSentFriendRequests extends SocialEvent {
-  final String userId;
-
-  const LoadSentFriendRequests(this.userId);
 
   @override
   List<Object?> get props => [userId];
@@ -75,15 +76,6 @@ class RejectFriendRequestEvent extends SocialEvent {
   final String requestId;
 
   const RejectFriendRequestEvent(this.requestId);
-
-  @override
-  List<Object?> get props => [requestId];
-}
-
-class CancelFriendRequestEvent extends SocialEvent {
-  final String requestId;
-
-  const CancelFriendRequestEvent(this.requestId);
 
   @override
   List<Object?> get props => [requestId];

@@ -6,6 +6,7 @@ import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/social/presentation/pages/friend_detail_page.dart';
+import 'package:co_workfit/features/social/presentation/pages/received_requests_page.dart';
 import 'package:co_workfit/core/widgets/common_loading_widget.dart';
 import 'package:co_workfit/core/widgets/common_error_widget.dart';
 import 'package:co_workfit/core/widgets/common_empty_widget.dart';
@@ -28,7 +29,9 @@ class FriendsListTab extends StatelessWidget {
             onRetry: () {
               final authState = context.read<AuthBloc>().state;
               if (authState is Authenticated) {
-                context.read<SocialBloc>().add(LoadFriends(authState.user.id));
+                context
+                    .read<SocialBloc>()
+                    .add(LoadFriendsData(authState.user.id));
               }
             },
           );
@@ -44,10 +47,20 @@ class FriendsListTab extends StatelessWidget {
                         ? state.previousState!.friends
                         : <dynamic>[];
 
-        if (friends.isEmpty) {
+        final requestCount = state is SocialLoaded
+            ? state.requestCount
+            : state is SocialActionSuccess
+                ? state.newState.requestCount
+                : state is SocialActionInProgress
+                    ? state.currentState.requestCount
+                    : state is SocialError && state.previousState != null
+                        ? state.previousState!.requestCount
+                        : 0;
+
+        if (friends.isEmpty && requestCount == 0) {
           return const CommonEmptyWidget(
             icon: Icons.people_outline,
-            message: '아직 친구가 없습니다\n친구 추가 탭에서 친구를 추가해보세요!',
+            message: '아직 친구가 없습니다\n우하단 버튼으로 친구를 추가해보세요!',
           );
         }
 
@@ -55,13 +68,55 @@ class FriendsListTab extends StatelessWidget {
           onRefresh: () async {
             final authState = context.read<AuthBloc>().state;
             if (authState is Authenticated) {
-              context.read<SocialBloc>().add(RefreshFriends(authState.user.id));
+              context
+                  .read<SocialBloc>()
+                  .add(LoadFriendsData(authState.user.id));
             }
           },
           child: ListView.builder(
-            itemCount: friends.length,
+            itemCount: friends.length + (requestCount > 0 ? 1 : 0),
             itemBuilder: (context, index) {
-              final friend = friends[index];
+              // 받은 요청 알림 셀
+              if (requestCount > 0 && index == 0) {
+                return Card(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: AppConstants.defaultPadding,
+                    vertical: 8,
+                  ),
+                  color: Colors.blue.shade50,
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.person_add,
+                        color: Colors.white,
+                      ),
+                    ),
+                    title: Text(
+                      '새로운 친구 요청 $requestCount개',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text('탭하여 확인하기'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ReceivedRequestsPage(),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              }
+
+              // 친구 목록 셀
+              final friendIndex = requestCount > 0 ? index - 1 : index;
+              final friend = friends[friendIndex];
               return Card(
                 margin: const EdgeInsets.symmetric(
                   horizontal: AppConstants.defaultPadding,

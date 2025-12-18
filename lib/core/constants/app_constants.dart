@@ -27,7 +27,7 @@ class AppConstants {
 
   // Firebase Collections
   static const String usersCollection = 'users';
-  static const String friendRequestsCollection = 'friendRequests';
+  static const String friendRequestsCollection = 'friend_requests';
   static const String friendshipsCollection = 'friendships';
   static const String leaderboardCollection = 'leaderboard';
 

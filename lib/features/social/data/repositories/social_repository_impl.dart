@@ -5,6 +5,7 @@ import 'package:co_workfit/features/auth/domain/entities/user_entity.dart';
 import 'package:co_workfit/features/auth/data/models/user_model.dart';
 import 'package:co_workfit/features/social/domain/entities/friend_request_entity.dart';
 import 'package:co_workfit/features/social/domain/entities/friendship_entity.dart';
+import 'package:co_workfit/features/social/domain/entities/friends_data_entity.dart';
 import 'package:co_workfit/features/social/domain/entities/leaderboard_entry_entity.dart';
 import 'package:co_workfit/features/social/domain/repositories/social_repository.dart';
 import 'package:co_workfit/features/social/data/datasources/firestore_social_datasource.dart';
@@ -53,21 +54,6 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
-  Future<Either<Failure, List<FriendRequestEntity>>> getSentFriendRequests(
-    String userId,
-  ) async {
-    try {
-      final result = await dataSource.getSentFriendRequests(userId);
-      return result.fold(
-        (error) => Left(ServerFailure(error)),
-        (requests) => Right(requests),
-      );
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
-    }
-  }
-
-  @override
   Future<Either<Failure, void>> acceptFriendRequest(String requestId) async {
     try {
       final result = await dataSource.acceptFriendRequest(requestId);
@@ -94,12 +80,14 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
-  Future<Either<Failure, void>> cancelFriendRequest(String requestId) async {
+  Future<Either<Failure, FriendsDataEntity>> getFriendsData(
+    String userId,
+  ) async {
     try {
-      final result = await dataSource.cancelFriendRequest(requestId);
+      final result = await dataSource.getFriendsData(userId);
       return result.fold(
         (error) => Left(ServerFailure(error)),
-        (_) => const Right(null),
+        (data) => Right(data),
       );
     } catch (e) {
       return Left(ServerFailure(e.toString()));
