@@ -12,7 +12,20 @@
           "package_name": "com.coworkfit.co_workfit"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "89240730998-lvh2bmj6ha6pmtk8h416jocam5i1qf1a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.coworkfit.co_workfit",
+            "certificate_hash": "b17a41ae7485b52f9e8006f6ec12bda2efff221e"
+          }
+        },
+        {
+          "client_id": "89240730998-ckcr8c3dlubeckelcncmn0hsnc0bift7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD8qTv8_Y4lVwY0_u6lTWb_c1IJ2WL4yIM"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "89240730998-ckcr8c3dlubeckelcncmn0hsnc0bift7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "89240730998-618nn4aqpg6il1vt0prphp0o40iqogob.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.hansol.coworkfit"
+              }
+            }
+          ]
         }
       }
     }
