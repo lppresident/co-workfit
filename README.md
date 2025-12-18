@@ -91,6 +91,17 @@ flutterfire configure
 flutter run
 ```
 
+### Android 개발 환경 설정
+
+Android 관련 작업(SHA-1 확인, Gradle 빌드 등)을 수행하기 전에 환경 설정이 필요합니다:
+
+```bash
+# 환경 변수 설정 (매번 새 터미널 세션마다 실행)
+source scripts/setup-env.sh
+```
+
+이 스크립트는 자동으로 Java 경로를 설정하고 Android 개발 도구를 사용할 수 있게 합니다.
+
 ### 개발
 
 ```bash
