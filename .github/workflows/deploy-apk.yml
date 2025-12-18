@@ -1,0 +1,220 @@
+name: Deploy APK
+
+on:
+  # 수동 트리거
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: '버전 증가 타입 (major/minor/patch/build)'
+        required: true
+        default: 'build'
+        type: choice
+        options:
+          - build
+          - patch
+          - minor
+          - major
+      release_notes:
+        description: '릴리스 노트'
+        required: false
+        default: 'New test release'
+      deploy_to_firebase:
+        description: 'Firebase App Distribution에 배포'
+        required: true
+        default: true
+        type: boolean
+      deploy_to_github:
+        description: 'GitHub Release 생성'
+        required: true
+        default: true
+        type: boolean
+
+  # Push 이벤트 (선택사항)
+  # push:
+  #   tags:
+  #     - 'v*'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests (optional)
+        run: flutter test || echo "No tests or tests failed - continuing anyway"
+
+      - name: Read current version
+        id: read_version
+        run: |
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          VERSION_BUMP="${{ github.event.inputs.version_bump || 'build' }}"
+
+          # 현재 버전 읽기
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          VERSION_NAME=$(echo "$CURRENT_VERSION" | cut -d'+' -f1)
+          BUILD_NUMBER=$(echo "$CURRENT_VERSION" | cut -d'+' -f2)
+
+          # 버전 번호 분리
+          MAJOR=$(echo "$VERSION_NAME" | cut -d'.' -f1)
+          MINOR=$(echo "$VERSION_NAME" | cut -d'.' -f2)
+          PATCH=$(echo "$VERSION_NAME" | cut -d'.' -f3)
+
+          # 버전 증가
+          case "$VERSION_BUMP" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              BUILD_NUMBER=1
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              BUILD_NUMBER=1
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              BUILD_NUMBER=1
+              ;;
+            build)
+              BUILD_NUMBER=$((BUILD_NUMBER + 1))
+              ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH+$BUILD_NUMBER"
+
+          # pubspec.yaml 업데이트
+          sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_name=$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "Version updated: $CURRENT_VERSION → $NEW_VERSION"
+
+      - name: Build APK
+        run: |
+          flutter clean
+          flutter build apk --release
+
+      - name: Get APK info
+        id: apk_info
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          FILE_SIZE=$(du -h "$APK_PATH" | cut -f1)
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
+          echo "APK built: $APK_PATH ($FILE_SIZE)"
+
+      - name: Rename APK with version
+        id: rename_apk
+        run: |
+          VERSION="${{ steps.bump_version.outputs.version_name }}"
+          BUILD="${{ steps.bump_version.outputs.build_number }}"
+          OLD_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          NEW_PATH="build/app/outputs/flutter-apk/coworkfit-v${VERSION}-build${BUILD}.apk"
+          cp "$OLD_PATH" "$NEW_PATH"
+          echo "renamed_apk=$NEW_PATH" >> $GITHUB_OUTPUT
+          echo "Renamed APK: $NEW_PATH"
+
+      - name: Deploy to Firebase App Distribution
+        if: github.event.inputs.deploy_to_firebase == 'true'
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: testers
+          file: ${{ steps.apk_info.outputs.apk_path }}
+          releaseNotes: |
+            ${{ github.event.inputs.release_notes }}
+
+            Version: ${{ steps.bump_version.outputs.new_version }}
+            Build Date: ${{ github.event.repository.updated_at }}
+            Commit: ${{ github.sha }}
+
+      - name: Create GitHub Release
+        if: github.event.inputs.deploy_to_github == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}
+          name: CoWorkfit v${{ steps.bump_version.outputs.new_version }}
+          body: |
+            ## Release Notes
+            ${{ github.event.inputs.release_notes }}
+
+            ## Details
+            - Version: ${{ steps.bump_version.outputs.new_version }}
+            - Build Number: ${{ steps.bump_version.outputs.build_number }}
+            - APK Size: ${{ steps.apk_info.outputs.file_size }}
+            - Commit: ${{ github.sha }}
+
+            ## Installation
+            1. Download the APK file below
+            2. Enable "Install from Unknown Sources" in Android settings
+            3. Install the APK
+
+            ## Notes
+            This is a test release. Feedback is welcome!
+          files: |
+            ${{ steps.apk_info.outputs.apk_path }}
+            ${{ steps.rename_apk.outputs.renamed_apk }}
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit version bump
+        if: success()
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add pubspec.yaml
+          git commit -m "chore: Bump version to ${{ steps.bump_version.outputs.new_version }}" || echo "No changes to commit"
+          git push || echo "Failed to push - manual push may be required"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coworkfit-apk-${{ steps.bump_version.outputs.new_version }}
+          path: |
+            ${{ steps.apk_info.outputs.apk_path }}
+            ${{ steps.rename_apk.outputs.renamed_apk }}
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **APK Size**: ${{ steps.apk_info.outputs.file_size }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Firebase**: ${{ github.event.inputs.deploy_to_firebase }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release**: ${{ github.event.inputs.deploy_to_github }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Files" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ steps.apk_info.outputs.apk_path }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ steps.rename_apk.outputs.renamed_apk }}" >> $GITHUB_STEP_SUMMARY
