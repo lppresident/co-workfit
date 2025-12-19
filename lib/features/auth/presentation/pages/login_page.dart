@@ -36,8 +36,8 @@ class _LoginPageState extends State<LoginPage> {
               ),
             );
           } else if (state is Authenticated) {
-            // 첫 로그인 확인: 닉네임이 _temp로 끝나면 닉네임 설정 페이지로
-            if (state.user.nickname.endsWith('_temp')) {
+            // 첫 로그인 확인: 닉네임을 설정하지 않았으면 닉네임 설정 페이지로
+            if (!state.user.isNicknameSet) {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
                   builder: (context) => SetupNicknamePage(
@@ -47,7 +47,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               );
             } else {
-              // 기존 사용자는 메인 화면으로 이동
+              // 닉네임을 설정한 사용자는 메인 화면으로 이동
               Navigator.of(context).pushReplacementNamed('/dashboard');
             }
           }

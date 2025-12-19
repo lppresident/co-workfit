@@ -333,6 +333,7 @@ class FirebaseAuthDataSource {
             // 사용자 문서 업데이트
             final updates = <String, dynamic>{
               'nickname': nickname,
+              'isNicknameSet': true,
             };
             if (displayName != null) updates['displayName'] = displayName;
             if (photoUrl != null) updates['photoUrl'] = photoUrl;

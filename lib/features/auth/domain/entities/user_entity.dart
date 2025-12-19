@@ -6,6 +6,7 @@ class UserEntity extends Equatable {
   final String email;
   final String displayName;
   final String nickname;
+  final bool isNicknameSet; // 사용자가 직접 닉네임을 설정했는지 여부
   final String? photoUrl;
   final int totalScore;
   final int workoutCount;
@@ -17,6 +18,7 @@ class UserEntity extends Equatable {
     required this.email,
     required this.displayName,
     required this.nickname,
+    this.isNicknameSet = false,
     this.photoUrl,
     this.totalScore = 0,
     this.workoutCount = 0,
@@ -30,6 +32,7 @@ class UserEntity extends Equatable {
         email,
         displayName,
         nickname,
+        isNicknameSet,
         photoUrl,
         totalScore,
         workoutCount,
@@ -42,6 +45,7 @@ class UserEntity extends Equatable {
     String? email,
     String? displayName,
     String? nickname,
+    bool? isNicknameSet,
     String? photoUrl,
     int? totalScore,
     int? workoutCount,
@@ -53,6 +57,7 @@ class UserEntity extends Equatable {
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
       nickname: nickname ?? this.nickname,
+      isNicknameSet: isNicknameSet ?? this.isNicknameSet,
       photoUrl: photoUrl ?? this.photoUrl,
       totalScore: totalScore ?? this.totalScore,
       workoutCount: workoutCount ?? this.workoutCount,

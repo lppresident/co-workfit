@@ -71,14 +71,14 @@ class CoWorkFitApp extends StatelessWidget {
         home: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
             if (state is Authenticated) {
-              // 닉네임이 _temp로 끝나면 닉네임 설정 페이지로
-              if (state.user.nickname.endsWith('_temp')) {
+              // 닉네임을 설정하지 않았으면 닉네임 설정 페이지로
+              if (!state.user.isNicknameSet) {
                 return SetupNicknamePage(
                   userId: state.user.id,
                   currentNickname: state.user.nickname,
                 );
               }
-              // 정상적인 닉네임이면 메인 화면으로
+              // 닉네임을 설정한 사용자는 메인 화면으로
               return const DashboardPage();
             } else if (state is Unauthenticated) {
               return const LoginPage();
