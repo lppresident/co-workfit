@@ -28,6 +28,7 @@ import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_apple.dart
 import 'package:co_workfit/features/auth/domain/usecases/sign_out.dart';
 import 'package:co_workfit/features/auth/domain/usecases/check_nickname_availability.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/nickname_bloc.dart';
 
 // Profile
 import 'package:co_workfit/features/profile/data/datasources/profile_remote_data_source.dart';
@@ -155,8 +156,13 @@ Future<void> initializeDependencies() async {
       signInWithGoogle: sl(),
       signInWithApple: sl(),
       signOut: sl(),
-      checkNicknameAvailability: sl(),
       authRepository: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => NicknameBloc(
+      checkNicknameAvailability: sl(),
     ),
   );
 

@@ -49,6 +49,7 @@ class FirebaseAuthDataSource {
       // 문서가 존재하지 않으면 사용 가능
       return Right(!nicknameDoc.exists);
     } catch (e) {
+      AppLogger.error('FirebaseAuthDataSource', 'Failed to check nickname availability: $e');
       return Left('닉네임 확인에 실패했습니다: $e');
     }
   }

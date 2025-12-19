@@ -43,27 +43,3 @@ class AuthError extends AuthState {
   @override
   List<Object?> get props => [message];
 }
-
-/// 닉네임 확인 결과
-class NicknameAvailabilityChecked extends AuthState {
-  final bool isAvailable;
-  final String nickname;
-
-  const NicknameAvailabilityChecked({
-    required this.isAvailable,
-    required this.nickname,
-  });
-
-  @override
-  List<Object?> get props => [isAvailable, nickname];
-}
-
-/// 닉네임 업데이트 성공
-class NicknameUpdated extends AuthState {
-  final UserEntity user;
-
-  const NicknameUpdated(this.user);
-
-  @override
-  List<Object?> get props => [user];
-}
