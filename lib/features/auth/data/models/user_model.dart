@@ -29,11 +29,17 @@ class UserModel extends UserEntity {
   /// Firestore DocumentSnapshot으로부터 UserModel 생성
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final email = data['email'] as String;
+
+    // 기존 사용자의 경우 nickname이 없을 수 있으므로 임시 닉네임 생성
+    final nickname = data['nickname'] as String? ??
+                     email.split('@')[0] + '_temp';
+
     return UserModel(
       id: doc.id,
-      email: data['email'] as String,
+      email: email,
       displayName: data['displayName'] as String,
-      nickname: data['nickname'] as String,
+      nickname: nickname,
       photoUrl: data['photoUrl'] as String?,
       totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
       workoutCount: (data['workoutCount'] as num?)?.toInt() ?? 0,

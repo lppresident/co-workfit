@@ -135,7 +135,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     result.fold(
       (error) => emit(AuthError(error)),
-      (user) => emit(NicknameUpdated(user)),
+      (user) {
+        // 닉네임 업데이트 성공 후 Authenticated 상태로 전환
+        emit(Authenticated(user));
+      },
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/auth/presentation/widgets/auth_button.dart';
+import 'package:co_workfit/features/auth/presentation/pages/setup_nickname_page.dart';
 
 /// 로그인 화면
 class LoginPage extends StatefulWidget {
@@ -35,8 +36,20 @@ class _LoginPageState extends State<LoginPage> {
               ),
             );
           } else if (state is Authenticated) {
-            // 로그인 성공 시 메인 화면으로 이동
-            Navigator.of(context).pushReplacementNamed('/dashboard');
+            // 첫 로그인 확인: 닉네임이 _temp로 끝나면 닉네임 설정 페이지로
+            if (state.user.nickname.endsWith('_temp')) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => SetupNicknamePage(
+                    userId: state.user.id,
+                    currentNickname: state.user.nickname,
+                  ),
+                ),
+              );
+            } else {
+              // 기존 사용자는 메인 화면으로 이동
+              Navigator.of(context).pushReplacementNamed('/dashboard');
+            }
           }
         },
         builder: (context, state) {
