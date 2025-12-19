@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_state.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_friends.dart';
@@ -7,7 +8,7 @@ import 'package:co_workfit/features/social/domain/usecases/send_friend_request.d
 import 'package:co_workfit/features/social/domain/usecases/get_received_friend_requests.dart';
 import 'package:co_workfit/features/social/domain/usecases/accept_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/reject_friend_request.dart';
-import 'package:co_workfit/features/social/domain/usecases/search_users_by_email.dart';
+import 'package:co_workfit/features/social/domain/usecases/search_users_by_nickname.dart';
 
 class SocialBloc extends Bloc<SocialEvent, SocialState> {
   final GetFriends getFriends;
@@ -16,7 +17,7 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
   final GetReceivedFriendRequests getReceivedFriendRequests;
   final AcceptFriendRequest acceptFriendRequest;
   final RejectFriendRequest rejectFriendRequest;
-  final SearchUsersByEmail searchUsersByEmail;
+  final SearchUsersByNickname searchUsersByNickname;
 
   SocialBloc({
     required this.getFriends,
@@ -25,7 +26,7 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     required this.getReceivedFriendRequests,
     required this.acceptFriendRequest,
     required this.rejectFriendRequest,
-    required this.searchUsersByEmail,
+    required this.searchUsersByNickname,
   }) : super(const SocialInitial()) {
     on<LoadFriendsData>(_onLoadFriendsData);
     on<LoadFriends>(_onLoadFriends);
@@ -34,7 +35,12 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     on<SendFriendRequestEvent>(_onSendFriendRequest);
     on<AcceptFriendRequestEvent>(_onAcceptFriendRequest);
     on<RejectFriendRequestEvent>(_onRejectFriendRequest);
-    on<SearchUsersByEmailEvent>(_onSearchUsersByEmail);
+    on<SearchUsersByNicknameEvent>(
+      _onSearchUsersByNickname,
+      transformer: (events, mapper) => events
+          .debounceTime(const Duration(milliseconds: 300))
+          .switchMap(mapper),
+    );
     on<ClearSearchResults>(_onClearSearchResults);
   }
 
@@ -238,8 +244,8 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     );
   }
 
-  Future<void> _onSearchUsersByEmail(
-    SearchUsersByEmailEvent event,
+  Future<void> _onSearchUsersByNickname(
+    SearchUsersByNicknameEvent event,
     Emitter<SocialState> emit,
   ) async {
     final currentState = state;
@@ -251,7 +257,7 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
       ));
     }
 
-    final result = await searchUsersByEmail(event.email);
+    final result = await searchUsersByNickname(event.nickname);
 
     result.fold(
       (failure) {

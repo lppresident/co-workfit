@@ -4,6 +4,7 @@ import 'package:co_workfit/features/auth/domain/usecases/get_current_user.dart';
 import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_google.dart';
 import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_apple.dart';
 import 'package:co_workfit/features/auth/domain/usecases/sign_out.dart';
+import 'package:co_workfit/features/auth/domain/usecases/check_nickname_availability.dart';
 import 'package:co_workfit/features/auth/domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -14,6 +15,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SignInWithGoogle _signInWithGoogle;
   final SignInWithApple _signInWithApple;
   final SignOut _signOut;
+  final CheckNicknameAvailability _checkNicknameAvailability;
   final AuthRepository _authRepository;
 
   StreamSubscription? _authStateSubscription;
@@ -23,17 +25,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required SignInWithGoogle signInWithGoogle,
     required SignInWithApple signInWithApple,
     required SignOut signOut,
+    required CheckNicknameAvailability checkNicknameAvailability,
     required AuthRepository authRepository,
   })  : _getCurrentUser = getCurrentUser,
         _signInWithGoogle = signInWithGoogle,
         _signInWithApple = signInWithApple,
         _signOut = signOut,
+        _checkNicknameAvailability = checkNicknameAvailability,
         _authRepository = authRepository,
         super(const AuthInitial()) {
     // 이벤트 핸들러 등록
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<SignInWithGoogleRequested>(_onSignInWithGoogleRequested);
     on<SignInWithAppleRequested>(_onSignInWithAppleRequested);
+    on<CheckNicknameAvailabilityRequested>(_onCheckNicknameAvailabilityRequested);
+    on<UpdateNicknameRequested>(_onUpdateNicknameRequested);
     on<SignOutRequested>(_onSignOutRequested);
 
     // Firebase Auth 상태 변경 리스너
@@ -96,6 +102,40 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold(
       (error) => emit(AuthError(error)),
       (user) => emit(Authenticated(user)),
+    );
+  }
+
+  /// 닉네임 사용 가능 여부 확인
+  Future<void> _onCheckNicknameAvailabilityRequested(
+    CheckNicknameAvailabilityRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final result = await _checkNicknameAvailability(event.nickname);
+
+    result.fold(
+      (error) => emit(AuthError(error)),
+      (isAvailable) => emit(NicknameAvailabilityChecked(
+        isAvailable: isAvailable,
+        nickname: event.nickname,
+      )),
+    );
+  }
+
+  /// 닉네임 업데이트
+  Future<void> _onUpdateNicknameRequested(
+    UpdateNicknameRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+
+    final result = await _authRepository.updateProfile(
+      userId: event.userId,
+      nickname: event.nickname,
+    );
+
+    result.fold(
+      (error) => emit(AuthError(error)),
+      (user) => emit(NicknameUpdated(user)),
     );
   }
 

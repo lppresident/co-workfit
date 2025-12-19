@@ -5,6 +5,7 @@ class UserEntity extends Equatable {
   final String id;
   final String email;
   final String displayName;
+  final String nickname;
   final String? photoUrl;
   final int totalScore;
   final int workoutCount;
@@ -15,6 +16,7 @@ class UserEntity extends Equatable {
     required this.id,
     required this.email,
     required this.displayName,
+    required this.nickname,
     this.photoUrl,
     this.totalScore = 0,
     this.workoutCount = 0,
@@ -27,6 +29,7 @@ class UserEntity extends Equatable {
         id,
         email,
         displayName,
+        nickname,
         photoUrl,
         totalScore,
         workoutCount,
@@ -38,6 +41,7 @@ class UserEntity extends Equatable {
     String? id,
     String? email,
     String? displayName,
+    String? nickname,
     String? photoUrl,
     int? totalScore,
     int? workoutCount,
@@ -48,6 +52,7 @@ class UserEntity extends Equatable {
       id: id ?? this.id,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
+      nickname: nickname ?? this.nickname,
       photoUrl: photoUrl ?? this.photoUrl,
       totalScore: totalScore ?? this.totalScore,
       workoutCount: workoutCount ?? this.workoutCount,

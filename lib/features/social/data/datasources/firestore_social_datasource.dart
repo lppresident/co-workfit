@@ -543,22 +543,24 @@ class FirestoreSocialDataSource {
     }
   }
 
-  /// 사용자 검색 (이메일로)
-  Future<Either<String, List<Map<String, dynamic>>>> searchUsersByEmail(
-    String email,
+  /// 사용자 검색 (닉네임으로)
+  Future<Either<String, List<Map<String, dynamic>>>> searchUsersByNickname(
+    String nickname,
   ) async {
     if (!_initialized) {
       return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
     }
 
     try {
-      if (email.isEmpty) {
+      if (nickname.isEmpty) {
         return const Right([]);
       }
 
+      // Firestore range query for autocomplete
       final snapshot = await _firestore
           .collection(FirebaseConfig.usersCollection)
-          .where('email', isEqualTo: email)
+          .where('nickname', isGreaterThanOrEqualTo: nickname)
+          .where('nickname', isLessThan: nickname + 'z')
           .limit(10)
           .get();
 
@@ -568,7 +570,12 @@ class FirestoreSocialDataSource {
           'id': doc.id,
           'email': data['email'],
           'displayName': data['displayName'],
+          'nickname': data['nickname'],
           'photoUrl': data['photoUrl'],
+          'totalScore': data['totalScore'],
+          'workoutCount': data['workoutCount'],
+          'createdAt': data['createdAt'],
+          'lastActiveAt': data['lastActiveAt'],
         };
       }).toList();
 

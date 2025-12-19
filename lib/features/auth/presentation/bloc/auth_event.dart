@@ -23,6 +23,30 @@ class SignInWithAppleRequested extends AuthEvent {
   const SignInWithAppleRequested();
 }
 
+/// 닉네임 사용 가능 여부 확인
+class CheckNicknameAvailabilityRequested extends AuthEvent {
+  final String nickname;
+
+  const CheckNicknameAvailabilityRequested(this.nickname);
+
+  @override
+  List<Object?> get props => [nickname];
+}
+
+/// 닉네임 업데이트
+class UpdateNicknameRequested extends AuthEvent {
+  final String userId;
+  final String nickname;
+
+  const UpdateNicknameRequested({
+    required this.userId,
+    required this.nickname,
+  });
+
+  @override
+  List<Object?> get props => [userId, nickname];
+}
+
 /// 로그아웃
 class SignOutRequested extends AuthEvent {
   const SignOutRequested();

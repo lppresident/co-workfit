@@ -13,6 +13,7 @@ class FirebaseConfig {
 
   // Firestore 컬렉션 이름
   static const String usersCollection = 'users';
+  static const String nicknamesCollection = 'nicknames';
   static const String workoutsCollection = 'workouts';
   static const String friendsCollection = 'friends';
   static const String leaderboardCollection = 'leaderboard';

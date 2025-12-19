@@ -38,6 +38,7 @@ dependencies:
   # State Management
   flutter_bloc: ^8.1.6
   equatable: ^2.0.5
+  rxdart: ^0.28.0
 
   # Dependency Injection
   get_it: ^8.0.2

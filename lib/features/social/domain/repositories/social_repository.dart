@@ -46,5 +46,5 @@ abstract class SocialRepository {
   });
 
   // User Search
-  Future<Either<Failure, List<UserEntity>>> searchUsersByEmail(String email);
+  Future<Either<Failure, List<UserEntity>>> searchUsersByNickname(String nickname);
 }

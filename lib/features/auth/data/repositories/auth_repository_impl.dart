@@ -26,6 +26,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<String, bool>> checkNicknameAvailability(String nickname) async {
+    return await _authDataSource.checkNicknameAvailability(nickname);
+  }
+
+  @override
   Future<Either<String, void>> signOut() async {
     return await _authDataSource.signOut();
   }
@@ -34,11 +39,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<String, UserEntity>> updateProfile({
     required String userId,
     String? displayName,
+    String? nickname,
     String? photoUrl,
   }) async {
     return await _authDataSource.updateProfile(
       userId: userId,
       displayName: displayName,
+      nickname: nickname,
       photoUrl: photoUrl,
     );
   }

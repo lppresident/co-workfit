@@ -82,13 +82,13 @@ class RejectFriendRequestEvent extends SocialEvent {
 }
 
 // User Search Events
-class SearchUsersByEmailEvent extends SocialEvent {
-  final String email;
+class SearchUsersByNicknameEvent extends SocialEvent {
+  final String nickname;
 
-  const SearchUsersByEmailEvent(this.email);
+  const SearchUsersByNicknameEvent(this.nickname);
 
   @override
-  List<Object?> get props => [email];
+  List<Object?> get props => [nickname];
 }
 
 class ClearSearchResults extends SocialEvent {
