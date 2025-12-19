@@ -43,8 +43,3 @@ class AuthError extends AuthState {
   @override
   List<Object?> get props => [message];
 }
-
-/// 비밀번호 재설정 이메일 전송 성공
-class PasswordResetEmailSent extends AuthState {
-  const PasswordResetEmailSent();
-}

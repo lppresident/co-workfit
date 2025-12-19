@@ -23,10 +23,9 @@ import 'package:co_workfit/features/auth/data/datasources/firebase_auth_datasour
 import 'package:co_workfit/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:co_workfit/features/auth/domain/repositories/auth_repository.dart';
 import 'package:co_workfit/features/auth/domain/usecases/get_current_user.dart';
-import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_email.dart';
 import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_google.dart';
+import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_apple.dart';
 import 'package:co_workfit/features/auth/domain/usecases/sign_out.dart';
-import 'package:co_workfit/features/auth/domain/usecases/sign_up_with_email.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 
 // Profile
@@ -143,18 +142,16 @@ Future<void> initializeDependencies() async {
 
   // Use Cases
   sl.registerLazySingleton(() => GetCurrentUser(sl()));
-  sl.registerLazySingleton(() => SignInWithEmail(sl()));
-  sl.registerLazySingleton(() => SignUpWithEmail(sl()));
   sl.registerLazySingleton(() => SignInWithGoogle(sl()));
+  sl.registerLazySingleton(() => SignInWithApple(sl()));
   sl.registerLazySingleton(() => SignOut(sl()));
 
   // BLoC
   sl.registerFactory(
     () => AuthBloc(
       getCurrentUser: sl(),
-      signInWithEmail: sl(),
-      signUpWithEmail: sl(),
       signInWithGoogle: sl(),
+      signInWithApple: sl(),
       signOut: sl(),
       authRepository: sl(),
     ),

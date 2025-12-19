@@ -7,27 +7,14 @@ abstract class AuthRepository {
   /// 현재 로그인된 사용자 가져오기
   Future<Either<String, UserEntity?>> getCurrentUser();
 
-  /// 이메일/비밀번호로 회원가입
-  Future<Either<String, UserEntity>> signUpWithEmailPassword({
-    required String email,
-    required String password,
-    required String displayName,
-  });
-
-  /// 이메일/비밀번호로 로그인
-  Future<Either<String, UserEntity>> signInWithEmailPassword({
-    required String email,
-    required String password,
-  });
-
   /// Google 로그인
   Future<Either<String, UserEntity>> signInWithGoogle();
 
+  /// Apple 로그인
+  Future<Either<String, UserEntity>> signInWithApple();
+
   /// 로그아웃
   Future<Either<String, void>> signOut();
-
-  /// 비밀번호 재설정 이메일 전송
-  Future<Either<String, void>> sendPasswordResetEmail(String email);
 
   /// 사용자 프로필 업데이트
   Future<Either<String, UserEntity>> updateProfile({
