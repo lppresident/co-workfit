@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:co_workfit/core/config/firebase_config.dart';
 import 'package:co_workfit/features/auth/data/models/user_model.dart';
 import 'package:co_workfit/core/utils/logger.dart';
@@ -68,97 +69,6 @@ class FirebaseAuthDataSource {
     }
   }
 
-  /// 이메일/비밀번호로 회원가입
-  Future<Either<String, UserModel>> signUpWithEmailPassword({
-    required String email,
-    required String password,
-    required String displayName,
-  }) async {
-    if (!_initialized) {
-      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
-    }
-
-    try {
-      // Firebase Auth에 사용자 생성
-      final credential = await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      if (credential.user == null) {
-        return const Left('사용자 생성에 실패했습니다.');
-      }
-
-      // 사용자 프로필 업데이트
-      await credential.user!.updateDisplayName(displayName);
-
-      // UserModel 생성
-      final userModel = UserModel.fromFirebaseUser(
-        credential.user!.uid,
-        email,
-        displayName,
-        null,
-      );
-
-      // Firestore에 사용자 데이터 저장
-      await _createUserInFirestore(userModel);
-
-      return Right(userModel);
-    } on FirebaseAuthException catch (e) {
-      return Left(_handleAuthException(e));
-    } catch (e) {
-      return Left('회원가입에 실패했습니다: $e');
-    }
-  }
-
-  /// 이메일/비밀번호로 로그인
-  Future<Either<String, UserModel>> signInWithEmailPassword({
-    required String email,
-    required String password,
-  }) async {
-    if (!_initialized) {
-      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
-    }
-
-    try {
-      final credential = await _firebaseAuth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      if (credential.user == null) {
-        return const Left('로그인에 실패했습니다.');
-      }
-
-      // Firestore에서 사용자 데이터 가져오기
-      final userDoc = await _firestore
-          .collection(FirebaseConfig.usersCollection)
-          .doc(credential.user!.uid)
-          .get();
-
-      if (!userDoc.exists) {
-        // Firestore에 사용자 데이터가 없으면 생성
-        final newUser = UserModel.fromFirebaseUser(
-          credential.user!.uid,
-          credential.user!.email!,
-          credential.user!.displayName,
-          credential.user!.photoURL,
-        );
-        await _createUserInFirestore(newUser);
-        return Right(newUser);
-      }
-
-      // lastActiveAt 업데이트
-      await _updateLastActive(credential.user!.uid);
-
-      return Right(UserModel.fromFirestore(userDoc));
-    } on FirebaseAuthException catch (e) {
-      return Left(_handleAuthException(e));
-    } catch (e) {
-      return Left('로그인에 실패했습니다: $e');
-    }
-  }
-
   /// Google 로그인
   Future<Either<String, UserModel>> signInWithGoogle() async {
     if (!_initialized) {
@@ -220,6 +130,89 @@ class FirebaseAuthDataSource {
     }
   }
 
+  /// Apple 로그인
+  Future<Either<String, UserModel>> signInWithApple() async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
+    try {
+      // Apple 로그인 플로우 시작
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      // Firebase OAuthProvider 생성
+      final oAuthProvider = OAuthProvider('apple.com');
+      final credential = oAuthProvider.credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+
+      // Firebase에 로그인
+      final userCredential =
+          await _firebaseAuth.signInWithCredential(credential);
+
+      if (userCredential.user == null) {
+        return const Left('Apple 로그인에 실패했습니다.');
+      }
+
+      // Firestore에서 사용자 데이터 가져오기 또는 생성
+      final userDoc = await _firestore
+          .collection(FirebaseConfig.usersCollection)
+          .doc(userCredential.user!.uid)
+          .get();
+
+      UserModel userModel;
+      if (!userDoc.exists) {
+        // Apple은 처음 로그인 시에만 이름을 제공
+        String? displayName = userCredential.user!.displayName;
+        if (displayName == null && appleCredential.givenName != null) {
+          displayName = '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'.trim();
+          if (displayName.isEmpty) {
+            displayName = userCredential.user!.email?.split('@')[0];
+          }
+        }
+
+        // 새 사용자 생성
+        userModel = UserModel.fromFirebaseUser(
+          userCredential.user!.uid,
+          userCredential.user!.email ?? 'apple_user_${userCredential.user!.uid}@privaterelay.appleid.com',
+          displayName,
+          userCredential.user!.photoURL,
+        );
+        await _createUserInFirestore(userModel);
+      } else {
+        userModel = UserModel.fromFirestore(userDoc);
+        await _updateLastActive(userCredential.user!.uid);
+      }
+
+      return Right(userModel);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      switch (e.code) {
+        case AuthorizationErrorCode.canceled:
+          return const Left('Apple 로그인이 취소되었습니다.');
+        case AuthorizationErrorCode.failed:
+          return const Left('Apple 로그인에 실패했습니다.');
+        case AuthorizationErrorCode.invalidResponse:
+          return const Left('Apple 로그인 응답이 유효하지 않습니다.');
+        case AuthorizationErrorCode.notHandled:
+          return const Left('Apple 로그인 요청을 처리할 수 없습니다.');
+        case AuthorizationErrorCode.unknown:
+          return const Left('알 수 없는 Apple 로그인 오류가 발생했습니다.');
+        default:
+          return Left('Apple 로그인 오류: ${e.message}');
+      }
+    } on FirebaseAuthException catch (e) {
+      return Left(_handleAuthException(e));
+    } catch (e) {
+      return Left('Apple 로그인에 실패했습니다: $e');
+    }
+  }
+
   /// 로그아웃
   Future<Either<String, void>> signOut() async {
     if (!_initialized) {
@@ -234,22 +227,6 @@ class FirebaseAuthDataSource {
       return const Right(null);
     } catch (e) {
       return Left('로그아웃에 실패했습니다: $e');
-    }
-  }
-
-  /// 비밀번호 재설정 이메일 전송
-  Future<Either<String, void>> sendPasswordResetEmail(String email) async {
-    if (!_initialized) {
-      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
-    }
-
-    try {
-      await _firebaseAuth.sendPasswordResetEmail(email: email);
-      return const Right(null);
-    } on FirebaseAuthException catch (e) {
-      return Left(_handleAuthException(e));
-    } catch (e) {
-      return Left('비밀번호 재설정 이메일 전송에 실패했습니다: $e');
     }
   }
 

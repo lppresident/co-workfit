@@ -16,42 +16,18 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<String, UserEntity>> signUpWithEmailPassword({
-    required String email,
-    required String password,
-    required String displayName,
-  }) async {
-    return await _authDataSource.signUpWithEmailPassword(
-      email: email,
-      password: password,
-      displayName: displayName,
-    );
-  }
-
-  @override
-  Future<Either<String, UserEntity>> signInWithEmailPassword({
-    required String email,
-    required String password,
-  }) async {
-    return await _authDataSource.signInWithEmailPassword(
-      email: email,
-      password: password,
-    );
-  }
-
-  @override
   Future<Either<String, UserEntity>> signInWithGoogle() async {
     return await _authDataSource.signInWithGoogle();
   }
 
   @override
-  Future<Either<String, void>> signOut() async {
-    return await _authDataSource.signOut();
+  Future<Either<String, UserEntity>> signInWithApple() async {
+    return await _authDataSource.signInWithApple();
   }
 
   @override
-  Future<Either<String, void>> sendPasswordResetEmail(String email) async {
-    return await _authDataSource.sendPasswordResetEmail(email);
+  Future<Either<String, void>> signOut() async {
+    return await _authDataSource.signOut();
   }
 
   @override
