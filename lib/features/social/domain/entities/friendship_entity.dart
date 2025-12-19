@@ -1,26 +1,19 @@
 import 'package:equatable/equatable.dart';
 
 /// 친구 관계 엔티티
+///
+/// userId와 friendId(userId)만 저장하는 참조 구조
+/// 친구의 실제 정보는 UI에서 users 컬렉션에서 조회
 class FriendshipEntity extends Equatable {
   final String id;
   final String userId;
-  final String friendId;
-  final String friendName;
-  final String friendEmail;
-  final String? friendPhotoUrl;
-  final int friendTotalScore;
-  final int friendWorkoutCount;
+  final String friendId; // 친구의 userId
   final DateTime createdAt;
 
   const FriendshipEntity({
     required this.id,
     required this.userId,
     required this.friendId,
-    required this.friendName,
-    required this.friendEmail,
-    this.friendPhotoUrl,
-    required this.friendTotalScore,
-    required this.friendWorkoutCount,
     required this.createdAt,
   });
 
@@ -29,11 +22,6 @@ class FriendshipEntity extends Equatable {
         id,
         userId,
         friendId,
-        friendName,
-        friendEmail,
-        friendPhotoUrl,
-        friendTotalScore,
-        friendWorkoutCount,
         createdAt,
       ];
 
@@ -41,22 +29,12 @@ class FriendshipEntity extends Equatable {
     String? id,
     String? userId,
     String? friendId,
-    String? friendName,
-    String? friendEmail,
-    String? friendPhotoUrl,
-    int? friendTotalScore,
-    int? friendWorkoutCount,
     DateTime? createdAt,
   }) {
     return FriendshipEntity(
       id: id ?? this.id,
       userId: userId ?? this.userId,
       friendId: friendId ?? this.friendId,
-      friendName: friendName ?? this.friendName,
-      friendEmail: friendEmail ?? this.friendEmail,
-      friendPhotoUrl: friendPhotoUrl ?? this.friendPhotoUrl,
-      friendTotalScore: friendTotalScore ?? this.friendTotalScore,
-      friendWorkoutCount: friendWorkoutCount ?? this.friendWorkoutCount,
       createdAt: createdAt ?? this.createdAt,
     );
   }

@@ -40,7 +40,7 @@ class ChallengeCardWidget extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        challenge.creatorName,
+                        '방장', // TODO: createdBy userId로 사용자 정보 조회
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.grey[600],
                             ),

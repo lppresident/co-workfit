@@ -44,8 +44,6 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
       context.read<SocialBloc>().add(
         SendFriendRequestEvent(
           senderId: authState.user.id,
-          senderName: authState.user.displayName,
-          senderPhotoUrl: authState.user.photoUrl,
           receiverId: receiverId,
         ),
       );

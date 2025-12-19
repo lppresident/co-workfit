@@ -18,15 +18,11 @@ class SocialRepositoryImpl implements SocialRepository {
   @override
   Future<Either<Failure, void>> sendFriendRequest({
     required String senderId,
-    required String senderName,
-    String? senderPhotoUrl,
     required String receiverId,
   }) async {
     try {
       final result = await dataSource.sendFriendRequest(
         senderId: senderId,
-        senderName: senderName,
-        senderPhotoUrl: senderPhotoUrl,
         receiverId: receiverId,
       );
       return result.fold(

@@ -132,8 +132,6 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
 
     final result = await sendFriendRequest(
       senderId: event.senderId,
-      senderName: event.senderName,
-      senderPhotoUrl: event.senderPhotoUrl,
       receiverId: event.receiverId,
     );
 

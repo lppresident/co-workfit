@@ -8,12 +8,13 @@ enum FriendRequestStatus {
 }
 
 /// 친구 요청 엔티티
+///
+/// senderId와 receiverId(userId)만 저장하는 참조 구조
+/// 보낸 사람의 실제 정보는 UI에서 users 컬렉션에서 조회
 class FriendRequestEntity extends Equatable {
   final String id;
-  final String senderId;
-  final String senderName;
-  final String? senderPhotoUrl;
-  final String receiverId;
+  final String senderId; // 보낸 사람의 userId
+  final String receiverId; // 받는 사람의 userId
   final FriendRequestStatus status;
   final DateTime createdAt;
   final DateTime? respondedAt;
@@ -21,8 +22,6 @@ class FriendRequestEntity extends Equatable {
   const FriendRequestEntity({
     required this.id,
     required this.senderId,
-    required this.senderName,
-    this.senderPhotoUrl,
     required this.receiverId,
     required this.status,
     required this.createdAt,
@@ -33,8 +32,6 @@ class FriendRequestEntity extends Equatable {
   List<Object?> get props => [
         id,
         senderId,
-        senderName,
-        senderPhotoUrl,
         receiverId,
         status,
         createdAt,
@@ -44,8 +41,6 @@ class FriendRequestEntity extends Equatable {
   FriendRequestEntity copyWith({
     String? id,
     String? senderId,
-    String? senderName,
-    String? senderPhotoUrl,
     String? receiverId,
     FriendRequestStatus? status,
     DateTime? createdAt,
@@ -54,8 +49,6 @@ class FriendRequestEntity extends Equatable {
     return FriendRequestEntity(
       id: id ?? this.id,
       senderId: senderId ?? this.senderId,
-      senderName: senderName ?? this.senderName,
-      senderPhotoUrl: senderPhotoUrl ?? this.senderPhotoUrl,
       receiverId: receiverId ?? this.receiverId,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,

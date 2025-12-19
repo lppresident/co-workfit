@@ -9,14 +9,10 @@ class SendFriendRequest {
 
   Future<Either<Failure, void>> call({
     required String senderId,
-    required String senderName,
-    String? senderPhotoUrl,
     required String receiverId,
   }) async {
     return await repository.sendFriendRequest(
       senderId: senderId,
-      senderName: senderName,
-      senderPhotoUrl: senderPhotoUrl,
       receiverId: receiverId,
     );
   }

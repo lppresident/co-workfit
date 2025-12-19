@@ -10,8 +10,6 @@ abstract class SocialRepository {
   // Friend Request Methods
   Future<Either<Failure, void>> sendFriendRequest({
     required String senderId,
-    required String senderName,
-    String? senderPhotoUrl,
     required String receiverId,
   });
 

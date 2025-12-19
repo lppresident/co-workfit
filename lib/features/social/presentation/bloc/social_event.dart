@@ -48,19 +48,15 @@ class LoadReceivedFriendRequests extends SocialEvent {
 
 class SendFriendRequestEvent extends SocialEvent {
   final String senderId;
-  final String senderName;
-  final String? senderPhotoUrl;
   final String receiverId;
 
   const SendFriendRequestEvent({
     required this.senderId,
-    required this.senderName,
-    this.senderPhotoUrl,
     required this.receiverId,
   });
 
   @override
-  List<Object?> get props => [senderId, senderName, senderPhotoUrl, receiverId];
+  List<Object?> get props => [senderId, receiverId];
 }
 
 class AcceptFriendRequestEvent extends SocialEvent {

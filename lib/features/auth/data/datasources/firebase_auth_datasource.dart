@@ -305,11 +305,6 @@ class FirebaseAuthDataSource {
                 .collection(FirebaseConfig.nicknamesCollection)
                 .doc(nickname);
 
-            // 이전 닉네임 문서 참조
-            final oldNicknameRef = _firestore
-                .collection(FirebaseConfig.nicknamesCollection)
-                .doc(currentNickname);
-
             // 사용자 문서 참조
             final userRef = _firestore
                 .collection(FirebaseConfig.usersCollection)
@@ -321,12 +316,18 @@ class FirebaseAuthDataSource {
               throw Exception('이미 사용 중인 닉네임입니다.');
             }
 
-            // 이전 닉네임 문서 삭제
-            transaction.delete(oldNicknameRef);
+            // 이전 닉네임이 설정된 경우에만 삭제
+            if (currentUser.isNicknameSet) {
+              final oldNicknameRef = _firestore
+                  .collection(FirebaseConfig.nicknamesCollection)
+                  .doc(currentNickname);
+              transaction.delete(oldNicknameRef);
+            }
 
             // 새 닉네임 문서 생성
             transaction.set(newNicknameRef, {
               'userId': userId,
+              'nickname': nickname,
               'createdAt': FieldValue.serverTimestamp(),
             });
 
@@ -375,30 +376,14 @@ class FirebaseAuthDataSource {
   Future<void> _createUserInFirestore(UserModel user) async {
     try {
       await _firestore.runTransaction((transaction) async {
-        // 닉네임 문서 참조
-        final nicknameRef = _firestore
-            .collection(FirebaseConfig.nicknamesCollection)
-            .doc(user.nickname);
-
         // 사용자 문서 참조
         final userRef = _firestore
             .collection(FirebaseConfig.usersCollection)
             .doc(user.id);
 
-        // 닉네임 중복 확인
-        final nicknameDoc = await transaction.get(nicknameRef);
-        if (nicknameDoc.exists) {
-          throw Exception('이미 사용 중인 닉네임입니다.');
-        }
-
-        // 사용자 문서 생성
+        // 사용자 문서만 생성 (닉네임 문서는 생성하지 않음)
+        // 첫 로그인 시에는 isNicknameSet=false이므로 닉네임 문서를 생성하지 않음
         transaction.set(userRef, user.toFirestore());
-
-        // 닉네임 문서 생성
-        transaction.set(nicknameRef, {
-          'userId': user.id,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
       });
     } catch (e) {
       AppLogger.error('FirebaseAuthDataSource', 'Failed to create user in Firestore: $e');
