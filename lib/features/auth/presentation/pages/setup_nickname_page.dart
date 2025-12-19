@@ -88,8 +88,10 @@ class _SetupNicknamePageState extends State<SetupNicknamePage> {
               _isAvailable = state.isAvailable;
             });
           } else if (state is Authenticated) {
-            // 닉네임 설정 완료 후 메인 페이지로 이동
-            Navigator.of(context).pushReplacementNamed('/dashboard');
+            // 닉네임 설정 완료 후에만 메인 페이지로 이동
+            if (state.user.isNicknameSet) {
+              Navigator.of(context).pushReplacementNamed('/dashboard');
+            }
           } else if (state is AuthError) {
             setState(() {
               _isChecking = false;
