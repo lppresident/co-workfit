@@ -34,6 +34,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<SignInWithGoogleRequested>(_onSignInWithGoogleRequested);
     on<SignInWithAppleRequested>(_onSignInWithAppleRequested);
+    on<UpdateNicknameRequested>(_onUpdateNicknameRequested);
     on<SignOutRequested>(_onSignOutRequested);
 
     // Firebase Auth 상태 변경 리스너
@@ -96,6 +97,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold(
       (error) => emit(AuthError(error)),
       (user) => emit(Authenticated(user)),
+    );
+  }
+
+  /// 닉네임 업데이트
+  Future<void> _onUpdateNicknameRequested(
+    UpdateNicknameRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+
+    final result = await _authRepository.updateProfile(
+      userId: event.userId,
+      nickname: event.nickname,
+    );
+
+    result.fold(
+      (error) => emit(AuthError(error)),
+      (user) {
+        // 닉네임 업데이트 성공 후 Authenticated 상태로 전환
+        emit(Authenticated(user));
+      },
     );
   }
 

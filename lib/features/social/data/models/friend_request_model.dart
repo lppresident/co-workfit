@@ -10,8 +10,6 @@ class FriendRequestModel extends FriendRequestEntity {
   const FriendRequestModel({
     required super.id,
     required super.senderId,
-    required super.senderName,
-    super.senderPhotoUrl,
     required super.receiverId,
     required super.status,
     required super.createdAt,
@@ -28,8 +26,6 @@ class FriendRequestModel extends FriendRequestEntity {
     return FriendRequestModel(
       id: doc.id,
       senderId: data['senderId'] as String,
-      senderName: data['senderName'] as String,
-      senderPhotoUrl: data['senderPhotoUrl'] as String?,
       receiverId: data['receiverId'] as String,
       status: FriendRequestStatus.values.firstWhere(
         (e) => e.name == data['status'],
@@ -45,8 +41,6 @@ class FriendRequestModel extends FriendRequestEntity {
   Map<String, dynamic> toFirestore() {
     return {
       'senderId': senderId,
-      'senderName': senderName,
-      'senderPhotoUrl': senderPhotoUrl,
       'receiverId': receiverId,
       'status': status.name,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -59,8 +53,6 @@ class FriendRequestModel extends FriendRequestEntity {
     return FriendRequestModel(
       id: entity.id,
       senderId: entity.senderId,
-      senderName: entity.senderName,
-      senderPhotoUrl: entity.senderPhotoUrl,
       receiverId: entity.receiverId,
       status: entity.status,
       createdAt: entity.createdAt,
@@ -72,8 +64,6 @@ class FriendRequestModel extends FriendRequestEntity {
   FriendRequestModel copyWith({
     String? id,
     String? senderId,
-    String? senderName,
-    String? senderPhotoUrl,
     String? receiverId,
     FriendRequestStatus? status,
     DateTime? createdAt,
@@ -82,8 +72,6 @@ class FriendRequestModel extends FriendRequestEntity {
     return FriendRequestModel(
       id: id ?? this.id,
       senderId: senderId ?? this.senderId,
-      senderName: senderName ?? this.senderName,
-      senderPhotoUrl: senderPhotoUrl ?? this.senderPhotoUrl,
       receiverId: receiverId ?? this.receiverId,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,

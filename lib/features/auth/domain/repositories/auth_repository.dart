@@ -13,6 +13,9 @@ abstract class AuthRepository {
   /// Apple 로그인
   Future<Either<String, UserEntity>> signInWithApple();
 
+  /// 닉네임 사용 가능 여부 확인
+  Future<Either<String, bool>> checkNicknameAvailability(String nickname);
+
   /// 로그아웃
   Future<Either<String, void>> signOut();
 
@@ -20,6 +23,7 @@ abstract class AuthRepository {
   Future<Either<String, UserEntity>> updateProfile({
     required String userId,
     String? displayName,
+    String? nickname,
     String? photoUrl,
   });
 

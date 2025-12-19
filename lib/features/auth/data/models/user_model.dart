@@ -11,6 +11,8 @@ class UserModel extends UserEntity {
     required super.id,
     required super.email,
     required super.displayName,
+    required super.nickname,
+    super.isNicknameSet,
     super.photoUrl,
     super.totalScore,
     super.workoutCount,
@@ -28,10 +30,19 @@ class UserModel extends UserEntity {
   /// Firestore DocumentSnapshot으로부터 UserModel 생성
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final email = data['email'] as String;
+
+    // 기존 사용자의 경우 nickname이 없을 수 있으므로 임시 닉네임 생성
+    final nickname = data['nickname'] as String? ??
+                     email.split('@')[0];
+    final isNicknameSet = data['isNicknameSet'] as bool? ?? false;
+
     return UserModel(
       id: doc.id,
-      email: data['email'] as String,
+      email: email,
       displayName: data['displayName'] as String,
+      nickname: nickname,
+      isNicknameSet: isNicknameSet,
       photoUrl: data['photoUrl'] as String?,
       totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
       workoutCount: (data['workoutCount'] as num?)?.toInt() ?? 0,
@@ -47,6 +58,8 @@ class UserModel extends UserEntity {
     return {
       'email': email,
       'displayName': displayName,
+      'nickname': nickname,
+      'isNicknameSet': isNicknameSet,
       'photoUrl': photoUrl,
       'totalScore': totalScore,
       'workoutCount': workoutCount,
@@ -62,6 +75,8 @@ class UserModel extends UserEntity {
       id: entity.id,
       email: entity.email,
       displayName: entity.displayName,
+      nickname: entity.nickname,
+      isNicknameSet: entity.isNicknameSet,
       photoUrl: entity.photoUrl,
       totalScore: entity.totalScore,
       workoutCount: entity.workoutCount,
@@ -75,12 +90,16 @@ class UserModel extends UserEntity {
     String uid,
     String email,
     String? displayName,
-    String? photoUrl,
-  ) {
+    String nickname,
+    String? photoUrl, {
+    bool isNicknameSet = false,
+  }) {
     return UserModel(
       id: uid,
       email: email,
       displayName: displayName ?? email.split('@')[0],
+      nickname: nickname,
+      isNicknameSet: isNicknameSet,
       photoUrl: photoUrl,
       totalScore: 0,
       workoutCount: 0,
@@ -94,6 +113,8 @@ class UserModel extends UserEntity {
     String? id,
     String? email,
     String? displayName,
+    String? nickname,
+    bool? isNicknameSet,
     String? photoUrl,
     int? totalScore,
     int? workoutCount,
@@ -104,6 +125,8 @@ class UserModel extends UserEntity {
       id: id ?? this.id,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
+      nickname: nickname ?? this.nickname,
+      isNicknameSet: isNicknameSet ?? this.isNicknameSet,
       photoUrl: photoUrl ?? this.photoUrl,
       totalScore: totalScore ?? this.totalScore,
       workoutCount: workoutCount ?? this.workoutCount,

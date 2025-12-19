@@ -26,7 +26,9 @@ import 'package:co_workfit/features/auth/domain/usecases/get_current_user.dart';
 import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_google.dart';
 import 'package:co_workfit/features/auth/domain/usecases/sign_in_with_apple.dart';
 import 'package:co_workfit/features/auth/domain/usecases/sign_out.dart';
+import 'package:co_workfit/features/auth/domain/usecases/check_nickname_availability.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/nickname_bloc.dart';
 
 // Profile
 import 'package:co_workfit/features/profile/data/datasources/profile_remote_data_source.dart';
@@ -48,7 +50,7 @@ import 'package:co_workfit/features/social/domain/usecases/send_friend_request.d
 import 'package:co_workfit/features/social/domain/usecases/get_received_friend_requests.dart';
 import 'package:co_workfit/features/social/domain/usecases/accept_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/reject_friend_request.dart';
-import 'package:co_workfit/features/social/domain/usecases/search_users_by_email.dart';
+import 'package:co_workfit/features/social/domain/usecases/search_users_by_nickname.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_leaderboard.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_friends_leaderboard.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
@@ -145,6 +147,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => SignInWithGoogle(sl()));
   sl.registerLazySingleton(() => SignInWithApple(sl()));
   sl.registerLazySingleton(() => SignOut(sl()));
+  sl.registerLazySingleton(() => CheckNicknameAvailability(sl()));
 
   // BLoC
   sl.registerFactory(
@@ -154,6 +157,12 @@ Future<void> initializeDependencies() async {
       signInWithApple: sl(),
       signOut: sl(),
       authRepository: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => NicknameBloc(
+      checkNicknameAvailability: sl(),
     ),
   );
 
@@ -213,7 +222,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => GetReceivedFriendRequests(sl()));
   sl.registerLazySingleton(() => AcceptFriendRequest(sl()));
   sl.registerLazySingleton(() => RejectFriendRequest(sl()));
-  sl.registerLazySingleton(() => SearchUsersByEmail(sl()));
+  sl.registerLazySingleton(() => SearchUsersByNickname(sl()));
 
   // Use Cases - Leaderboard
   sl.registerLazySingleton(() => GetLeaderboard(sl()));
@@ -228,7 +237,7 @@ Future<void> initializeDependencies() async {
       getReceivedFriendRequests: sl(),
       acceptFriendRequest: sl(),
       rejectFriendRequest: sl(),
-      searchUsersByEmail: sl(),
+      searchUsersByNickname: sl(),
     ),
   );
 

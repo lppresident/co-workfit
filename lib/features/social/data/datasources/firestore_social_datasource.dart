@@ -31,8 +31,6 @@ class FirestoreSocialDataSource {
   /// 친구 요청 보내기
   Future<Either<String, void>> sendFriendRequest({
     required String senderId,
-    required String senderName,
-    String? senderPhotoUrl,
     required String receiverId,
   }) async {
     if (!_initialized) {
@@ -67,8 +65,6 @@ class FirestoreSocialDataSource {
       final request = FriendRequestModel(
         id: '',
         senderId: senderId,
-        senderName: senderName,
-        senderPhotoUrl: senderPhotoUrl,
         receiverId: receiverId,
         status: FriendRequestStatus.pending,
         createdAt: DateTime.now(),
@@ -173,22 +169,9 @@ class FirestoreSocialDataSource {
       final senderFriendship =
           _firestore.collection(FirebaseConfig.friendsCollection).doc();
 
-      // 받은 사람 정보 가져오기
-      final receiverDoc = await _firestore
-          .collection(FirebaseConfig.usersCollection)
-          .doc(request.receiverId)
-          .get();
-
-      final receiverData = receiverDoc.data() as Map<String, dynamic>;
-
       batch.set(senderFriendship, {
         'userId': request.senderId,
         'friendId': request.receiverId,
-        'friendName': receiverData['displayName'],
-        'friendEmail': receiverData['email'],
-        'friendPhotoUrl': receiverData['photoUrl'],
-        'friendTotalScore': receiverData['totalScore'] ?? 0,
-        'friendWorkoutCount': receiverData['workoutCount'] ?? 0,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -199,11 +182,6 @@ class FirestoreSocialDataSource {
       batch.set(receiverFriendship, {
         'userId': request.receiverId,
         'friendId': request.senderId,
-        'friendName': request.senderName,
-        'friendEmail': '', // 보낸 사람 이메일은 요청에 포함되지 않음
-        'friendPhotoUrl': request.senderPhotoUrl,
-        'friendTotalScore': 0,
-        'friendWorkoutCount': 0,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -298,12 +276,6 @@ class FirestoreSocialDataSource {
           id: doc.id,
           userId: data['userId'] as String,
           friendId: data['friendId'] as String,
-          friendName: data['friendName'] as String,
-          friendEmail: data['friendEmail'] as String,
-          friendPhotoUrl: data['friendPhotoUrl'] as String?,
-          friendTotalScore: (data['friendTotalScore'] as num?)?.toInt() ?? 0,
-          friendWorkoutCount:
-              (data['friendWorkoutCount'] as num?)?.toInt() ?? 0,
           createdAt: (data['createdAt'] as Timestamp).toDate(),
         );
       }).toList();
@@ -351,12 +323,6 @@ class FirestoreSocialDataSource {
           id: doc.id,
           userId: data['userId'] as String,
           friendId: data['friendId'] as String,
-          friendName: data['friendName'] as String,
-          friendEmail: data['friendEmail'] as String,
-          friendPhotoUrl: data['friendPhotoUrl'] as String?,
-          friendTotalScore: (data['friendTotalScore'] as num?)?.toInt() ?? 0,
-          friendWorkoutCount:
-              (data['friendWorkoutCount'] as num?)?.toInt() ?? 0,
           createdAt: (data['createdAt'] as Timestamp).toDate(),
         );
       }).toList();
@@ -543,22 +509,24 @@ class FirestoreSocialDataSource {
     }
   }
 
-  /// 사용자 검색 (이메일로)
-  Future<Either<String, List<Map<String, dynamic>>>> searchUsersByEmail(
-    String email,
+  /// 사용자 검색 (닉네임으로)
+  Future<Either<String, List<Map<String, dynamic>>>> searchUsersByNickname(
+    String nickname,
   ) async {
     if (!_initialized) {
       return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
     }
 
     try {
-      if (email.isEmpty) {
+      if (nickname.isEmpty) {
         return const Right([]);
       }
 
+      // Firestore range query for autocomplete
       final snapshot = await _firestore
           .collection(FirebaseConfig.usersCollection)
-          .where('email', isEqualTo: email)
+          .where('nickname', isGreaterThanOrEqualTo: nickname)
+          .where('nickname', isLessThan: nickname + 'z')
           .limit(10)
           .get();
 
@@ -568,7 +536,12 @@ class FirestoreSocialDataSource {
           'id': doc.id,
           'email': data['email'],
           'displayName': data['displayName'],
+          'nickname': data['nickname'],
           'photoUrl': data['photoUrl'],
+          'totalScore': data['totalScore'],
+          'workoutCount': data['workoutCount'],
+          'createdAt': data['createdAt'],
+          'lastActiveAt': data['lastActiveAt'],
         };
       }).toList();
 

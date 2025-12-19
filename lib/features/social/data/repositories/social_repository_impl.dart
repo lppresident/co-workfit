@@ -18,15 +18,11 @@ class SocialRepositoryImpl implements SocialRepository {
   @override
   Future<Either<Failure, void>> sendFriendRequest({
     required String senderId,
-    required String senderName,
-    String? senderPhotoUrl,
     required String receiverId,
   }) async {
     try {
       final result = await dataSource.sendFriendRequest(
         senderId: senderId,
-        senderName: senderName,
-        senderPhotoUrl: senderPhotoUrl,
         receiverId: receiverId,
       );
       return result.fold(
@@ -167,11 +163,11 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
-  Future<Either<Failure, List<UserEntity>>> searchUsersByEmail(
-    String email,
+  Future<Either<Failure, List<UserEntity>>> searchUsersByNickname(
+    String nickname,
   ) async {
     try {
-      final result = await dataSource.searchUsersByEmail(email);
+      final result = await dataSource.searchUsersByNickname(nickname);
       return result.fold(
         (error) => Left(ServerFailure(error)),
         (usersData) {
@@ -180,6 +176,7 @@ class SocialRepositoryImpl implements SocialRepository {
               id: data['id'] as String,
               email: data['email'] as String,
               displayName: data['displayName'] as String,
+              nickname: data['nickname'] as String? ?? data['email'].toString().split('@')[0],
               photoUrl: data['photoUrl'] as String?,
               totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
               workoutCount: (data['workoutCount'] as num?)?.toInt() ?? 0,

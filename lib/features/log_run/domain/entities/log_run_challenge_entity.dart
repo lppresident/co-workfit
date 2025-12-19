@@ -7,11 +7,8 @@ class LogRunChallengeEntity extends Equatable {
   /// 챌린지 ID
   final String id;
 
-  /// 생성자 ID
+  /// 생성자 ID (userId)
   final String createdBy;
-
-  /// 생성자 이름
-  final String creatorName;
 
   /// 목표 통나무 무게 (kg)
   final double targetWeight;
@@ -25,11 +22,8 @@ class LogRunChallengeEntity extends Equatable {
   /// 남은 무게 (kg)
   final double remainingWeight;
 
-  /// 참가자 ID 목록
+  /// 참가자 ID 목록 (userId 배열)
   final List<String> participants;
-
-  /// 참가자 이름 맵 (userId -> name)
-  final Map<String, String> participantNames;
 
   /// 챌린지 상태
   final ChallengeStatus status;
@@ -55,13 +49,11 @@ class LogRunChallengeEntity extends Equatable {
   const LogRunChallengeEntity({
     required this.id,
     required this.createdBy,
-    required this.creatorName,
     required this.targetWeight,
     required this.targetDistance,
     required this.currentDistance,
     required this.remainingWeight,
     required this.participants,
-    required this.participantNames,
     required this.status,
     required this.createdAt,
     required this.inviteCode,
@@ -96,13 +88,11 @@ class LogRunChallengeEntity extends Equatable {
   List<Object?> get props => [
         id,
         createdBy,
-        creatorName,
         targetWeight,
         targetDistance,
         currentDistance,
         remainingWeight,
         participants,
-        participantNames,
         status,
         createdAt,
         expiresAt,

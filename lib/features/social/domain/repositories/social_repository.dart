@@ -10,8 +10,6 @@ abstract class SocialRepository {
   // Friend Request Methods
   Future<Either<Failure, void>> sendFriendRequest({
     required String senderId,
-    required String senderName,
-    String? senderPhotoUrl,
     required String receiverId,
   });
 
@@ -46,5 +44,5 @@ abstract class SocialRepository {
   });
 
   // User Search
-  Future<Either<Failure, List<UserEntity>>> searchUsersByEmail(String email);
+  Future<Either<Failure, List<UserEntity>>> searchUsersByNickname(String nickname);
 }

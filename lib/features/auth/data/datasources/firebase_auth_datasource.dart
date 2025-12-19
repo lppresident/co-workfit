@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -33,6 +34,26 @@ class FirebaseAuthDataSource {
   /// Firebase 초기화 여부 확인
   bool get isInitialized => _initialized;
 
+  /// 닉네임 사용 가능 여부 확인
+  Future<Either<String, bool>> checkNicknameAvailability(String nickname) async {
+    if (!_initialized) {
+      return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
+    }
+
+    try {
+      final nicknameDoc = await _firestore
+          .collection(FirebaseConfig.nicknamesCollection)
+          .doc(nickname)
+          .get();
+
+      // 문서가 존재하지 않으면 사용 가능
+      return Right(!nicknameDoc.exists);
+    } catch (e) {
+      AppLogger.error('FirebaseAuthDataSource', 'Failed to check nickname availability: $e');
+      return Left('닉네임 확인에 실패했습니다: $e');
+    }
+  }
+
   /// 현재 로그인된 사용자 가져오기
   Future<Either<String, UserModel?>> getCurrentUser() async {
     if (!_initialized) {
@@ -53,10 +74,12 @@ class FirebaseAuthDataSource {
 
       if (!userDoc.exists) {
         // Firestore에 사용자 데이터가 없으면 생성
+        final temporaryNickname = _generateTemporaryNickname(firebaseUser.email!);
         final newUser = UserModel.fromFirebaseUser(
           firebaseUser.uid,
           firebaseUser.email!,
           firebaseUser.displayName,
+          temporaryNickname,
           firebaseUser.photoURL,
         );
         await _createUserInFirestore(newUser);
@@ -110,10 +133,12 @@ class FirebaseAuthDataSource {
       UserModel userModel;
       if (!userDoc.exists) {
         // 새 사용자 생성
+        final temporaryNickname = _generateTemporaryNickname(userCredential.user!.email!);
         userModel = UserModel.fromFirebaseUser(
           userCredential.user!.uid,
           userCredential.user!.email!,
           userCredential.user!.displayName,
+          temporaryNickname,
           userCredential.user!.photoURL,
         );
         await _createUserInFirestore(userModel);
@@ -177,11 +202,15 @@ class FirebaseAuthDataSource {
           }
         }
 
+        final email = userCredential.user!.email ?? 'apple_user_${userCredential.user!.uid}@privaterelay.appleid.com';
+        final temporaryNickname = _generateTemporaryNickname(email);
+
         // 새 사용자 생성
         userModel = UserModel.fromFirebaseUser(
           userCredential.user!.uid,
-          userCredential.user!.email ?? 'apple_user_${userCredential.user!.uid}@privaterelay.appleid.com',
+          email,
           displayName,
+          temporaryNickname,
           userCredential.user!.photoURL,
         );
         await _createUserInFirestore(userModel);
@@ -235,6 +264,7 @@ class FirebaseAuthDataSource {
     required String userId,
     String? displayName,
     String? photoUrl,
+    String? nickname,
   }) async {
     if (!_initialized) {
       return const Left('Firebase가 초기화되지 않았습니다. Firebase 설정을 확인해주세요.');
@@ -246,6 +276,19 @@ class FirebaseAuthDataSource {
         return const Left('로그인된 사용자가 없습니다.');
       }
 
+      // 현재 사용자 데이터 가져오기
+      final userDoc = await _firestore
+          .collection(FirebaseConfig.usersCollection)
+          .doc(userId)
+          .get();
+
+      if (!userDoc.exists) {
+        return const Left('사용자 정보를 찾을 수 없습니다.');
+      }
+
+      final currentUser = UserModel.fromFirestore(userDoc);
+      final currentNickname = currentUser.nickname;
+
       // Firebase Auth 프로필 업데이트
       if (displayName != null) {
         await user.updateDisplayName(displayName);
@@ -254,34 +297,99 @@ class FirebaseAuthDataSource {
         await user.updatePhotoURL(photoUrl);
       }
 
-      // Firestore 업데이트
-      final updates = <String, dynamic>{};
-      if (displayName != null) updates['displayName'] = displayName;
-      if (photoUrl != null) updates['photoUrl'] = photoUrl;
+      // 닉네임이 제공되고 현재 닉네임과 다른 경우, 트랜잭션으로 업데이트
+      if (nickname != null && nickname != currentNickname) {
+        try {
+          await _firestore.runTransaction((transaction) async {
+            // 새 닉네임 문서 참조
+            final newNicknameRef = _firestore
+                .collection(FirebaseConfig.nicknamesCollection)
+                .doc(nickname);
 
-      await _firestore
-          .collection(FirebaseConfig.usersCollection)
-          .doc(userId)
-          .update(updates);
+            // 사용자 문서 참조
+            final userRef = _firestore
+                .collection(FirebaseConfig.usersCollection)
+                .doc(userId);
+
+            // 새 닉네임 중복 확인
+            final newNicknameDoc = await transaction.get(newNicknameRef);
+            if (newNicknameDoc.exists) {
+              throw Exception('이미 사용 중인 닉네임입니다.');
+            }
+
+            // 이전 닉네임이 설정된 경우에만 삭제
+            if (currentUser.isNicknameSet) {
+              final oldNicknameRef = _firestore
+                  .collection(FirebaseConfig.nicknamesCollection)
+                  .doc(currentNickname);
+              transaction.delete(oldNicknameRef);
+            }
+
+            // 새 닉네임 문서 생성
+            transaction.set(newNicknameRef, {
+              'userId': userId,
+              'nickname': nickname,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+
+            // 사용자 문서 업데이트
+            final updates = <String, dynamic>{
+              'nickname': nickname,
+              'isNicknameSet': true,
+            };
+            if (displayName != null) updates['displayName'] = displayName;
+            if (photoUrl != null) updates['photoUrl'] = photoUrl;
+
+            transaction.update(userRef, updates);
+          });
+        } catch (e) {
+          AppLogger.error('FirebaseAuthDataSource', 'Failed to update nickname: $e');
+          return Left('닉네임 업데이트에 실패했습니다: $e');
+        }
+      } else {
+        // 닉네임 변경이 없는 경우, 일반 업데이트
+        final updates = <String, dynamic>{};
+        if (displayName != null) updates['displayName'] = displayName;
+        if (photoUrl != null) updates['photoUrl'] = photoUrl;
+
+        if (updates.isNotEmpty) {
+          await _firestore
+              .collection(FirebaseConfig.usersCollection)
+              .doc(userId)
+              .update(updates);
+        }
+      }
 
       // 업데이트된 사용자 데이터 가져오기
-      final userDoc = await _firestore
+      final updatedUserDoc = await _firestore
           .collection(FirebaseConfig.usersCollection)
           .doc(userId)
           .get();
 
-      return Right(UserModel.fromFirestore(userDoc));
+      return Right(UserModel.fromFirestore(updatedUserDoc));
     } catch (e) {
+      AppLogger.error('FirebaseAuthDataSource', 'Failed to update profile: $e');
       return Left('프로필 업데이트에 실패했습니다: $e');
     }
   }
 
-  /// Firestore에 사용자 생성
+  /// Firestore에 사용자 생성 (트랜잭션 사용)
   Future<void> _createUserInFirestore(UserModel user) async {
-    await _firestore
-        .collection(FirebaseConfig.usersCollection)
-        .doc(user.id)
-        .set(user.toFirestore());
+    try {
+      await _firestore.runTransaction((transaction) async {
+        // 사용자 문서 참조
+        final userRef = _firestore
+            .collection(FirebaseConfig.usersCollection)
+            .doc(user.id);
+
+        // 사용자 문서만 생성 (닉네임 문서는 생성하지 않음)
+        // 첫 로그인 시에는 isNicknameSet=false이므로 닉네임 문서를 생성하지 않음
+        transaction.set(userRef, user.toFirestore());
+      });
+    } catch (e) {
+      AppLogger.error('FirebaseAuthDataSource', 'Failed to create user in Firestore: $e');
+      rethrow;
+    }
   }
 
   /// 마지막 활동 시간 업데이트
@@ -318,6 +426,14 @@ class FirebaseAuthDataSource {
       default:
         return '인증 오류가 발생했습니다: ${e.message}';
     }
+  }
+
+  /// 임시 닉네임 생성 (이메일_4자리랜덤숫자)
+  String _generateTemporaryNickname(String email) {
+    final emailPrefix = email.split('@')[0];
+    final random = Random();
+    final randomDigits = random.nextInt(10000).toString().padLeft(4, '0');
+    return '${emailPrefix}_$randomDigits';
   }
 
   /// 인증 상태 변경 스트림

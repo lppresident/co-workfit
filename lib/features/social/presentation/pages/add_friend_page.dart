@@ -18,11 +18,11 @@ class AddFriendPage extends BasePage {
 }
 
 class _AddFriendPageState extends BasePageState<AddFriendPage> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _nicknameController = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _nicknameController.dispose();
     super.dispose();
   }
 
@@ -32,9 +32,9 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
   }
 
   void _searchUsers() {
-    final email = _emailController.text.trim();
-    if (email.isNotEmpty) {
-      context.read<SocialBloc>().add(SearchUsersByEmailEvent(email));
+    final nickname = _nicknameController.text.trim();
+    if (nickname.isNotEmpty) {
+      context.read<SocialBloc>().add(SearchUsersByNicknameEvent(nickname));
     }
   }
 
@@ -44,8 +44,6 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
       context.read<SocialBloc>().add(
         SendFriendRequestEvent(
           senderId: authState.user.id,
-          senderName: authState.user.displayName,
-          senderPhotoUrl: authState.user.photoUrl,
           receiverId: receiverId,
         ),
       );
@@ -82,20 +80,28 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
           child: Column(
             children: [
               TextField(
-                controller: _emailController,
+                controller: _nicknameController,
                 decoration: InputDecoration(
-                  labelText: '이메일로 검색',
-                  hintText: 'example@email.com',
+                  labelText: '닉네임으로 검색',
+                  hintText: '닉네임을 입력하세요',
                   prefixIcon: const Icon(Icons.search),
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.clear),
                     onPressed: () {
-                      _emailController.clear();
+                      _nicknameController.clear();
                       context.read<SocialBloc>().add(const ClearSearchResults());
                     },
                   ),
                 ),
+                onChanged: (value) {
+                  // Trigger search on every change for autocomplete
+                  if (value.isNotEmpty) {
+                    context.read<SocialBloc>().add(SearchUsersByNicknameEvent(value));
+                  } else {
+                    context.read<SocialBloc>().add(const ClearSearchResults());
+                  }
+                },
                 onSubmitted: (_) => _searchUsers(),
               ),
               const SizedBox(height: AppConstants.defaultPadding),
@@ -114,7 +120,7 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
                 const Expanded(
                   child: CommonEmptyWidget(
                     icon: Icons.person_search,
-                    message: '이메일로 친구를 검색하세요',
+                    message: '닉네임으로 친구를 검색하세요',
                   ),
                 )
               else
@@ -137,7 +143,7 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
                                 : null,
                           ),
                           title: Text(user.displayName),
-                          subtitle: Text(user.email),
+                          subtitle: Text('@${user.nickname}'),
                           trailing: isCurrentUser
                               ? const Chip(
                                   label: Text('나'),
