@@ -175,28 +175,10 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     // 3. 시간순 정렬 (최신순)
     allWorkouts.sort((a, b) => b.startTime.compareTo(a.startTime));
 
-    // 4. 중복 제거 (같은 시간대의 비슷한 운동)
-    final uniqueWorkouts = _removeDuplicateWorkouts(allWorkouts);
+    // 4. 모든 운동 데이터를 그대로 반환 (중복 제거 안 함)
+    AppLogger.info('WorkoutRepo', '총 ${allWorkouts.length}개 운동 데이터 반환');
 
-    return Right(uniqueWorkouts);
-  }
-
-  /// 중복 운동 제거 (시작 시간이 5분 이내이고 같은 타입이면 중복으로 간주)
-  List<WorkoutEntity> _removeDuplicateWorkouts(List<WorkoutEntity> workouts) {
-    if (workouts.length <= 1) return workouts;
-
-    final unique = <WorkoutEntity>[];
-    for (final workout in workouts) {
-      final isDuplicate = unique.any((existing) {
-        final timeDiff = existing.startTime.difference(workout.startTime).abs();
-        return timeDiff.inMinutes < 5 && existing.type == workout.type;
-      });
-
-      if (!isDuplicate) {
-        unique.add(workout);
-      }
-    }
-    return unique;
+    return Right(allWorkouts);
   }
 
   /// HealthKit에서 운동 데이터 가져오기 (iOS)
