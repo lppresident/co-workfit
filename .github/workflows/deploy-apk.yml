@@ -59,6 +59,14 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Setup release keystore
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release-keystore.jks
+          echo "storeFile=release-keystore.jks" > android/key.properties
+          echo "storePassword=${{ secrets.RELEASE_KEYSTORE_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}" >> android/key.properties
+          echo "keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}" >> android/key.properties
+
       - name: Run tests (optional)
         run: flutter test || echo "No tests or tests failed - continuing anyway"
 
@@ -129,6 +137,21 @@ jobs:
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
           echo "APK built: $APK_PATH ($FILE_SIZE)"
+
+      - name: Print APK signing SHA-1 (for Firebase)
+        run: |
+          echo "=========================================="
+          echo "🔑 APK Signing Certificate SHA-1"
+          echo "=========================================="
+          # apksigner로 SHA-1 추출
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          CERT_INFO=$($ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner verify --print-certs "$APK_PATH" 2>&1)
+          echo "$CERT_INFO"
+          echo ""
+          echo "=========================================="
+          echo "⚠️  위의 SHA-1 fingerprint를 Firebase Console에 등록하세요!"
+          echo "    Firebase Console → Project Settings → Android app → Add fingerprint"
+          echo "=========================================="
 
       - name: Rename APK with version
         id: rename_apk
