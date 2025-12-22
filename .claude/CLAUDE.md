@@ -60,14 +60,14 @@ lib/
 코딩하기 전에 **반드시** 다음 순서로 문서를 확인하세요:
 
 ### 1단계: UI 구조 확인 (가장 먼저!)
-- **`UI_STRUCTURE.md`** ← 페이지 만들 때 필수
+- **`.claude/docs/UI_STRUCTURE.md`** ← 페이지 만들 때 필수
 
 ### 2단계: 빠른 템플릿
-- **`AI_QUICK_REFERENCE.md`** ← 코드 템플릿 복사
+- **`.claude/docs/AI_QUICK_REFERENCE.md`** ← 코드 템플릿 복사
 
 ### 3단계: 상세 가이드
-- **`CONTRIBUTING.md`** ← 전체 기여 가이드
-- **`ARCHITECTURE.md`** ← Clean Architecture 패턴
+- **`.claude/docs/CONTRIBUTING.md`** ← 전체 기여 가이드
+- **`.claude/docs/ARCHITECTURE.md`** ← Clean Architecture 패턴
 
 ### 4단계: 기존 코드 참고
 - `lib/features/social/` - 친구, 리더보드 참고용
@@ -970,12 +970,11 @@ import 'package:co_workfit/features/user/domain/entities/user_entity.dart'; // O
 
 ## 📖 추가 참고 자료
 
-- **Full Documentation**: `ARCHITECTURE.md`, `CONTRIBUTING.md`, `UI_STRUCTURE.md`
-- **Quick Templates**: `AI_QUICK_REFERENCE.md`
+- **Full Documentation**: `.claude/docs/ARCHITECTURE.md`, `.claude/docs/CONTRIBUTING.md`, `.claude/docs/UI_STRUCTURE.md`
+- **Quick Templates**: `.claude/docs/AI_QUICK_REFERENCE.md`
 - **Example Code**: `lib/features/social/`
-- **Git Workflow**: `.claude/rules/context.md`
 
 ---
 
-_Last Updated: 2025-12-16_
-_Version: 2.0 (Consolidated)_
+_Last Updated: 2025-12-22_
+_Version: 2.1 (Moved to .claude/CLAUDE.md)_
