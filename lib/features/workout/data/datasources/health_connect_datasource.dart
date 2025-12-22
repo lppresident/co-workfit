@@ -162,14 +162,20 @@ class HealthConnectDataSource {
       final dataWithSource = healthData.map((point) {
         final source = _detectWorkoutSource(point);
 
-        // WORKOUT 데이터의 totalDistance 정보 로깅
+        // WORKOUT 데이터의 totalDistance 정보 로깅 (디버깅용)
         if (point.value is WorkoutHealthValue) {
           final workoutValue = point.value as WorkoutHealthValue;
           AppLogger.debug('HealthConnect',
-            'WORKOUT 데이터: type=${workoutValue.workoutActivityType}, '
-            'totalDistance=${workoutValue.totalDistance}, '
-            'unit=${workoutValue.totalDistanceUnit}, '
-            'source=${point.sourceName}');
+            '===== WORKOUT 레코드 =====\n'
+            'Type: ${workoutValue.workoutActivityType}\n'
+            'Start: ${point.dateFrom}\n'
+            'End: ${point.dateTo}\n'
+            'Duration: ${point.dateTo.difference(point.dateFrom).inMinutes}분\n'
+            'TotalDistance: ${workoutValue.totalDistance}\n'
+            'Unit: ${workoutValue.totalDistanceUnit}\n'
+            'Source: ${point.sourceName}\n'
+            'SourceId: ${point.sourceId}\n'
+            '========================');
         }
 
         return HealthDataPointWithSource(
