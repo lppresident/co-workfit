@@ -94,7 +94,7 @@ class _ContributionItem extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        contribution.userName,
+                        contribution.userNickname,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),

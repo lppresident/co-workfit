@@ -81,7 +81,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
             context.read<LogRunBloc>().add(
                   CreateChallenge(
                     userId: authState.user.id,
-                    userName: authState.user.displayName,
+                    userNickname: authState.user.nickname,
                     targetWeight: targetWeight,
                   ),
                 );
@@ -106,7 +106,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
                   JoinChallengeByCode(
                     inviteCode: inviteCode,
                     userId: authState.user.id,
-                    userName: authState.user.displayName,
+                    userNickname: authState.user.nickname,
                   ),
                 );
           }

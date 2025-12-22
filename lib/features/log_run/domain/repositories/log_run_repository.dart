@@ -8,7 +8,7 @@ abstract class LogRunRepository {
   /// 챌린지 생성
   Future<Either<Failure, LogRunChallengeEntity>> createChallenge({
     required String userId,
-    required String userName,
+    required String userNickname,
     required double targetWeight,
     int? recordTimeLimit,
     bool? allowFutureRecordsOnly,
@@ -19,7 +19,7 @@ abstract class LogRunRepository {
   Future<Either<Failure, void>> joinChallenge({
     required String challengeId,
     required String userId,
-    required String userName,
+    required String userNickname,
   });
 
   /// 챌린지 탈퇴
@@ -32,7 +32,7 @@ abstract class LogRunRepository {
   Future<Either<Failure, LogRunContributionEntity>> submitWorkout({
     required String challengeId,
     required String userId,
-    required String userName,
+    required String userNickname,
     required String workoutId,
     required double distance,
     required String workoutType,

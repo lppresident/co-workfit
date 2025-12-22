@@ -15,7 +15,7 @@ class SubmitWorkoutToChallenge implements UseCase<LogRunContributionEntity, Subm
     return await repository.submitWorkout(
       challengeId: params.challengeId,
       userId: params.userId,
-      userName: params.userName,
+      userNickname: params.userNickname,
       workoutId: params.workoutId,
       distance: params.distance,
       workoutType: params.workoutType,
@@ -27,7 +27,7 @@ class SubmitWorkoutToChallenge implements UseCase<LogRunContributionEntity, Subm
 class SubmitWorkoutParams {
   final String challengeId;
   final String userId;
-  final String userName;
+  final String userNickname;
   final String workoutId;
   final double distance;
   final String workoutType;
@@ -36,7 +36,7 @@ class SubmitWorkoutParams {
   SubmitWorkoutParams({
     required this.challengeId,
     required this.userId,
-    required this.userName,
+    required this.userNickname,
     required this.workoutId,
     required this.distance,
     required this.workoutType,

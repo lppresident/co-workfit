@@ -14,8 +14,8 @@ class LogRunContributionEntity extends Equatable {
   /// 사용자 ID
   final String userId;
 
-  /// 사용자 이름
-  final String userName;
+  /// 사용자 닉네임
+  final String userNickname;
 
   /// 원본 운동 기록 ID (중복 방지용)
   final String workoutId;
@@ -39,7 +39,7 @@ class LogRunContributionEntity extends Equatable {
     required this.id,
     required this.challengeId,
     required this.userId,
-    required this.userName,
+    required this.userNickname,
     required this.workoutId,
     required this.distance,
     required this.workoutType,
@@ -53,7 +53,7 @@ class LogRunContributionEntity extends Equatable {
         id,
         challengeId,
         userId,
-        userName,
+        userNickname,
         workoutId,
         distance,
         workoutType,

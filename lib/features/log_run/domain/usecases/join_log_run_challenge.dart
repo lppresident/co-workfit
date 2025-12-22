@@ -14,7 +14,7 @@ class JoinLogRunChallenge implements UseCase<void, JoinChallengeParams> {
     return await repository.joinChallenge(
       challengeId: params.challengeId,
       userId: params.userId,
-      userName: params.userName,
+      userNickname: params.userNickname,
     );
   }
 }
@@ -22,11 +22,11 @@ class JoinLogRunChallenge implements UseCase<void, JoinChallengeParams> {
 class JoinChallengeParams {
   final String challengeId;
   final String userId;
-  final String userName;
+  final String userNickname;
 
   JoinChallengeParams({
     required this.challengeId,
     required this.userId,
-    required this.userName,
+    required this.userNickname,
   });
 }

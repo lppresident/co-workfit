@@ -49,7 +49,7 @@ class JoinChallengeByInviteCode
         final joinResult = await repository.joinChallenge(
           challengeId: challenge.id,
           userId: params.userId,
-          userName: params.userName,
+          userNickname: params.userNickname,
         );
 
         return joinResult.fold(
@@ -64,11 +64,11 @@ class JoinChallengeByInviteCode
 class JoinByCodeParams {
   final String inviteCode;
   final String userId;
-  final String userName;
+  final String userNickname;
 
   JoinByCodeParams({
     required this.inviteCode,
     required this.userId,
-    required this.userName,
+    required this.userNickname,
   });
 }

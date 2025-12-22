@@ -14,7 +14,7 @@ class CreateLogRunChallenge implements UseCase<LogRunChallengeEntity, CreateChal
   Future<Either<Failure, LogRunChallengeEntity>> call(CreateChallengeParams params) async {
     return await repository.createChallenge(
       userId: params.userId,
-      userName: params.userName,
+      userNickname: params.userNickname,
       targetWeight: params.targetWeight,
       recordTimeLimit: params.recordTimeLimit,
       allowFutureRecordsOnly: params.allowFutureRecordsOnly,
@@ -25,7 +25,7 @@ class CreateLogRunChallenge implements UseCase<LogRunChallengeEntity, CreateChal
 
 class CreateChallengeParams {
   final String userId;
-  final String userName;
+  final String userNickname;
   final double targetWeight;
   final int? recordTimeLimit;
   final bool? allowFutureRecordsOnly;
@@ -33,7 +33,7 @@ class CreateChallengeParams {
 
   CreateChallengeParams({
     required this.userId,
-    required this.userName,
+    required this.userNickname,
     required this.targetWeight,
     this.recordTimeLimit,
     this.allowFutureRecordsOnly,

@@ -11,11 +11,11 @@ class LogRunRepositoryImpl implements LogRunRepository {
 
   @override
   Future<Either<Failure, LogRunChallengeEntity>> createChallenge({
-    required String userId, required String userName, required double targetWeight,
+    required String userId, required String userNickname, required double targetWeight,
     int? recordTimeLimit, bool? allowFutureRecordsOnly, DateTime? expiresAt,
   }) async {
     try {
-      final challenge = await dataSource.createChallenge(userId: userId, userName: userName,
+      final challenge = await dataSource.createChallenge(userId: userId, userNickname: userNickname,
         targetWeight: targetWeight, recordTimeLimit: recordTimeLimit,
         allowFutureRecordsOnly: allowFutureRecordsOnly, expiresAt: expiresAt);
       return Right(challenge);
@@ -25,9 +25,9 @@ class LogRunRepositoryImpl implements LogRunRepository {
   }
 
   @override
-  Future<Either<Failure, void>> joinChallenge({required String challengeId, required String userId, required String userName}) async {
+  Future<Either<Failure, void>> joinChallenge({required String challengeId, required String userId, required String userNickname}) async {
     try {
-      await dataSource.joinChallenge(challengeId: challengeId, userId: userId, userName: userName);
+      await dataSource.joinChallenge(challengeId: challengeId, userId: userId, userNickname: userNickname);
       return const Right(null);
     } catch (e) { return Left(ServerFailure(e.toString())); }
   }
@@ -42,11 +42,11 @@ class LogRunRepositoryImpl implements LogRunRepository {
 
   @override
   Future<Either<Failure, LogRunContributionEntity>> submitWorkout({
-    required String challengeId, required String userId, required String userName,
+    required String challengeId, required String userId, required String userNickname,
     required String workoutId, required double distance, required String workoutType, required DateTime workoutDate
   }) async {
     try {
-      final contribution = await dataSource.submitWorkout(challengeId: challengeId, userId: userId, userName: userName,
+      final contribution = await dataSource.submitWorkout(challengeId: challengeId, userId: userId, userNickname: userNickname,
         workoutId: workoutId, distance: distance, workoutType: workoutType, workoutDate: workoutDate);
       return Right(contribution);
     } catch (e) { return Left(ServerFailure(e.toString())); }

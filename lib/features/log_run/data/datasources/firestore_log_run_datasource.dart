@@ -14,7 +14,7 @@ class FirestoreLogRunDataSource {
   FirestoreLogRunDataSource({required this.firestore});
 
   Future<LogRunChallengeModel> createChallenge({
-    required String userId, required String userName, required double targetWeight,
+    required String userId, required String userNickname, required double targetWeight,
     int? recordTimeLimit, bool? allowFutureRecordsOnly, DateTime? expiresAt,
   }) async {
     final now = DateTime.now();
@@ -43,10 +43,10 @@ class FirestoreLogRunDataSource {
     }
 
     await challengeRef.set({
-      'createdBy': userId, 'creatorName': userName,
+      'createdBy': userId, 'creatorNickname': userNickname,
       'targetWeight': targetWeight, 'targetDistance': targetWeight,
       'currentDistance': 0.0, 'remainingWeight': targetWeight,
-      'participants': [userId], 'participantNames': {userId: userName},
+      'participants': [userId], 'participantNicknames': {userId: userNickname},
       'status': ChallengeStatus.active.toFirestore(),
       'createdAt': Timestamp.fromDate(now),
       'inviteCode': inviteCode,
@@ -59,22 +59,22 @@ class FirestoreLogRunDataSource {
     return LogRunChallengeModel.fromFirestore(doc);
   }
 
-  Future<void> joinChallenge({required String challengeId, required String userId, required String userName}) async {
+  Future<void> joinChallenge({required String challengeId, required String userId, required String userNickname}) async {
     await firestore.collection(_challengesCollection).doc(challengeId).update({
       'participants': FieldValue.arrayUnion([userId]),
-      'participantNames.$userId': userName,
+      'participantNicknames.$userId': userNickname,
     });
   }
 
   Future<void> leaveChallenge({required String challengeId, required String userId}) async {
     await firestore.collection(_challengesCollection).doc(challengeId).update({
       'participants': FieldValue.arrayRemove([userId]),
-      'participantNames.$userId': FieldValue.delete(),
+      'participantNicknames.$userId': FieldValue.delete(),
     });
   }
 
   Future<LogRunContributionModel> submitWorkout({
-    required String challengeId, required String userId, required String userName,
+    required String challengeId, required String userId, required String userNickname,
     required String workoutId, required double distance, required String workoutType, required DateTime workoutDate
   }) async {
     return await firestore.runTransaction<LogRunContributionModel>((transaction) async {
@@ -95,14 +95,14 @@ class FirestoreLogRunDataSource {
       final contributionRef = challengeRef.collection(_contributionsSubcollection).doc();
       final now = DateTime.now();
       transaction.set(contributionRef, {
-        'challengeId': challengeId, 'userId': userId, 'userName': userName,
+        'challengeId': challengeId, 'userId': userId, 'userNickname': userNickname,
         'workoutId': workoutId, 'distance': distance, 'workoutType': workoutType,
         'workoutDate': Timestamp.fromDate(workoutDate), 'submittedAt': Timestamp.fromDate(now),
         'percentage': percentage,
       });
 
       return LogRunContributionModel(
-        id: contributionRef.id, challengeId: challengeId, userId: userId, userName: userName,
+        id: contributionRef.id, challengeId: challengeId, userId: userId, userNickname: userNickname,
         workoutId: workoutId, distance: distance, workoutType: _parseWorkoutType(workoutType),
         workoutDate: workoutDate, submittedAt: now, percentage: percentage,
       );
