@@ -28,7 +28,7 @@
 - **상태 관리**: flutter_bloc
 - **DI**: GetIt
 - **백엔드**: Firebase (Auth, Firestore)
-- **현재 상태**: Phase 4 완료, Phase 5 준비 중
+- **현재 상태**: Phase 5 진행 중
 
 ### 프로젝트 구조
 ```
@@ -45,11 +45,12 @@ lib/
 │       ├── mixins/                    # TabbedMixin, RefreshableMixin 등
 │       └── widgets/                   # StandardAppBar 등
 ├── features/
-│   ├── workout/                       # 운동 데이터
+│   ├── auth/                          # 인증 (소셜 로그인)
 │   ├── calibration/                   # 캘리브레이션
-│   ├── auth/                          # 인증
+│   ├── log_run/                       # 통나무런 기능
+│   ├── profile/                       # 사용자 프로필
 │   ├── social/                        # 소셜 (친구, 리더보드)
-│   └── (log_run, ghost_run 예정)     # Phase 5
+│   └── workout/                       # 운동 데이터
 └── main.dart
 ```
 
@@ -677,9 +678,9 @@ Closes #이슈번호
 새 기능 추가 시 **반드시** 이 순서대로:
 
 - [ ] **1. 문서 확인**
-  - [ ] `UI_STRUCTURE.md` 읽기 (페이지 만들 때)
-  - [ ] `AI_QUICK_REFERENCE.md` 템플릿 확인
-  - [ ] `CONTRIBUTING.md` 프로세스 확인
+  - [ ] `.claude/docs/UI_STRUCTURE.md` 읽기 (페이지 만들 때)
+  - [ ] `.claude/docs/AI_QUICK_REFERENCE.md` 템플릿 확인
+  - [ ] `.claude/docs/CONTRIBUTING.md` 프로세스 확인
 
 - [ ] **2. 기존 코드 참고**
   - [ ] `lib/features/social/` 구조 확인
@@ -924,15 +925,13 @@ import 'package:co_workfit/features/user/domain/entities/user_entity.dart'; // O
 
 ## 📚 학습 순서 (처음 시작하는 AI)
 
-1. **이 파일 (`.claud`)** 읽기 (30분) - 가장 먼저!
-2. **`UI_STRUCTURE.md`** 읽기 (30분) - UI 패턴 익히기
-3. **`AI_QUICK_REFERENCE.md`** 읽기 (15분) - 템플릿 익히기
-4. **`lib/features/social/presentation/pages/friends_page.dart`** 코드 읽기 (10분) - 실제 예제
-5. **`lib/features/social/presentation/pages/leaderboard_page.dart`** 코드 읽기 (10분) - 또 다른 예제
-6. **`CONTRIBUTING.md`** 읽기 (20분) - 전체 프로세스
-7. **`ARCHITECTURE.md`** 읽기 (20분) - Clean Architecture
-
-**총 소요 시간**: 약 2시간 (하지만 이후 개발 속도 3배 향상!)
+1. **이 파일 (`.claude/CLAUDE.md`)** 읽기 - 가장 먼저!
+2. **`.claude/docs/UI_STRUCTURE.md`** 읽기 - UI 패턴 익히기
+3. **`.claude/docs/AI_QUICK_REFERENCE.md`** 읽기 - 템플릿 익히기
+4. **`lib/features/social/presentation/pages/friends_page.dart`** 코드 읽기 - 실제 예제
+5. **`lib/features/social/presentation/pages/leaderboard_page.dart`** 코드 읽기 - 또 다른 예제
+6. **`.claude/docs/CONTRIBUTING.md`** 읽기 - 전체 프로세스
+7. **`.claude/docs/ARCHITECTURE.md`** 읽기 - Clean Architecture
 
 ---
 
