@@ -4,7 +4,7 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 
 class LogRunContributionModel extends LogRunContributionEntity {
   const LogRunContributionModel({
-    required super.id, required super.challengeId, required super.userId, required super.userName,
+    required super.id, required super.challengeId, required super.userId, required super.userNickname,
     required super.workoutId, required super.distance, required super.workoutType,
     required super.workoutDate, required super.submittedAt, required super.percentage,
   });
@@ -13,7 +13,7 @@ class LogRunContributionModel extends LogRunContributionEntity {
     final data = doc.data() as Map<String, dynamic>;
     return LogRunContributionModel(
       id: doc.id, challengeId: data['challengeId'] as String, userId: data['userId'] as String,
-      userName: data['userName'] as String, workoutId: data['workoutId'] as String,
+      userNickname: data['userNickname'] as String, workoutId: data['workoutId'] as String,
       distance: (data['distance'] as num).toDouble(),
       workoutType: _parseWorkoutType(data['workoutType'] as String),
       workoutDate: (data['workoutDate'] as Timestamp).toDate(),
@@ -24,7 +24,7 @@ class LogRunContributionModel extends LogRunContributionEntity {
 
   Map<String, dynamic> toFirestore() {
     return {
-      'challengeId': challengeId, 'userId': userId, 'userName': userName,
+      'challengeId': challengeId, 'userId': userId, 'userNickname': userNickname,
       'workoutId': workoutId, 'distance': distance,
       'workoutType': workoutType.toString().split('.').last,
       'workoutDate': Timestamp.fromDate(workoutDate),
@@ -34,7 +34,7 @@ class LogRunContributionModel extends LogRunContributionEntity {
 
   factory LogRunContributionModel.fromEntity(LogRunContributionEntity entity) {
     return LogRunContributionModel(
-      id: entity.id, challengeId: entity.challengeId, userId: entity.userId, userName: entity.userName,
+      id: entity.id, challengeId: entity.challengeId, userId: entity.userId, userNickname: entity.userNickname,
       workoutId: entity.workoutId, distance: entity.distance, workoutType: entity.workoutType,
       workoutDate: entity.workoutDate, submittedAt: entity.submittedAt, percentage: entity.percentage,
     );

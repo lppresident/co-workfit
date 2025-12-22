@@ -43,7 +43,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                 SubmitWorkout(
                   challengeId: widget.challengeId,
                   userId: authState.user.id,
-                  userName: authState.user.displayName,
+                  userNickname: authState.user.nickname,
                   workoutId: workoutId,
                   distance: distance,
                   workoutType: workoutType,

@@ -127,7 +127,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     final result = await createChallengeUseCase(
       CreateChallengeParams(
         userId: event.userId,
-        userName: event.userName,
+        userNickname: event.userNickname,
         targetWeight: event.targetWeight,
         recordTimeLimit: event.recordTimeLimit,
         allowFutureRecordsOnly: event.allowFutureRecordsOnly,
@@ -152,7 +152,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
       JoinChallengeParams(
         challengeId: event.challengeId,
         userId: event.userId,
-        userName: event.userName,
+        userNickname: event.userNickname,
       ),
     );
 
@@ -175,7 +175,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
       JoinByCodeParams(
         inviteCode: event.inviteCode,
         userId: event.userId,
-        userName: event.userName,
+        userNickname: event.userNickname,
       ),
     );
 
@@ -226,7 +226,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
       SubmitWorkoutParams(
         challengeId: event.challengeId,
         userId: event.userId,
-        userName: event.userName,
+        userNickname: event.userNickname,
         workoutId: event.workoutId,
         distance: event.distance,
         workoutType: event.workoutType,
