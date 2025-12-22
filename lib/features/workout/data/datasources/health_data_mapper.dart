@@ -44,14 +44,26 @@ class HealthDataMapper {
       // 단위에 따라 킬로미터로 변환
       if (unit == HealthDataUnit.METER) {
         distance = rawDistance / 1000.0;
-        AppLogger.debug('HealthDataMapper', 'WORKOUT 거리: ${rawDistance}m → ${distance}km');
+        AppLogger.debug('HealthDataMapper', 'WORKOUT 거리: ${rawDistance}m → $distance km');
       } else if (unit == HealthDataUnit.MILE) {
         distance = rawDistance * 1.60934;
-        AppLogger.debug('HealthDataMapper', 'WORKOUT 거리: ${rawDistance}mi → ${distance}km');
+        AppLogger.debug('HealthDataMapper', 'WORKOUT 거리: ${rawDistance}mi → $distance km');
       } else {
         // 알 수 없는 단위는 미터로 가정
         distance = rawDistance / 1000.0;
-        AppLogger.debug('HealthDataMapper', 'WORKOUT 거리 (알 수 없는 단위 $unit): ${rawDistance} → ${distance}km');
+        AppLogger.debug('HealthDataMapper', 'WORKOUT 거리 (알 수 없는 단위 $unit): $rawDistance → $distance km');
+      }
+    } else {
+      // WORKOUT에 totalDistance가 없는 경우
+      AppLogger.warning('HealthDataMapper',
+        'WORKOUT totalDistance null - 위치 권한 필요 가능성 있음 '
+        '(source: $source, type: $workoutType, '
+        'start: $startTime, end: $endTime)');
+
+      // fallback: details에서 가져옴 (하위 호환성)
+      if (details.containsKey('distance') && details['distance'] != null) {
+        distance = details['distance'] as double?;
+        AppLogger.info('HealthDataMapper', 'fallback distance 사용: $distance km');
       }
     }
 

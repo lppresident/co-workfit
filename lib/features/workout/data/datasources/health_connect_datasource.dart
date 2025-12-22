@@ -5,13 +5,17 @@ import 'package:co_workfit/core/platform/health_connect_checker.dart';
 import 'package:dartz/dartz.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:co_workfit/core/utils/logger.dart';
+import 'workout_details_fetcher.dart';
 
 /// Health Connect 데이터 소스
 /// Android에서 Health Connect를 통해 여러 소스(Google Fit, Samsung Health 등)의 데이터를 통합 관리합니다.
 class HealthConnectDataSource {
   final Health _health;
+  final WorkoutDetailsFetcher _detailsFetcher;
 
-  HealthConnectDataSource({Health? health}) : _health = health ?? Health();
+  HealthConnectDataSource({Health? health})
+      : _health = health ?? Health(),
+        _detailsFetcher = WorkoutDetailsFetcher(health: health);
 
   /// Health Connect 권한 요청
   ///
@@ -157,6 +161,17 @@ class HealthConnectDataSource {
       // 소스 정보를 포함한 데이터로 변환
       final dataWithSource = healthData.map((point) {
         final source = _detectWorkoutSource(point);
+
+        // WORKOUT 데이터의 totalDistance 정보 로깅
+        if (point.value is WorkoutHealthValue) {
+          final workoutValue = point.value as WorkoutHealthValue;
+          AppLogger.debug('HealthConnect',
+            'WORKOUT 데이터: type=${workoutValue.workoutActivityType}, '
+            'totalDistance=${workoutValue.totalDistance}, '
+            'unit=${workoutValue.totalDistanceUnit}, '
+            'source=${point.sourceName}');
+        }
+
         return HealthDataPointWithSource(
           healthDataPoint: point,
           detectedSource: source,
@@ -212,103 +227,25 @@ class HealthConnectDataSource {
   }
 
   /// 특정 운동에 대한 상세 데이터 가져오기
+  ///
   /// 거리 데이터는 WORKOUT의 totalDistance를 직접 사용하므로 여기서는 조회하지 않음
+  ///
+  /// 참고: https://developer.android.com/health-and-fitness/guides/health-connect/plan/data-types
+  ///
+  /// DISTANCE_DELTA(DistanceRecord)는 독립적인 거리 측정 포인트들로,
+  /// 여러 앱에서 중복 기록되거나 운동 전후 이동이 포함될 수 있어 부정확함.
+  /// WORKOUT(ExerciseSessionRecord)의 totalDistance가 정확한 운동 거리임.
+  ///
+  /// 주의: totalDistance가 null인 경우 위치 권한이 필요할 수 있음
+  /// (ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION)
   Future<Either<String, Map<String, dynamic>>> fetchWorkoutDetails({
     required DateTime workoutStart,
     required DateTime workoutEnd,
   }) async {
-    try {
-      final details = <String, dynamic>{};
-
-      // 칼로리
-      final caloriesData = await _health.getHealthDataFromTypes(
-        types: [HealthDataType.ACTIVE_ENERGY_BURNED],
-        startTime: workoutStart,
-        endTime: workoutEnd,
-      );
-
-      if (caloriesData.isNotEmpty) {
-        final totalCalories = caloriesData.fold<double>(
-          0,
-          (sum, point) => sum + (point.value as NumericHealthValue).numericValue,
-        );
-        details['calories'] = totalCalories.round();
-      }
-
-      // 거리
-      final distanceData = await _health.getHealthDataFromTypes(
-        types: [HealthDataType.DISTANCE_DELTA],
-        startTime: workoutStart,
-        endTime: workoutEnd,
-      );
-
-      if (distanceData.isNotEmpty) {
-        final totalDistance = distanceData.fold<double>(
-          0,
-          (sum, point) => sum + (point.value as NumericHealthValue).numericValue,
-        );
-        details['distance'] = totalDistance / 1000.0;
-      }
-
-      // 걸음 수
-      final stepsData = await _health.getHealthDataFromTypes(
-        types: [HealthDataType.STEPS],
-        startTime: workoutStart,
-        endTime: workoutEnd,
-      );
-
-      if (stepsData.isNotEmpty) {
-        final totalSteps = stepsData.fold<double>(
-          0,
-          (sum, point) => sum + (point.value as NumericHealthValue).numericValue,
-        );
-        details['steps'] = totalSteps.round();
-      }
-
-      // 심박수
-      final heartRateData = await _health.getHealthDataFromTypes(
-        types: [HealthDataType.HEART_RATE],
-        startTime: workoutStart,
-        endTime: workoutEnd,
-      );
-
-      if (heartRateData.isNotEmpty) {
-        final heartRates = heartRateData
-            .map((point) => (point.value as NumericHealthValue).numericValue)
-            .toList();
-
-        if (heartRates.isNotEmpty) {
-          final avgHeartRate = heartRates.reduce((a, b) => a + b) / heartRates.length;
-          final maxHeartRate = heartRates.reduce((a, b) => a > b ? a : b);
-
-          details['averageHeartRate'] = avgHeartRate.round();
-          details['maxHeartRate'] = maxHeartRate.round();
-        }
-      }
-
-      // 고도
-      try {
-        final elevationData = await _health.getHealthDataFromTypes(
-          types: [HealthDataType.FLIGHTS_CLIMBED],
-          startTime: workoutStart,
-          endTime: workoutEnd,
-        );
-
-        if (elevationData.isNotEmpty) {
-          final totalFlights = elevationData.fold<double>(
-            0,
-            (sum, point) => sum + (point.value as NumericHealthValue).numericValue,
-          );
-          details['elevationGain'] = totalFlights * 3.0;
-        }
-      } catch (e) {
-        // 지원되지 않을 수 있음
-      }
-
-      return Right(details);
-    } catch (e) {
-      return Left('운동 상세 데이터 가져오기 실패: ${e.toString()}');
-    }
+    return _detailsFetcher.fetchWorkoutDetails(
+      workoutStart: workoutStart,
+      workoutEnd: workoutEnd,
+    );
   }
 
   /// Health Connect 사용 가능 여부 확인

@@ -2,13 +2,17 @@ import 'package:health/health.dart';
 import 'package:co_workfit/core/constants/health_data_types.dart';
 import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/utils/logger.dart';
+import 'workout_details_fetcher.dart';
 
 /// Google Fit 데이터 소스
 /// Android 기기에서 Google Fit 데이터를 가져옵니다.
 class GoogleFitDataSource {
   final Health _health;
+  final WorkoutDetailsFetcher _detailsFetcher;
 
-  GoogleFitDataSource({Health? health}) : _health = health ?? Health();
+  GoogleFitDataSource({Health? health})
+      : _health = health ?? Health(),
+        _detailsFetcher = WorkoutDetailsFetcher(health: health);
 
   /// Google Fit 권한 요청
   /// Returns: Right(true) if authorized, Left(error) if failed
@@ -91,6 +95,11 @@ class GoogleFitDataSource {
   }
 
   /// 특정 운동에 대한 상세 데이터 가져오기 (칼로리, 거리, 심박수 등)
+  ///
+  /// 거리 데이터는 WORKOUT의 totalDistance를 사용
+  /// DISTANCE_DELTA는 사용하지 않음 (중복 데이터, 부정확한 시간 범위 문제)
+  /// 참고: https://developers.google.com/fit/datatypes
+  ///
   /// [workoutStart]: 운동 시작 시간
   /// [workoutEnd]: 운동 종료 시간
   /// Returns: 운동 상세 데이터 Map
@@ -98,110 +107,10 @@ class GoogleFitDataSource {
     required DateTime workoutStart,
     required DateTime workoutEnd,
   }) async {
-    try {
-      final details = <String, dynamic>{};
-
-      // 칼로리 데이터 (Google Fit은 ACTIVE_ENERGY_BURNED 또는 TOTAL_CALORIES_BURNED)
-      final caloriesData = await _health.getHealthDataFromTypes(
-        types: [
-          HealthDataType.ACTIVE_ENERGY_BURNED,
-        ],
-        startTime: workoutStart,
-        endTime: workoutEnd,
-      );
-
-      if (caloriesData.isNotEmpty) {
-        final totalCalories = caloriesData.fold<double>(
-          0,
-          (sum, point) =>
-              sum + (point.value as NumericHealthValue).numericValue,
-        );
-        details['calories'] = totalCalories.round();
-      }
-
-      // 거리 데이터
-      final distanceData = await _health.getHealthDataFromTypes(
-        types: [
-          HealthDataType.DISTANCE_DELTA,
-        ],
-        startTime: workoutStart,
-        endTime: workoutEnd,
-      );
-
-      if (distanceData.isNotEmpty) {
-        final totalDistance = distanceData.fold<double>(
-          0,
-          (sum, point) =>
-              sum + (point.value as NumericHealthValue).numericValue,
-        );
-        // meters to kilometers
-        details['distance'] = totalDistance / 1000.0;
-      }
-
-      // 걸음 수
-      final stepsData = await _health.getHealthDataFromTypes(
-        types: [HealthDataType.STEPS],
-        startTime: workoutStart,
-        endTime: workoutEnd,
-      );
-
-      if (stepsData.isNotEmpty) {
-        final totalSteps = stepsData.fold<double>(
-          0,
-          (sum, point) =>
-              sum + (point.value as NumericHealthValue).numericValue,
-        );
-        details['steps'] = totalSteps.round();
-      }
-
-      // 심박수 데이터
-      final heartRateData = await _health.getHealthDataFromTypes(
-        types: [HealthDataType.HEART_RATE],
-        startTime: workoutStart,
-        endTime: workoutEnd,
-      );
-
-      if (heartRateData.isNotEmpty) {
-        final heartRates = heartRateData
-            .map((point) => (point.value as NumericHealthValue).numericValue)
-            .toList();
-
-        if (heartRates.isNotEmpty) {
-          final avgHeartRate =
-              heartRates.reduce((a, b) => a + b) / heartRates.length;
-          final maxHeartRate = heartRates.reduce((a, b) => a > b ? a : b);
-
-          details['averageHeartRate'] = avgHeartRate.round();
-          details['maxHeartRate'] = maxHeartRate.round();
-        }
-      }
-
-      // 고도 상승 (Google Fit에서 지원하는 경우)
-      try {
-        final elevationData = await _health.getHealthDataFromTypes(
-          types: [HealthDataType.FLIGHTS_CLIMBED],
-          startTime: workoutStart,
-          endTime: workoutEnd,
-        );
-
-        if (elevationData.isNotEmpty) {
-          final totalFlights = elevationData.fold<double>(
-            0,
-            (sum, point) =>
-                sum + (point.value as NumericHealthValue).numericValue,
-          );
-          // 1 flight ≈ 3 meters
-          details['elevationGain'] = totalFlights * 3.0;
-        }
-      } catch (e) {
-        // FLIGHTS_CLIMBED가 지원되지 않을 수 있음
-        AppLogger.debug('GoogleFit', '고도 데이터 가져오기 실패 (지원되지 않을 수 있음): $e');
-      }
-
-      return Right(details);
-    } catch (e) {
-      return Left('운동 상세 데이터 가져오기 실패: ${e.toString()}');
-    }
+    return _detailsFetcher.fetchWorkoutDetails(
+      workoutStart: workoutStart,
+      workoutEnd: workoutEnd,
+    );
   }
 
   /// Google Fit 사용 가능 여부 확인
