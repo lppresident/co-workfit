@@ -129,19 +129,54 @@ class _HealthDebugPageState extends State<HealthDebugPage> {
 
       _addLog('✅ 조회된 WORKOUT 데이터: ${healthData.length}개');
 
-      for (var i = 0; i < healthData.length && i < 5; i++) {
+      for (var i = 0; i < healthData.length && i < 10; i++) {
         final point = healthData[i];
         final duration = point.dateTo.difference(point.dateFrom);
-        _addLog('  [$i] ${point.type}');
-        _addLog('      시작: ${point.dateFrom.toString().substring(11, 16)}');
-        _addLog('      종료: ${point.dateTo.toString().substring(11, 16)}');
-        _addLog('      시간: ${duration.inMinutes}분');
-        _addLog('      출처: ${point.sourceName}');
-        _addLog('      ID: ${point.sourceId}');
+        _addLog('');
+        _addLog('===== WORKOUT #$i =====');
+        _addLog('Type: ${point.type}');
+        _addLog('Start: ${point.dateFrom}');
+        _addLog('End: ${point.dateTo}');
+        _addLog('Duration: ${duration.inMinutes}분');
+        _addLog('Source: ${point.sourceName}');
+        _addLog('SourceId: ${point.sourceId}');
+
+        // WorkoutHealthValue에서 거리 정보 추출
+        if (point.value is WorkoutHealthValue) {
+          final workoutValue = point.value as WorkoutHealthValue;
+          _addLog('WorkoutType: ${workoutValue.workoutActivityType}');
+          _addLog('TotalDistance: ${workoutValue.totalDistance}');
+          _addLog('DistanceUnit: ${workoutValue.totalDistanceUnit}');
+
+          // km로 환산
+          if (workoutValue.totalDistance != null && workoutValue.totalDistanceUnit != null) {
+            final rawDistance = workoutValue.totalDistance!.toDouble();
+            final unit = workoutValue.totalDistanceUnit!;
+            double distanceKm;
+
+            if (unit == HealthDataUnit.METER) {
+              distanceKm = rawDistance / 1000.0;
+              _addLog('→ ${rawDistance}m = ${distanceKm.toStringAsFixed(2)}km');
+            } else if (unit == HealthDataUnit.MILE) {
+              distanceKm = rawDistance * 1.60934;
+              _addLog('→ ${rawDistance}mi = ${distanceKm.toStringAsFixed(2)}km');
+            } else {
+              // 기본값 (미터로 가정)
+              distanceKm = rawDistance / 1000.0;
+              _addLog('→ Unknown unit: $unit (assumed meters: ${rawDistance}m = ${distanceKm.toStringAsFixed(2)}km)');
+            }
+          } else {
+            _addLog('⚠️ TotalDistance is NULL');
+          }
+
+          _addLog('Calories: ${workoutValue.totalEnergyBurned}');
+        }
+        _addLog('===================');
       }
 
-      if (healthData.length > 5) {
-        _addLog('  ... 외 ${healthData.length - 5}개');
+      if (healthData.length > 10) {
+        _addLog('');
+        _addLog('... 외 ${healthData.length - 10}개');
       }
 
       if (healthData.isEmpty) {
@@ -188,17 +223,57 @@ class _HealthDebugPageState extends State<HealthDebugPage> {
         (dataPoints) {
           _addLog('✅ 데이터 조회 성공: ${dataPoints.length}개');
 
-          for (var i = 0; i < dataPoints.length && i < 5; i++) {
+          for (var i = 0; i < dataPoints.length && i < 10; i++) {
             final data = dataPoints[i];
             final point = data.healthDataPoint;
-            _addLog('  [$i] ${point.type}');
-            _addLog('      시간: ${point.dateFrom.toString().substring(11, 16)} ~ ${point.dateTo.toString().substring(11, 16)}');
-            _addLog('      출처: ${data.detectedSource}');
-            _addLog('      Source Name: ${point.sourceName}');
+            final duration = point.dateTo.difference(point.dateFrom);
+
+            _addLog('');
+            _addLog('===== WORKOUT #$i =====');
+            _addLog('Type: ${point.type}');
+            _addLog('Start: ${point.dateFrom}');
+            _addLog('End: ${point.dateTo}');
+            _addLog('Duration: ${duration.inMinutes}분');
+            _addLog('DetectedSource: ${data.detectedSource}');
+            _addLog('SourceName: ${point.sourceName}');
+            _addLog('SourceId: ${point.sourceId}');
+
+            // WorkoutHealthValue에서 거리 정보 추출
+            if (point.value is WorkoutHealthValue) {
+              final workoutValue = point.value as WorkoutHealthValue;
+              _addLog('WorkoutType: ${workoutValue.workoutActivityType}');
+              _addLog('TotalDistance: ${workoutValue.totalDistance}');
+              _addLog('DistanceUnit: ${workoutValue.totalDistanceUnit}');
+
+              // km로 환산
+              if (workoutValue.totalDistance != null && workoutValue.totalDistanceUnit != null) {
+                final rawDistance = workoutValue.totalDistance!.toDouble();
+                final unit = workoutValue.totalDistanceUnit!;
+                double distanceKm;
+
+                if (unit == HealthDataUnit.METER) {
+                  distanceKm = rawDistance / 1000.0;
+                  _addLog('→ ${rawDistance}m = ${distanceKm.toStringAsFixed(2)}km');
+                } else if (unit == HealthDataUnit.MILE) {
+                  distanceKm = rawDistance * 1.60934;
+                  _addLog('→ ${rawDistance}mi = ${distanceKm.toStringAsFixed(2)}km');
+                } else {
+                  // 기본값 (미터로 가정)
+                  distanceKm = rawDistance / 1000.0;
+                  _addLog('→ Unknown unit: $unit (assumed meters: ${rawDistance}m = ${distanceKm.toStringAsFixed(2)}km)');
+                }
+              } else {
+                _addLog('⚠️ TotalDistance is NULL');
+              }
+
+              _addLog('Calories: ${workoutValue.totalEnergyBurned}');
+            }
+            _addLog('===================');
           }
 
-          if (dataPoints.length > 5) {
-            _addLog('  ... 외 ${dataPoints.length - 5}개');
+          if (dataPoints.length > 10) {
+            _addLog('');
+            _addLog('... 외 ${dataPoints.length - 10}개');
           }
         },
       );
