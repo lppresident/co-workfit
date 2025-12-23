@@ -3,21 +3,31 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 import 'garmin_config.dart';
 import 'garmin_auth_service.dart';
 import 'garmin_api_client.dart';
+import 'garmin_sync_manager.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 /// Garmin Health API 데이터 소스
 ///
 /// iOS와 Android 모두에서 동일하게 동작합니다.
 /// Garmin Connect 계정을 통해 운동 데이터를 가져옵니다.
+///
+/// Rate Limit 최적화:
+/// - 하루 최대 2회 자동 동기화
+/// - 6시간 최소 간격
+/// - 마지막 동기화 이후 데이터만 조회
+/// - 수동 새로고침 5분 쿨다운
 class GarminDataSource {
   final GarminAuthService _authService;
   final GarminApiClient _apiClient;
+  final GarminSyncManager _syncManager;
 
   GarminDataSource({
     GarminAuthService? authService,
     GarminApiClient? apiClient,
+    required GarminSyncManager syncManager,
   })  : _authService = authService ?? GarminAuthService(),
-        _apiClient = apiClient ?? GarminApiClient();
+        _apiClient = apiClient ?? GarminApiClient(),
+        _syncManager = syncManager;
 
   /// Garmin 연동 여부 확인
   Future<bool> isConnected() async {
@@ -55,20 +65,104 @@ class GarminDataSource {
     await _authService.clearTokens();
   }
 
-  /// 특정 기간의 운동 데이터 가져오기
-  Future<Either<String, List<WorkoutEntity>>> fetchWorkouts({
-    required DateTime startDate,
-    required DateTime endDate,
+  /// 자동 동기화 (Rate Limit 고려)
+  ///
+  /// - 하루 최대 2회
+  /// - 6시간 최소 간격
+  /// - 마지막 동기화 이후 데이터만
+  Future<Either<String, List<WorkoutEntity>>> autoSync({
     required String userId,
   }) async {
     if (!await isConnected()) {
       return Left('Garmin 연결이 필요합니다.');
     }
 
+    if (!_syncManager.canAutoSync()) {
+      AppLogger.info('GarminDataSource', 'Auto sync skipped (rate limit)');
+      _syncManager.logSyncStats();
+      return Left('자동 동기화 제한 (다음 동기화: ${_syncManager.nextAutoSyncTime})');
+    }
+
+    AppLogger.info('GarminDataSource', '자동 동기화 시작');
+    _syncManager.logSyncStats();
+
+    final startDate = _syncManager.getSyncStartDate();
+    final endDate = DateTime.now();
+
+    final result = await _fetchWorkouts(
+      startDate: startDate,
+      endDate: endDate,
+      userId: userId,
+    );
+
+    return result.fold(
+      (error) {
+        _syncManager.recordSyncFailure(error);
+        return Left(error);
+      },
+      (workouts) async {
+        await _syncManager.recordSyncComplete();
+        AppLogger.info('GarminDataSource', '자동 동기화 완료: ${workouts.length}개');
+        return Right(workouts);
+      },
+    );
+  }
+
+  /// 수동 새로고침 (사용자 버튼 클릭)
+  ///
+  /// - 5분 쿨다운
+  Future<Either<String, List<WorkoutEntity>>> manualRefresh({
+    required String userId,
+  }) async {
+    if (!await isConnected()) {
+      return Left('Garmin 연결이 필요합니다.');
+    }
+
+    if (!_syncManager.canManualSync()) {
+      final nextSync = _syncManager.lastSyncTime
+          ?.add(const Duration(minutes: 5));
+      return Left('잠시 후 다시 시도해주세요 (다음 새로고침: $nextSync)');
+    }
+
+    AppLogger.info('GarminDataSource', '수동 새로고침 시작');
+
+    final startDate = _syncManager.getSyncStartDate();
+    final endDate = DateTime.now();
+
+    final result = await _fetchWorkouts(
+      startDate: startDate,
+      endDate: endDate,
+      userId: userId,
+    );
+
+    return result.fold(
+      (error) {
+        _syncManager.recordSyncFailure(error);
+        return Left(error);
+      },
+      (workouts) async {
+        await _syncManager.recordSyncComplete();
+        AppLogger.info('GarminDataSource', '수동 새로고침 완료: ${workouts.length}개');
+        return Right(workouts);
+      },
+    );
+  }
+
+  /// 특정 기간의 운동 데이터 가져오기 (내부 메서드)
+  Future<Either<String, List<WorkoutEntity>>> _fetchWorkouts({
+    required DateTime startDate,
+    required DateTime endDate,
+    required String userId,
+  }) async {
     try {
       // 날짜 형식: epoch seconds
       final startSeconds = startDate.millisecondsSinceEpoch ~/ 1000;
       final endSeconds = endDate.millisecondsSinceEpoch ~/ 1000;
+
+      AppLogger.debug(
+        'GarminDataSource',
+        'Fetching workouts: ${startDate.toString().substring(0, 10)} ~ ${endDate.toString().substring(0, 10)}',
+      );
 
       final result = await _apiClient.get(
         GarminConfig.activitiesEndpoint,
@@ -92,13 +186,31 @@ class GarminDataSource {
             }
           }
 
-          AppLogger.info('Garmin', '${activities.length}개 운동 데이터 조회됨');
+          AppLogger.info('GarminDataSource', '${activities.length}개 운동 데이터 조회됨');
           return Right(activities);
         },
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error('GarminDataSource', 'Failed to fetch workouts', e, stackTrace);
       return Left('Garmin 운동 데이터 가져오기 실패: ${e.toString()}');
     }
+  }
+
+  /// 특정 기간의 운동 데이터 가져오기 (외부 호출용, Rate Limit 무시)
+  Future<Either<String, List<WorkoutEntity>>> fetchWorkouts({
+    required DateTime startDate,
+    required DateTime endDate,
+    required String userId,
+  }) async {
+    if (!await isConnected()) {
+      return Left('Garmin 연결이 필요합니다.');
+    }
+
+    return _fetchWorkouts(
+      startDate: startDate,
+      endDate: endDate,
+      userId: userId,
+    );
   }
 
   /// 최근 N일간의 운동 데이터 가져오기
