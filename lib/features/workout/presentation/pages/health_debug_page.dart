@@ -4,11 +4,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
-import 'package:co_workfit/features/workout/data/repositories/workout_repository_impl.dart';
 import 'package:co_workfit/core/platform/health_connect_checker.dart';
 import 'package:health/health.dart';
 import 'package:co_workfit/core/utils/logger.dart';
-import 'package:get_it/get_it.dart';
 
 class HealthDebugPage extends StatefulWidget {
   const HealthDebugPage({super.key});
@@ -19,7 +17,6 @@ class HealthDebugPage extends StatefulWidget {
 
 class _HealthDebugPageState extends State<HealthDebugPage> {
   final _healthConnect = HealthConnectDataSource();
-  final _repository = GetIt.instance<WorkoutRepositoryImpl>();
 
   String _log = '';
   bool _isLoading = false;
@@ -310,94 +307,153 @@ class _HealthDebugPageState extends State<HealthDebugPage> {
     setState(() => _isLoading = false);
   }
 
-  Future<void> _testGarminConnection() async {
-    _addLog('=== Garmin 연결 상태 확인 ===');
+  /// 모든 Health Connect Raw 데이터 로깅
+  /// WORKOUT, DISTANCE_DELTA, STEPS, HEART_RATE, CALORIES 등 모든 타입의 데이터를 로깅합니다.
+  Future<void> _dumpAllRawData() async {
+    _clearLog();
+    _addLog('=== Health Connect 전체 RAW 데이터 덤프 ===');
+    _addLog('⚠️ 이 작업은 시간이 걸릴 수 있습니다...\n');
     setState(() => _isLoading = true);
 
     try {
-      final isConnected = await _repository.isGarminConnected();
-      final isConfigured = _repository.isGarminConfigured;
+      final health = Health();
+      final now = DateTime.now();
+      final lastWeek = now.subtract(const Duration(days: 7));
 
-      _addLog('✅ Garmin 설정 완료: $isConfigured');
-      _addLog('✅ Garmin 연결 상태: $isConnected');
+      _addLog('📅 조회 기간: ${lastWeek.toString().substring(0, 10)} ~ ${now.toString().substring(0, 10)}');
+      _addLog('');
 
-      if (!isConfigured) {
-        _addLog('⚠️ Garmin API가 설정되지 않았습니다.');
-        _addLog('   garmin_config.dart에서 Consumer Key/Secret을 설정해주세요.');
-      }
+      // 조회할 모든 데이터 타입
+      final allTypes = [
+        HealthDataType.WORKOUT,
+        HealthDataType.STEPS,
+        HealthDataType.DISTANCE_DELTA,
+        HealthDataType.ACTIVE_ENERGY_BURNED,
+        HealthDataType.HEART_RATE,
+      ];
 
-      if (!isConnected) {
-        _addLog('⚠️ Garmin 계정이 연동되지 않았습니다.');
-        _addLog('   Settings > Garmin Connect에서 계정을 연동해주세요.');
-      }
-    } catch (e, stackTrace) {
-      _addLog('❌ 에러: $e');
-      AppLogger.error('HealthDebug', 'Garmin connection check failed', e, stackTrace);
-    }
+      for (final type in allTypes) {
+        _addLog('');
+        _addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        _addLog('📊 타입: $type');
+        _addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-    setState(() => _isLoading = false);
-  }
+        try {
+          final data = await health
+              .getHealthDataFromTypes(
+                types: [type],
+                startTime: lastWeek,
+                endTime: now,
+              )
+              .timeout(const Duration(seconds: 10));
 
-  Future<void> _testGarminManualSync() async {
-    _addLog('=== Garmin 수동 동기화 ===');
-    setState(() => _isLoading = true);
-
-    try {
-      final result = await _repository.manualRefreshGarmin();
-
-      result.fold(
-        (error) {
-          _addLog('❌ 동기화 실패: $error');
-        },
-        (workouts) {
-          _addLog('✅ 동기화 성공: ${workouts.length}개 운동 데이터');
+          _addLog('✅ 총 ${data.length}개 레코드');
           _addLog('');
 
-          for (var i = 0; i < workouts.length && i < 5; i++) {
-            final workout = workouts[i];
-            _addLog('===== 운동 #${i + 1} =====');
-            _addLog('ID: ${workout.id}');
-            _addLog('Type: ${workout.type.name}');
-            _addLog('Start: ${workout.startTime}');
-            _addLog('Duration: ${workout.durationMinutes}분');
-            _addLog('Distance: ${workout.distance?.toStringAsFixed(2) ?? "N/A"}km');
-            _addLog('Calories: ${workout.calories ?? "N/A"}kcal');
-            _addLog('==================');
+          if (data.isEmpty) {
+            _addLog('⚠️ 데이터 없음\n');
+            continue;
+          }
+
+          // 소스별 그룹화
+          final Map<String, List<HealthDataPoint>> bySource = {};
+          for (final point in data) {
+            final source = point.sourceName;
+            bySource.putIfAbsent(source, () => []).add(point);
+          }
+
+          _addLog('📱 소스별 데이터 개수:');
+          for (final entry in bySource.entries) {
+            _addLog('   ${entry.key}: ${entry.value.length}개');
+          }
+          _addLog('');
+
+          // 최근 10개 레코드 상세 출력
+          final recentData = data.take(10).toList();
+          _addLog('📝 최근 ${recentData.length}개 레코드 상세:');
+          _addLog('');
+
+          for (var i = 0; i < recentData.length; i++) {
+            final point = recentData[i];
+            _addLog('─────── 레코드 #${i + 1} ───────');
+            _addLog('🕐 Start: ${point.dateFrom}');
+            _addLog('🕑 End  : ${point.dateTo}');
+            _addLog('⏱️  Duration: ${point.dateTo.difference(point.dateFrom).inMinutes}분 ${point.dateTo.difference(point.dateFrom).inSeconds % 60}초');
+            _addLog('📱 Source: ${point.sourceName}');
+            _addLog('🆔 SourceId: ${point.sourceId}');
+
+            // 값에 따라 다른 출력
+            if (type == HealthDataType.WORKOUT) {
+              if (point.value is WorkoutHealthValue) {
+                final workout = point.value as WorkoutHealthValue;
+                _addLog('🏃 WorkoutType: ${workout.workoutActivityType}');
+                _addLog('📏 TotalDistance: ${workout.totalDistance} ${workout.totalDistanceUnit}');
+
+                // km 환산
+                if (workout.totalDistance != null && workout.totalDistanceUnit != null) {
+                  final raw = workout.totalDistance!.toDouble();
+                  final unit = workout.totalDistanceUnit!;
+                  double km = 0;
+
+                  if (unit == HealthDataUnit.METER) {
+                    km = raw / 1000.0;
+                  } else if (unit == HealthDataUnit.MILE) {
+                    km = raw * 1.60934;
+                  } else {
+                    // 기본값: 미터로 가정
+                    km = raw / 1000.0;
+                  }
+                  _addLog('   → ${km.toStringAsFixed(2)} km');
+                }
+
+                _addLog('🔥 Calories: ${workout.totalEnergyBurned}');
+              }
+            } else if (type == HealthDataType.STEPS) {
+              if (point.value is NumericHealthValue) {
+                final steps = (point.value as NumericHealthValue).numericValue;
+                _addLog('👣 Steps: ${steps.toInt()}');
+              }
+            } else if (type == HealthDataType.DISTANCE_DELTA) {
+              if (point.value is NumericHealthValue) {
+                final distance = (point.value as NumericHealthValue).numericValue;
+                _addLog('📏 Distance: ${distance.toStringAsFixed(2)} meters');
+                _addLog('   → ${(distance / 1000.0).toStringAsFixed(3)} km');
+              }
+            } else if (type == HealthDataType.ACTIVE_ENERGY_BURNED) {
+              if (point.value is NumericHealthValue) {
+                final calories = (point.value as NumericHealthValue).numericValue;
+                _addLog('🔥 Calories: ${calories.toStringAsFixed(1)} kcal');
+              }
+            } else if (type == HealthDataType.HEART_RATE) {
+              if (point.value is NumericHealthValue) {
+                final hr = (point.value as NumericHealthValue).numericValue;
+                _addLog('❤️  HeartRate: ${hr.toInt()} bpm');
+              }
+            } else {
+              _addLog('💾 Value: ${point.value}');
+            }
+
             _addLog('');
           }
 
-          if (workouts.length > 5) {
-            _addLog('... 외 ${workouts.length - 5}개');
+          if (data.length > 10) {
+            _addLog('... 외 ${data.length - 10}개 레코드');
+            _addLog('');
           }
-        },
-      );
-    } catch (e, stackTrace) {
-      _addLog('❌ 예외 발생: $e');
-      AppLogger.error('HealthDebug', 'Garmin manual sync failed', e, stackTrace);
-    }
+        } catch (e) {
+          _addLog('❌ $type 조회 실패: $e');
+          _addLog('');
+        }
+      }
 
-    setState(() => _isLoading = false);
-  }
-
-  Future<void> _testGarminDataSources() async {
-    _addLog('=== 연결된 데이터 소스 확인 ===');
-    setState(() => _isLoading = true);
-
-    try {
-      final sources = await _repository.getConnectedSources();
-      _addLog('✅ 연결된 소스: ${sources.length}개');
+      _addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      _addLog('✅ RAW 데이터 덤프 완료!');
       _addLog('');
-
-      for (var source in sources) {
-        _addLog('  - $source');
-      }
-
-      if (sources.isEmpty) {
-        _addLog('⚠️ 연결된 소스가 없습니다.');
-      }
+      _addLog('💡 이제 WORKOUT의 totalDistance와');
+      _addLog('   DISTANCE_DELTA의 합계를 비교해보세요!');
     } catch (e, stackTrace) {
-      _addLog('❌ 에러: $e');
-      AppLogger.error('HealthDebug', 'Get connected sources failed', e, stackTrace);
+      _addLog('❌ 전체 예외 발생: $e');
+      AppLogger.error('HealthDebug', 'Raw data dump failed', e, stackTrace);
     }
 
     setState(() => _isLoading = false);
@@ -420,14 +476,6 @@ class _HealthDebugPageState extends State<HealthDebugPage> {
     await Future.delayed(const Duration(milliseconds: 500));
 
     await _testFetchWorkoutData();
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // Garmin 진단 추가
-    _addLog('\n');
-    await _testGarminConnection();
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    await _testGarminDataSources();
 
     _addLog('\n=== 전체 진단 완료 ===');
   }
@@ -511,42 +559,19 @@ class _HealthDebugPageState extends State<HealthDebugPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Garmin 테스트 섹션
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: const Text(
-                    'Garmin Tests',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                // RAW 데이터 덤프 버튼 (강조)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _dumpAllRawData,
+                    icon: const Icon(Icons.storage),
+                    label: const Text('🔍 모든 RAW 데이터 로깅'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _testGarminConnection,
-                        icon: const Icon(Icons.watch, size: 16),
-                        label: const Text('Garmin 상태'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.blue,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _testGarminManualSync,
-                        icon: const Icon(Icons.sync, size: 16),
-                        label: const Text('Garmin 동기화'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),

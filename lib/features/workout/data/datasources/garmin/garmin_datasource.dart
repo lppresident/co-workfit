@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'garmin_config.dart';
 import 'garmin_auth_service.dart';
-import 'garmin_api_client.dart';
+import 'garmin_api_client.dart'; // GarminActivity, GarminDailySummary 포함
 import 'garmin_sync_manager.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
@@ -229,51 +229,47 @@ class GarminDataSource {
   }
 
   /// 오늘의 일일 요약 가져오기
-  Future<Either<String, GarminDailySummary?>> fetchTodaySummary() async {
-    if (!await isConnected()) {
-      return Left('Garmin 연결이 필요합니다.');
-    }
-
-    try {
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
-      final startSeconds = startOfDay.millisecondsSinceEpoch ~/ 1000;
-      final endSeconds = today.millisecondsSinceEpoch ~/ 1000;
-
-      final result = await _apiClient.get(
-        GarminConfig.dailiesEndpoint,
-        queryParams: {
-          'uploadStartTimeInSeconds': startSeconds.toString(),
-          'uploadEndTimeInSeconds': endSeconds.toString(),
-        },
-      );
-
-      return result.fold(
-        (error) => Left(error),
-        (data) {
-          final dailyList = data['data'] as List? ?? [];
-          if (dailyList.isNotEmpty) {
-            return Right(GarminDailySummary.fromJson(dailyList.first));
-          }
-          return Right(null);
-        },
-      );
-    } catch (e) {
-      return Left('일일 요약 가져오기 실패: ${e.toString()}');
-    }
-  }
+  /// TODO: GarminDailySummary 모델이 구현되면 활성화
+  // Future<Either<String, Map<String, dynamic>?>> fetchTodaySummary() async {
+  //   if (!await isConnected()) {
+  //     return Left('Garmin 연결이 필요합니다.');
+  //   }
+  //
+  //   try {
+  //     final today = DateTime.now();
+  //     final startOfDay = DateTime(today.year, today.month, today.day);
+  //     final startSeconds = startOfDay.millisecondsSinceEpoch ~/ 1000;
+  //     final endSeconds = today.millisecondsSinceEpoch ~/ 1000;
+  //
+  //     final result = await _apiClient.get(
+  //       GarminConfig.dailiesEndpoint,
+  //       queryParams: {
+  //         'uploadStartTimeInSeconds': startSeconds.toString(),
+  //         'uploadEndTimeInSeconds': endSeconds.toString(),
+  //       },
+  //     );
+  //
+  //     return result.fold(
+  //       (error) => Left(error),
+  //       (data) {
+  //         final dailyList = data['data'] as List? ?? [];
+  //         if (dailyList.isNotEmpty) {
+  //           return Right(dailyList.first as Map<String, dynamic>);
+  //         }
+  //         return Right(null);
+  //       },
+  //     );
+  //   } catch (e) {
+  //     return Left('일일 요약 가져오기 실패: ${e.toString()}');
+  //   }
+  // }
 
   /// GarminActivity를 WorkoutEntity로 변환
   WorkoutEntity? _mapToWorkoutEntity(GarminActivity activity, String userId) {
     if (activity.startTime == null) return null;
 
-    final workoutTypeString = GarminActivityType.mapToWorkoutType(
-      activity.activityType ?? 'other',
-    );
-    final workoutType = WorkoutType.values.firstWhere(
-      (e) => e.name == workoutTypeString,
-      orElse: () => WorkoutType.other,
-    );
+    // activityType을 WorkoutType으로 매핑
+    final workoutType = _mapActivityType(activity.activityType);
 
     return WorkoutEntity(
       id: 'garmin_${activity.activityId ?? activity.startTime!.millisecondsSinceEpoch}',
@@ -295,5 +291,23 @@ class GarminDataSource {
       calibratedScore: 0,
       createdAt: DateTime.now(),
     );
+  }
+
+  /// Garmin activityType을 WorkoutType으로 매핑
+  WorkoutType _mapActivityType(String? activityType) {
+    if (activityType == null) return WorkoutType.other;
+
+    final typeUpper = activityType.toUpperCase();
+
+    // Garmin 타입 → WorkoutType 매핑
+    if (typeUpper.contains('RUN')) return WorkoutType.running;
+    if (typeUpper.contains('WALK')) return WorkoutType.walking;
+    if (typeUpper.contains('CYCLE') || typeUpper.contains('BIKE')) return WorkoutType.cycling;
+    if (typeUpper.contains('SWIM')) return WorkoutType.swimming;
+    if (typeUpper.contains('HIKE')) return WorkoutType.hiking;
+    if (typeUpper.contains('YOGA')) return WorkoutType.yoga;
+    if (typeUpper.contains('STRENGTH') || typeUpper.contains('WEIGHT')) return WorkoutType.weightTraining;
+
+    return WorkoutType.other;
   }
 }

@@ -120,17 +120,52 @@ class ProfileScreen extends StatelessWidget {
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Text(
-                      'Health Data Settings',
+                      '운동 데이터 연동',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
+
+                  // iOS: Apple Health
+                  if (Theme.of(context).platform == TargetPlatform.iOS)
+                    ListTile(
+                      leading: const Icon(Icons.favorite, color: Colors.red),
+                      title: const Text('Apple Health'),
+                      subtitle: const Text('iPhone 건강 앱 데이터 연동'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        // TODO: Navigate to HealthKit settings
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('설정 > 개인정보 보호 > 건강에서 권한을 관리할 수 있습니다'),
+                          ),
+                        );
+                      },
+                    ),
+
+                  // Android: Health Connect
+                  if (Theme.of(context).platform == TargetPlatform.android)
+                    ListTile(
+                      leading: const Icon(Icons.health_and_safety, color: Colors.green),
+                      title: const Text('Health Connect'),
+                      subtitle: const Text('Google Fit, 삼성헬스 등 통합 데이터'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        // TODO: Navigate to Health Connect settings
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Health Connect 설정 화면 준비 중입니다'),
+                          ),
+                        );
+                      },
+                    ),
+
+                  // 공통: Garmin Connect
                   ListTile(
                     leading: const Icon(Icons.watch, color: Colors.blue),
                     title: const Text('Garmin Connect'),
-                    subtitle: const Text('Sync workouts from Garmin'),
+                    subtitle: const Text('Garmin 기기 운동 데이터 동기화'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      // TODO: Navigate to Garmin settings page
                       Navigator.pushNamed(context, '/garmin-settings');
                     },
                   ),

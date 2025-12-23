@@ -6,6 +6,7 @@ import 'package:co_workfit/features/workout/data/datasources/health_kit_datasour
 import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_data_mapper.dart';
 import 'package:co_workfit/features/workout/data/datasources/garmin/garmin_datasource.dart';
+import 'package:co_workfit/features/auth/domain/repositories/auth_repository.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 /// WorkoutRepository 구현체
@@ -16,19 +17,37 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   final HealthConnectDataSource _healthConnectDataSource;
   final GarminDataSource _garminDataSource;
   final HealthDataMapper _healthDataMapper;
-  final String _userId; // TODO: AuthRepository에서 가져오도록 변경
+  final AuthRepository _authRepository;
 
   WorkoutRepositoryImpl({
     required HealthKitDataSource healthKitDataSource,
     required HealthConnectDataSource healthConnectDataSource,
     required GarminDataSource garminDataSource,
     required HealthDataMapper healthDataMapper,
-    String userId = 'current_user', // 임시 기본값
+    required AuthRepository authRepository,
   })  : _healthKitDataSource = healthKitDataSource,
         _healthConnectDataSource = healthConnectDataSource,
         _garminDataSource = garminDataSource,
         _healthDataMapper = healthDataMapper,
-        _userId = userId;
+        _authRepository = authRepository;
+
+  /// 현재 로그인한 사용자 ID 가져오기
+  Future<String> get _currentUserId async {
+    final result = await _authRepository.getCurrentUser();
+    return result.fold(
+      (error) {
+        AppLogger.warning('WorkoutRepo', 'Failed to get current user: $error');
+        return 'anonymous_user'; // Fallback (실제로는 발생하지 않아야 함)
+      },
+      (user) {
+        if (user == null) {
+          AppLogger.warning('WorkoutRepo', 'User is null, using fallback userId');
+          return 'anonymous_user';
+        }
+        return user.id;
+      },
+    );
+  }
 
   /// 현재 플랫폼이 iOS인지 확인
   bool get _isIOS => Platform.isIOS;
@@ -109,12 +128,14 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
 
   /// Garmin 자동 동기화 (Rate Limit 고려)
   Future<Either<String, List<WorkoutEntity>>> autoSyncGarmin() async {
-    return await _garminDataSource.autoSync(userId: _userId);
+    final userId = await _currentUserId;
+    return await _garminDataSource.autoSync(userId: userId);
   }
 
   /// Garmin 수동 새로고침
   Future<Either<String, List<WorkoutEntity>>> manualRefreshGarmin() async {
-    return await _garminDataSource.manualRefresh(userId: _userId);
+    final userId = await _currentUserId;
+    return await _garminDataSource.manualRefresh(userId: userId);
   }
 
   // ========== 운동 데이터 조회 ==========
@@ -171,10 +192,11 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
 
     // 2. Garmin 데이터 추가 (연결된 경우)
     if (await isGarminConnected()) {
+      final userId = await _currentUserId;
       final garminResult = await _garminDataSource.fetchWorkouts(
         startDate: startDate,
         endDate: endDate,
-        userId: _userId,
+        userId: userId,
       );
       garminResult.fold(
         (error) => AppLogger.error('WorkoutRepo', 'Garmin 오류: $error'),
@@ -204,6 +226,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     return healthDataResult.fold(
       (error) => Left(error),
       (healthPoints) async {
+        final userId = await _currentUserId;
         final workouts = await _healthDataMapper.toWorkoutEntities(
           healthPoints: healthPoints,
           detailsFetcher: (start, end) async {
@@ -218,7 +241,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
               (details) => details,
             );
           },
-          userId: _userId,
+          userId: userId,
           source: WorkoutSource.appleHealth,
         );
 
@@ -240,6 +263,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     return healthDataResult.fold(
       (error) => Left(error),
       (healthPointsWithSource) async {
+        final userId = await _currentUserId;
         final workouts = await _healthDataMapper.toWorkoutEntitiesWithAutoSource(
           healthPointsWithSource: healthPointsWithSource,
           detailsFetcher: (start, end) async {
@@ -254,7 +278,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
               (details) => details,
             );
           },
-          userId: _userId,
+          userId: userId,
         );
 
         return Right(workouts);

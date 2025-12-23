@@ -124,6 +124,7 @@ Future<void> initializeDependencies() async {
       healthConnectDataSource: sl(),
       garminDataSource: sl(),
       healthDataMapper: sl(),
+      authRepository: sl(),
     ),
   );
 

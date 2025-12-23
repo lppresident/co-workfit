@@ -59,9 +59,8 @@ class _GarminSettingsPageState extends BasePageState<GarminSettingsPage> {
   Future<void> _connectGarmin() async {
     if (!_isConfigured) {
       _showErrorDialog(
-        'Garmin API가 설정되지 않았습니다.\n'
-        'lib/features/workout/data/datasources/garmin/garmin_config.dart 파일에서\n'
-        'Consumer Key와 Consumer Secret을 설정해주세요.',
+        'Garmin Connect 연동이 아직 준비되지 않았습니다.\n\n'
+        '개발자에게 문의해주세요.',
       );
       return;
     }
@@ -120,20 +119,103 @@ class _GarminSettingsPageState extends BasePageState<GarminSettingsPage> {
   void _showAuthInstructionDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Garmin 인증'),
-        content: const Text(
-          '브라우저에서 Garmin 계정으로 로그인한 후\n'
-          '권한을 승인해주세요.\n\n'
-          '승인 완료 후 앱으로 자동으로 돌아옵니다.',
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('Garmin 계정 연동'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '다음 단계를 따라주세요:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            _buildStep(1, '브라우저에서 Garmin 계정으로 로그인'),
+            _buildStep(2, 'Co-WorkFit 앱의 권한 요청을 승인'),
+            _buildStep(3, '승인 후 자동으로 앱으로 돌아옵니다'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.tips_and_updates, size: 16, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Garmin 계정이 없으시면 먼저 garmin.com에서 회원가입해주세요.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _checkGarminStatus(); // Refresh status after auth
+            },
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // User will complete auth in browser and come back via deep link
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  _checkGarminStatus(); // Check after some delay
+                }
+              });
             },
             child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep(int number, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                '$number',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(text),
+            ),
           ),
         ],
       ),
@@ -301,42 +383,46 @@ class _GarminSettingsPageState extends BasePageState<GarminSettingsPage> {
                       size: 32,
                     ),
                     const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _isConnected ? 'Connected' : 'Not Connected',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _isConnected ? '연결됨' : '연결 안 됨',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _isConnected
-                              ? 'Garmin Connect is linked'
-                              : 'Link your Garmin account',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
+                          const SizedBox(height: 4),
+                          Text(
+                            _isConnected
+                                ? 'Garmin 계정이 연동되어 있습니다'
+                                : 'Garmin 계정을 연동하세요',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     onPressed: _isLoading
                         ? null
                         : (_isConnected ? _disconnectGarmin : _connectGarmin),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isConnected ? Colors.red : Colors.blue,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: Text(_isConnected ? 'Disconnect' : 'Connect to Garmin'),
+                    icon: Icon(_isConnected ? Icons.link_off : Icons.link),
+                    label: Text(_isConnected ? '연결 해제' : 'Garmin 연동하기'),
                   ),
                 ),
               ],
@@ -347,44 +433,64 @@ class _GarminSettingsPageState extends BasePageState<GarminSettingsPage> {
         const SizedBox(height: 24),
 
         // Info Section
-        const Text(
-          'About Garmin Connect',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Garmin Connect allows you to sync your workout data directly from Garmin devices. '
-          'This provides more accurate and detailed workout information.',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+        Card(
+          color: Colors.blue.shade50,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.watch_outlined, color: Colors.blue.shade700),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Garmin Connect란?',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Garmin 워치나 피트니스 기기를 사용하시나요?\n\n'
+                  'Garmin Connect를 연동하면 기기에서 측정된 정확한 운동 데이터를 '
+                  '자동으로 Co-WorkFit과 동기화할 수 있습니다.\n\n'
+                  '심박수, 거리, 페이스 등 상세한 운동 기록을 바탕으로 '
+                  '더 정확한 운동 점수를 받아보세요!',
+                  style: TextStyle(fontSize: 14, height: 1.5),
+                ),
+              ],
+            ),
+          ),
         ),
 
         const SizedBox(height: 24),
 
         // Features List
         const Text(
-          'Features',
+          '주요 기능',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         const _FeatureItem(
           icon: Icons.sync,
-          title: 'Auto Sync',
-          description: 'Automatically syncs up to 2 times per day (6-hour intervals)',
+          title: '자동 동기화',
+          description: '하루 최대 2회 자동으로 운동 데이터를 가져옵니다 (6시간 간격)',
         ),
         const _FeatureItem(
           icon: Icons.refresh,
-          title: 'Manual Refresh',
-          description: 'Manually sync anytime (5-minute cooldown)',
+          title: '수동 새로고침',
+          description: '언제든지 수동으로 동기화할 수 있습니다 (5분 쿨다운)',
         ),
         const _FeatureItem(
-          icon: Icons.timeline,
-          title: 'Incremental Sync',
-          description: 'Only syncs new data since last sync',
+          icon: Icons.trending_up,
+          title: '증분 동기화',
+          description: '마지막 동기화 이후의 새로운 데이터만 가져와 빠르고 효율적입니다',
         ),
         const _FeatureItem(
-          icon: Icons.storage,
-          title: 'Rate Limit Optimized',
-          description: 'Respects Garmin API rate limits',
+          icon: Icons.shield_outlined,
+          title: '안전한 연동',
+          description: 'OAuth 인증으로 Garmin 계정 정보를 안전하게 보호합니다',
         ),
 
         if (!_isConfigured) ...[
@@ -398,10 +504,10 @@ class _GarminSettingsPageState extends BasePageState<GarminSettingsPage> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.warning, color: Colors.orange.shade700),
+                      Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
                       const SizedBox(width: 8),
                       const Text(
-                        'Configuration Required',
+                        '서비스 준비 중',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -411,9 +517,9 @@ class _GarminSettingsPageState extends BasePageState<GarminSettingsPage> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Garmin API keys are not configured. '
-                    'Please set up Consumer Key and Consumer Secret in garmin_config.dart',
-                    style: TextStyle(fontSize: 14),
+                    'Garmin Connect 연동 서비스가 아직 활성화되지 않았습니다.\n\n'
+                    '서비스 이용을 원하시면 앱 개발팀에 문의해주세요.',
+                    style: TextStyle(fontSize: 14, height: 1.5),
                   ),
                 ],
               ),
