@@ -47,7 +47,7 @@ class GarminOAuthService {
       AppLogger.debug('GarminOAuth', 'Temporary credentials received');
 
       // 2. Authorization URL 생성
-      final authorizationUrl = auth.getResourceOwnerAuthorizationURI(credentials.token);
+      final authorizationUrl = auth.getResourceOwnerAuthorizationURI(credentials.credentials.token);
 
       AppLogger.debug('GarminOAuth', 'Authorization URL: $authorizationUrl');
 
@@ -62,20 +62,20 @@ class GarminOAuthService {
       AppLogger.debug('GarminOAuth', 'Verifier received: $verifier');
 
       // 4. Access Token 요청
-      final tokenCredentials = await auth.requestTokenCredentials(
-        credentials,
+      final tokenResponse = await auth.requestTokenCredentials(
+        credentials.credentials,
         verifier,
       );
 
       AppLogger.info('GarminOAuth', 'Access token received');
 
       // 5. User ID 조회 (Garmin Health API specific)
-      final userId = await _getUserId(tokenCredentials);
+      final userId = await _getUserId(tokenResponse.credentials);
 
       // 6. Credentials 생성 및 저장
       final garminCredentials = GarminCredentials(
-        accessToken: tokenCredentials.token,
-        tokenSecret: tokenCredentials.tokenSecret,
+        accessToken: tokenResponse.credentials.token,
+        tokenSecret: tokenResponse.credentials.tokenSecret,
         userId: userId,
         expiresAt: DateTime.now().add(const Duration(days: 365)), // Garmin 토큰은 1년 유효
       );

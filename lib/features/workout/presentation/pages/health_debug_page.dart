@@ -4,9 +4,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
+import 'package:co_workfit/features/workout/data/repositories/workout_repository_impl.dart';
 import 'package:co_workfit/core/platform/health_connect_checker.dart';
 import 'package:health/health.dart';
 import 'package:co_workfit/core/utils/logger.dart';
+import 'package:get_it/get_it.dart';
 
 class HealthDebugPage extends StatefulWidget {
   const HealthDebugPage({super.key});
@@ -17,6 +19,7 @@ class HealthDebugPage extends StatefulWidget {
 
 class _HealthDebugPageState extends State<HealthDebugPage> {
   final _healthConnect = HealthConnectDataSource();
+  final _repository = GetIt.instance<WorkoutRepositoryImpl>();
 
   String _log = '';
   bool _isLoading = false;
@@ -307,6 +310,99 @@ class _HealthDebugPageState extends State<HealthDebugPage> {
     setState(() => _isLoading = false);
   }
 
+  Future<void> _testGarminConnection() async {
+    _addLog('=== Garmin 연결 상태 확인 ===');
+    setState(() => _isLoading = true);
+
+    try {
+      final isConnected = await _repository.isGarminConnected();
+      final isConfigured = _repository.isGarminConfigured;
+
+      _addLog('✅ Garmin 설정 완료: $isConfigured');
+      _addLog('✅ Garmin 연결 상태: $isConnected');
+
+      if (!isConfigured) {
+        _addLog('⚠️ Garmin API가 설정되지 않았습니다.');
+        _addLog('   garmin_config.dart에서 Consumer Key/Secret을 설정해주세요.');
+      }
+
+      if (!isConnected) {
+        _addLog('⚠️ Garmin 계정이 연동되지 않았습니다.');
+        _addLog('   Settings > Garmin Connect에서 계정을 연동해주세요.');
+      }
+    } catch (e, stackTrace) {
+      _addLog('❌ 에러: $e');
+      AppLogger.error('HealthDebug', 'Garmin connection check failed', e, stackTrace);
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _testGarminManualSync() async {
+    _addLog('=== Garmin 수동 동기화 ===');
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _repository.manualRefreshGarmin();
+
+      result.fold(
+        (error) {
+          _addLog('❌ 동기화 실패: $error');
+        },
+        (workouts) {
+          _addLog('✅ 동기화 성공: ${workouts.length}개 운동 데이터');
+          _addLog('');
+
+          for (var i = 0; i < workouts.length && i < 5; i++) {
+            final workout = workouts[i];
+            _addLog('===== 운동 #${i + 1} =====');
+            _addLog('ID: ${workout.id}');
+            _addLog('Type: ${workout.type.name}');
+            _addLog('Start: ${workout.startTime}');
+            _addLog('Duration: ${workout.durationMinutes}분');
+            _addLog('Distance: ${workout.distance?.toStringAsFixed(2) ?? "N/A"}km');
+            _addLog('Calories: ${workout.calories ?? "N/A"}kcal');
+            _addLog('==================');
+            _addLog('');
+          }
+
+          if (workouts.length > 5) {
+            _addLog('... 외 ${workouts.length - 5}개');
+          }
+        },
+      );
+    } catch (e, stackTrace) {
+      _addLog('❌ 예외 발생: $e');
+      AppLogger.error('HealthDebug', 'Garmin manual sync failed', e, stackTrace);
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _testGarminDataSources() async {
+    _addLog('=== 연결된 데이터 소스 확인 ===');
+    setState(() => _isLoading = true);
+
+    try {
+      final sources = await _repository.getConnectedSources();
+      _addLog('✅ 연결된 소스: ${sources.length}개');
+      _addLog('');
+
+      for (var source in sources) {
+        _addLog('  - $source');
+      }
+
+      if (sources.isEmpty) {
+        _addLog('⚠️ 연결된 소스가 없습니다.');
+      }
+    } catch (e, stackTrace) {
+      _addLog('❌ 에러: $e');
+      AppLogger.error('HealthDebug', 'Get connected sources failed', e, stackTrace);
+    }
+
+    setState(() => _isLoading = false);
+  }
+
   Future<void> _runFullDiagnostic() async {
     _clearLog();
     _addLog('=== 전체 진단 시작 ===\n');
@@ -324,6 +420,14 @@ class _HealthDebugPageState extends State<HealthDebugPage> {
     await Future.delayed(const Duration(milliseconds: 500));
 
     await _testFetchWorkoutData();
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Garmin 진단 추가
+    _addLog('\n');
+    await _testGarminConnection();
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    await _testGarminDataSources();
 
     _addLog('\n=== 전체 진단 완료 ===');
   }
@@ -402,6 +506,44 @@ class _HealthDebugPageState extends State<HealthDebugPage> {
                       child: OutlinedButton(
                         onPressed: _isLoading ? null : _testDirectHealthPackageAccess,
                         child: const Text('직접 테스트'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Garmin 테스트 섹션
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: const Text(
+                    'Garmin Tests',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _testGarminConnection,
+                        icon: const Icon(Icons.watch, size: 16),
+                        label: const Text('Garmin 상태'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.blue,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _testGarminManualSync,
+                        icon: const Icon(Icons.sync, size: 16),
+                        label: const Text('Garmin 동기화'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.blue,
+                        ),
                       ),
                     ),
                   ],
