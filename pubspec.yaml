@@ -56,6 +56,9 @@ dependencies:
 
   # Health Platform Integration
   health: ^13.2.1
+  oauth1: ^2.1.0  # OAuth 1.0a for Garmin API
+  flutter_secure_storage: ^9.0.0  # Secure token storage
+  webview_flutter: ^4.4.2  # OAuth web view
 
   # Firebase
   firebase_core: ^3.8.1
