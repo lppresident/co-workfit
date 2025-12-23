@@ -6,6 +6,7 @@ import 'package:co_workfit/shared/theme/app_theme.dart';
 import 'package:co_workfit/features/workout/presentation/pages/dashboard_page.dart';
 import 'package:co_workfit/features/auth/presentation/pages/login_page.dart';
 import 'package:co_workfit/features/auth/presentation/pages/setup_nickname_page.dart';
+import 'package:co_workfit/features/profile/presentation/screens/garmin_settings_page.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
@@ -96,6 +97,7 @@ class CoWorkFitApp extends StatelessWidget {
         routes: {
           '/dashboard': (context) => const DashboardPage(),
           '/login': (context) => const LoginPage(),
+          '/garmin-settings': (context) => const GarminSettingsPage(),
         },
         debugShowCheckedModeBanner: false,
       ),

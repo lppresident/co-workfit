@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Firebase & Google Sign-In
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +13,7 @@ import 'package:co_workfit/features/workout/data/datasources/health_data_mapper.
 import 'package:co_workfit/features/workout/data/datasources/garmin/garmin_datasource.dart';
 import 'package:co_workfit/features/workout/data/datasources/garmin/garmin_auth_service.dart';
 import 'package:co_workfit/features/workout/data/datasources/garmin/garmin_api_client.dart';
+import 'package:co_workfit/features/workout/data/datasources/garmin/garmin_sync_manager.dart';
 import 'package:co_workfit/features/workout/data/repositories/workout_repository_impl.dart';
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_workouts.dart';
@@ -71,6 +73,12 @@ import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart'
 final sl = GetIt.instance;
 
 Future<void> initializeDependencies() async {
+  // ========== Core Dependencies ==========
+
+  // SharedPreferences (Garmin sync manager에서 필요)
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
+
   // ========== Data Sources ==========
 
   // iOS - HealthKit
@@ -92,10 +100,15 @@ Future<void> initializeDependencies() async {
     () => GarminApiClient(authService: sl()),
   );
 
+  sl.registerLazySingleton<GarminSyncManager>(
+    () => GarminSyncManager(sl()),
+  );
+
   sl.registerLazySingleton<GarminDataSource>(
     () => GarminDataSource(
       authService: sl(),
       apiClient: sl(),
+      syncManager: sl(),
     ),
   );
 

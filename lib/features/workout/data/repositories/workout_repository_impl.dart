@@ -107,6 +107,16 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     await _garminDataSource.disconnect();
   }
 
+  /// Garmin 자동 동기화 (Rate Limit 고려)
+  Future<Either<String, List<WorkoutEntity>>> autoSyncGarmin() async {
+    return await _garminDataSource.autoSync(userId: _userId);
+  }
+
+  /// Garmin 수동 새로고침
+  Future<Either<String, List<WorkoutEntity>>> manualRefreshGarmin() async {
+    return await _garminDataSource.manualRefresh(userId: _userId);
+  }
+
   // ========== 운동 데이터 조회 ==========
 
   @override

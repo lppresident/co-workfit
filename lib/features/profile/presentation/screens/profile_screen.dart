@@ -116,7 +116,27 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const Divider(),
 
-                  // 4. Logout Button
+                  // 4. Health Data Settings
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'Health Data Settings',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.watch, color: Colors.blue),
+                    title: const Text('Garmin Connect'),
+                    subtitle: const Text('Sync workouts from Garmin'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      // TODO: Navigate to Garmin settings page
+                      Navigator.pushNamed(context, '/garmin-settings');
+                    },
+                  ),
+                  const Divider(),
+
+                  // 5. Logout Button
                   ListTile(
                     leading: const Icon(Icons.logout, color: Colors.red),
                     title: const Text('Logout', style: TextStyle(color: Colors.red)),
