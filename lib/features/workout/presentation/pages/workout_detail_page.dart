@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
+import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
+import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
 import 'package:intl/intl.dart';
 
 /// 운동 상세보기 페이지
-class WorkoutDetailPage extends StatelessWidget {
+class WorkoutDetailPage extends StatefulWidget {
   final WorkoutEntity workout;
 
   const WorkoutDetailPage({
@@ -12,11 +16,33 @@ class WorkoutDetailPage extends StatelessWidget {
   });
 
   @override
+  State<WorkoutDetailPage> createState() => _WorkoutDetailPageState();
+}
+
+class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
+  late WorkoutEntity workout;
+
+  @override
+  void initState() {
+    super.initState();
+    workout = widget.workout;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('운동 상세'),
         actions: [
+          if (workout.distance != null)
+            IconButton(
+              icon: Icon(
+                workout.hasDistanceCorrection ? Icons.edit : Icons.edit_outlined,
+                color: workout.hasDistanceCorrection ? Colors.blue : null,
+              ),
+              onPressed: _showEditDistanceDialog,
+              tooltip: '거리 수정',
+            ),
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
@@ -214,14 +240,9 @@ class WorkoutDetailPage extends StatelessWidget {
                 '${workout.calories} kcal',
               ),
             ],
-            if (workout.distance != null) ...[
+            if (workout.effectiveDistance != null) ...[
               const Divider(height: 24),
-              _buildInfoRow(
-                context,
-                Icons.straighten,
-                '거리',
-                '${workout.distance!.toStringAsFixed(2)} km',
-              ),
+              _buildDistanceInfoRow(context),
             ],
             if (workout.averageHeartRate != null) ...[
               const Divider(height: 24),
@@ -549,5 +570,149 @@ class WorkoutDetailPage extends StatelessWidget {
 
   String _formatDateTime(DateTime dateTime) {
     return DateFormat('yyyy년 MM월 dd일 HH:mm').format(dateTime);
+  }
+
+  Widget _buildDistanceInfoRow(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.straighten, size: 24, color: Colors.grey[600]),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Row(
+            children: [
+              Text(
+                '거리',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Colors.grey[700],
+                    ),
+              ),
+              if (workout.hasDistanceCorrection) ...[
+                const SizedBox(width: 4),
+                const Icon(Icons.edit, size: 14, color: Colors.blue),
+                const SizedBox(width: 2),
+                const Text(
+                  '(수정됨)',
+                  style: TextStyle(fontSize: 10, color: Colors.blue),
+                ),
+              ],
+            ],
+          ),
+        ),
+        Text(
+          '${workout.effectiveDistance!.toStringAsFixed(2)} km',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: workout.hasDistanceCorrection ? Colors.blue : null,
+              ),
+        ),
+      ],
+    );
+  }
+
+  void _showEditDistanceDialog() {
+    final controller = TextEditingController(
+      text: (workout.effectiveDistance ?? 0.0).toStringAsFixed(2),
+    );
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('거리 수정'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (workout.source == WorkoutSource.garmin) ...[
+              const Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Garmin 데이터',
+                    style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Garmin 데이터는 거리가 부정확할 수 있습니다.\nGarmin Connect 앱에서 실제 거리를 확인해주세요.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+            ],
+            Text(
+              '원래 값: ${(workout.distance ?? 0.0).toStringAsFixed(2)} km',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+              ],
+              decoration: const InputDecoration(
+                labelText: '정확한 거리 (km)',
+                hintText: '예: 5.63',
+                suffixText: 'km',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final input = controller.text.trim();
+              if (input.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('거리를 입력해주세요.'), backgroundColor: Colors.red),
+                );
+                return;
+              }
+
+              final distance = double.tryParse(input);
+              if (distance == null || distance <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('올바른 거리를 입력해주세요. (0보다 큰 숫자)'), backgroundColor: Colors.red),
+                );
+                return;
+              }
+
+              if (distance > 100) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('거리가 너무 큽니다. (100km 이하로 입력해주세요)'), backgroundColor: Colors.red),
+                );
+                return;
+              }
+
+              // BLoC에 거리 수정 이벤트 발생
+              context.read<WorkoutBloc>().add(
+                    UpdateWorkoutDistanceEvent(
+                      workoutId: workout.id,
+                      correctedDistance: distance,
+                    ),
+                  );
+
+              // 로컬 상태 업데이트
+              setState(() {
+                workout = workout.copyWith(correctedDistance: distance);
+              });
+
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('거리가 수정되었습니다.'), backgroundColor: Colors.green),
+              );
+            },
+            child: const Text('수정'),
+          ),
+        ],
+      ),
+    );
   }
 }

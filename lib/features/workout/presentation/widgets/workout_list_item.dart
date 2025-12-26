@@ -6,11 +6,13 @@ import 'package:intl/intl.dart';
 class WorkoutListItem extends StatelessWidget {
   final WorkoutEntity workout;
   final VoidCallback? onTap;
+  final VoidCallback? onEditDistance;
 
   const WorkoutListItem({
     super.key,
     required this.workout,
     this.onTap,
+    this.onEditDistance,
   });
 
   @override
@@ -111,13 +113,8 @@ class WorkoutListItem extends StatelessWidget {
                       '${workout.calories}',
                       '칼로리',
                     ),
-                  if (workout.distance != null)
-                    _buildStatItem(
-                      context,
-                      Icons.straighten_outlined,
-                      '${workout.distance!.toStringAsFixed(1)}km',
-                      '거리',
-                    ),
+                  if (workout.effectiveDistance != null)
+                    _buildDistanceStatItem(context),
                   if (workout.averageHeartRate != null)
                     _buildStatItem(
                       context,
@@ -132,6 +129,49 @@ class WorkoutListItem extends StatelessWidget {
               _buildSourceBadge(context),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDistanceStatItem(BuildContext context) {
+    return InkWell(
+      onTap: onEditDistance,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Column(
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.straighten_outlined, size: 20, color: Colors.grey[600]),
+                if (workout.hasDistanceCorrection) ...[
+                  const SizedBox(width: 2),
+                  const Icon(Icons.edit, size: 12, color: Colors.blue),
+                ],
+                if (onEditDistance != null) ...[
+                  const SizedBox(width: 2),
+                  Icon(Icons.touch_app, size: 12, color: Colors.grey[400]),
+                ],
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${workout.effectiveDistance!.toStringAsFixed(1)}km',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: workout.hasDistanceCorrection ? Colors.blue : null,
+                  ),
+            ),
+            Text(
+              '거리',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                    fontSize: 11,
+                  ),
+            ),
+          ],
         ),
       ),
     );
