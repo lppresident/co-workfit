@@ -4,6 +4,7 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart
 import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
 import 'package:co_workfit/features/workout/domain/usecases/request_health_permission.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_workouts.dart';
+import 'package:co_workfit/features/workout/domain/usecases/update_workout_distance.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 /// 운동 BLoC
@@ -12,18 +13,21 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
   final GetTodayWorkouts getTodayWorkouts;
   final GetRecentWorkouts getRecentWorkouts;
   final GetWorkouts getWorkouts;
+  final UpdateWorkoutDistance updateWorkoutDistance;
 
   WorkoutBloc({
     required this.requestHealthPermission,
     required this.getTodayWorkouts,
     required this.getRecentWorkouts,
     required this.getWorkouts,
+    required this.updateWorkoutDistance,
   }) : super(const WorkoutInitial()) {
     on<RequestHealthPermissionEvent>(_onRequestHealthPermission);
     on<FetchTodayWorkoutsEvent>(_onFetchTodayWorkouts);
     on<FetchRecentWorkoutsEvent>(_onFetchRecentWorkouts);
     on<FetchWorkoutsEvent>(_onFetchWorkouts);
     on<RefreshWorkoutsEvent>(_onRefreshWorkouts);
+    on<UpdateWorkoutDistanceEvent>(_onUpdateWorkoutDistance);
   }
 
   Future<void> _onRequestHealthPermission(
@@ -246,5 +250,67 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
 
     final totalElapsed = DateTime.now().difference(startTime).inMilliseconds;
     AppLogger.performance('WorkoutBloc', '전체 프로세스 완료', totalElapsed);
+  }
+
+  Future<void> _onUpdateWorkoutDistance(
+    UpdateWorkoutDistanceEvent event,
+    Emitter<WorkoutState> emit,
+  ) async {
+    AppLogger.info('WorkoutBloc', '거리 수정 시작: ${event.workoutId} -> ${event.correctedDistance}km');
+
+    // 현재 상태가 WorkoutLoaded인 경우만 처리
+    if (state is! WorkoutLoaded) {
+      AppLogger.warning('WorkoutBloc', '현재 상태가 WorkoutLoaded가 아님: $state');
+      return;
+    }
+
+    final currentState = state as WorkoutLoaded;
+
+    final result = await updateWorkoutDistance(
+      UpdateWorkoutDistanceParams(
+        workoutId: event.workoutId,
+        correctedDistance: event.correctedDistance,
+      ),
+    );
+
+    result.fold(
+      (failure) {
+        final errorMessage = failure.message;
+        AppLogger.error('WorkoutBloc', '거리 수정 실패: $errorMessage');
+        emit(WorkoutError(errorMessage));
+      },
+      (updatedWorkout) {
+        AppLogger.info('WorkoutBloc', '거리 수정 완료: ${updatedWorkout.effectiveDistance}km');
+
+        // 기존 운동 목록에서 수정된 운동 업데이트
+        final updatedWorkouts = currentState.workouts.map((workout) {
+          if (workout.id == updatedWorkout.id) {
+            return updatedWorkout;
+          }
+          return workout;
+        }).toList();
+
+        // 통계 재계산
+        final totalScore = updatedWorkouts.fold<int>(
+          0,
+          (sum, workout) => sum + workout.calibratedScore,
+        );
+        final totalCalories = updatedWorkouts.fold<int>(
+          0,
+          (sum, workout) => sum + (workout.calories ?? 0),
+        );
+        final totalDuration = updatedWorkouts.fold<int>(
+          0,
+          (sum, workout) => sum + workout.durationMinutes,
+        );
+
+        emit(WorkoutLoaded(
+          workouts: updatedWorkouts,
+          totalScore: totalScore,
+          totalCalories: totalCalories,
+          totalDuration: totalDuration,
+        ));
+      },
+    );
   }
 }

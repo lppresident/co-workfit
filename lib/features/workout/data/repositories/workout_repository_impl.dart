@@ -18,6 +18,9 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   final HealthDataMapper _healthDataMapper;
   final String _userId; // TODO: AuthRepository에서 가져오도록 변경
 
+  // 메모리에 수정된 거리 정보 임시 저장 (workoutId -> correctedDistance)
+  final Map<String, double> _correctedDistances = {};
+
   WorkoutRepositoryImpl({
     required HealthKitDataSource healthKitDataSource,
     required HealthConnectDataSource healthConnectDataSource,
@@ -172,13 +175,22 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       );
     }
 
-    // 3. 시간순 정렬 (최신순)
-    allWorkouts.sort((a, b) => b.startTime.compareTo(a.startTime));
+    // 3. 수정된 거리 적용
+    final workoutsWithCorrections = allWorkouts.map((workout) {
+      final correctedDistance = _correctedDistances[workout.id];
+      if (correctedDistance != null) {
+        return workout.copyWith(correctedDistance: correctedDistance);
+      }
+      return workout;
+    }).toList();
 
-    // 4. 모든 운동 데이터를 그대로 반환 (중복 제거 안 함)
-    AppLogger.info('WorkoutRepo', '총 ${allWorkouts.length}개 운동 데이터 반환');
+    // 4. 시간순 정렬 (최신순)
+    workoutsWithCorrections.sort((a, b) => b.startTime.compareTo(a.startTime));
 
-    return Right(allWorkouts);
+    // 5. 모든 운동 데이터를 그대로 반환 (중복 제거 안 함)
+    AppLogger.info('WorkoutRepo', '총 ${workoutsWithCorrections.length}개 운동 데이터 반환');
+
+    return Right(workoutsWithCorrections);
   }
 
   /// HealthKit에서 운동 데이터 가져오기 (iOS)
@@ -319,6 +331,44 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   Future<Either<String, bool>> deleteWorkout(String workoutId) async {
     // TODO: 로컬 데이터베이스에서 삭제 구현
     return Left('삭제 기능 아직 미구현');
+  }
+
+  @override
+  Future<Either<String, WorkoutEntity>> updateWorkoutDistance({
+    required String workoutId,
+    required double correctedDistance,
+  }) async {
+    try {
+      AppLogger.info('WorkoutRepo', '운동 거리 수정: $workoutId -> ${correctedDistance}km');
+
+      // 메모리에 수정된 거리 저장
+      _correctedDistances[workoutId] = correctedDistance;
+
+      // 현재 운동 데이터 조회 (최근 30일)
+      final now = DateTime.now();
+      final startDate = now.subtract(const Duration(days: 30));
+      final workoutsResult = await getWorkouts(
+        startDate: startDate,
+        endDate: now,
+      );
+
+      return workoutsResult.fold(
+        (error) => Left('운동 데이터 조회 실패: $error'),
+        (workouts) {
+          // 수정한 운동 찾기
+          final updatedWorkout = workouts.firstWhere(
+            (w) => w.id == workoutId,
+            orElse: () => throw Exception('운동 기록을 찾을 수 없습니다.'),
+          );
+
+          AppLogger.info('WorkoutRepo', '거리 수정 완료: ${updatedWorkout.effectiveDistance}km');
+          return Right(updatedWorkout);
+        },
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error('WorkoutRepo', '거리 수정 실패', e, stackTrace);
+      return Left('거리 수정 실패: $e');
+    }
   }
 
   @override

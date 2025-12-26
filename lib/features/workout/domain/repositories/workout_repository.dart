@@ -33,6 +33,12 @@ abstract class WorkoutRepository {
   /// 운동 데이터 삭제
   Future<Either<String, bool>> deleteWorkout(String workoutId);
 
+  /// 운동 거리 수정
+  Future<Either<String, WorkoutEntity>> updateWorkoutDistance({
+    required String workoutId,
+    required double correctedDistance,
+  });
+
   /// 로컬에 저장된 모든 운동 데이터
   Future<Either<String, List<WorkoutEntity>>> getLocalWorkouts();
 

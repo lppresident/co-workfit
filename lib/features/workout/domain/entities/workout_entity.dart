@@ -32,7 +32,8 @@ class WorkoutEntity extends Equatable {
   final int durationMinutes;
 
   // 원본 데이터 (플랫폼별로 다를 수 있음)
-  final double? distance; // km
+  final double? distance; // km (원본 거리)
+  final double? correctedDistance; // km (사용자가 수정한 거리)
   final int? calories; // kcal
   final int? averageHeartRate; // bpm
   final int? maxHeartRate; // bpm
@@ -55,6 +56,7 @@ class WorkoutEntity extends Equatable {
     required this.endTime,
     required this.durationMinutes,
     this.distance,
+    this.correctedDistance,
     this.calories,
     this.averageHeartRate,
     this.maxHeartRate,
@@ -76,6 +78,7 @@ class WorkoutEntity extends Equatable {
         endTime,
         durationMinutes,
         distance,
+        correctedDistance,
         calories,
         averageHeartRate,
         maxHeartRate,
@@ -96,6 +99,7 @@ class WorkoutEntity extends Equatable {
     DateTime? endTime,
     int? durationMinutes,
     double? distance,
+    double? correctedDistance,
     int? calories,
     int? averageHeartRate,
     int? maxHeartRate,
@@ -115,6 +119,7 @@ class WorkoutEntity extends Equatable {
       endTime: endTime ?? this.endTime,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       distance: distance ?? this.distance,
+      correctedDistance: correctedDistance ?? this.correctedDistance,
       calories: calories ?? this.calories,
       averageHeartRate: averageHeartRate ?? this.averageHeartRate,
       maxHeartRate: maxHeartRate ?? this.maxHeartRate,
@@ -126,4 +131,10 @@ class WorkoutEntity extends Equatable {
       syncedAt: syncedAt ?? this.syncedAt,
     );
   }
+
+  /// 실제 표시할 거리 (수정된 거리가 있으면 수정된 거리, 없으면 원본 거리)
+  double? get effectiveDistance => correctedDistance ?? distance;
+
+  /// 사용자가 거리를 수정했는지 여부
+  bool get hasDistanceCorrection => correctedDistance != null;
 }

@@ -15,6 +15,7 @@ class WorkoutModel {
   final DateTime endTime;
   final int durationMinutes;
   final double? distance;
+  final double? correctedDistance;
   final int? calories;
   final int? averageHeartRate;
   final int? maxHeartRate;
@@ -34,6 +35,7 @@ class WorkoutModel {
     required this.endTime,
     required this.durationMinutes,
     this.distance,
+    this.correctedDistance,
     this.calories,
     this.averageHeartRate,
     this.maxHeartRate,
@@ -61,6 +63,7 @@ class WorkoutModel {
       endTime: entity.endTime,
       durationMinutes: entity.durationMinutes,
       distance: entity.distance,
+      correctedDistance: entity.correctedDistance,
       calories: entity.calories,
       averageHeartRate: entity.averageHeartRate,
       maxHeartRate: entity.maxHeartRate,
@@ -90,6 +93,7 @@ class WorkoutModel {
       endTime: endTime,
       durationMinutes: durationMinutes,
       distance: distance,
+      correctedDistance: correctedDistance,
       calories: calories,
       averageHeartRate: averageHeartRate,
       maxHeartRate: maxHeartRate,

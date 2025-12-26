@@ -51,3 +51,17 @@ class RefreshWorkoutsEvent extends WorkoutEvent {
 class InstallHealthConnectEvent extends WorkoutEvent {
   const InstallHealthConnectEvent();
 }
+
+/// 운동 거리 수정 이벤트
+class UpdateWorkoutDistanceEvent extends WorkoutEvent {
+  final String workoutId;
+  final double correctedDistance;
+
+  const UpdateWorkoutDistanceEvent({
+    required this.workoutId,
+    required this.correctedDistance,
+  });
+
+  @override
+  List<Object?> get props => [workoutId, correctedDistance];
+}

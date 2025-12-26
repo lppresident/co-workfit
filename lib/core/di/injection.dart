@@ -16,6 +16,7 @@ import 'package:co_workfit/features/workout/data/repositories/workout_repository
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_workouts.dart';
 import 'package:co_workfit/features/workout/domain/usecases/request_health_permission.dart';
+import 'package:co_workfit/features/workout/domain/usecases/update_workout_distance.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
 
 // Auth
@@ -119,6 +120,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => GetWorkouts(sl()));
   sl.registerLazySingleton(() => GetTodayWorkouts(sl()));
   sl.registerLazySingleton(() => GetRecentWorkouts(sl()));
+  sl.registerLazySingleton(() => UpdateWorkoutDistance(sl()));
 
   // ========== BLoC ==========
   sl.registerFactory(
@@ -127,6 +129,7 @@ Future<void> initializeDependencies() async {
       getTodayWorkouts: sl(),
       getRecentWorkouts: sl(),
       getWorkouts: sl(),
+      updateWorkoutDistance: sl(),
     ),
   );
 
