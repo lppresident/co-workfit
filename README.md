@@ -25,6 +25,11 @@
 - 그룹 챌린지
 - 운동 기록 타임라인
 
+### 4. 간편한 로그인 🔐
+- **Google Sign-In**: Google 계정으로 간편 로그인
+- **Apple Sign-In**: Apple ID로 안전한 로그인 (iOS)
+- Firebase Authentication 통합
+
 ## 🏗️ 프로젝트 구조
 
 ```
@@ -90,6 +95,24 @@ flutterfire configure
 # 앱 실행
 flutter run
 ```
+
+### 인증 설정 (Apple Sign-In)
+
+Apple Sign-In을 사용하려면 추가 설정이 필요합니다:
+
+```bash
+# Apple Sign-In 설정 확인 스크립트 실행
+./scripts/check_apple_signin_setup.sh
+```
+
+**필수 단계**:
+1. **Apple Developer Program 가입** ($99/년)
+2. **Apple Developer Portal** 설정
+   - App ID에 Sign in with Apple capability 활성화
+3. **Firebase Console** 설정
+   - Authentication > Sign-in method > Apple 활성화
+
+자세한 설정 방법은 [`docs/APPLE_SIGNIN_SETUP.md`](docs/APPLE_SIGNIN_SETUP.md)를 참고하세요.
 
 ### Android 개발 환경 설정
 
