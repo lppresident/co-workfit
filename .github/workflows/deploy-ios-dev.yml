@@ -127,6 +127,13 @@ jobs:
           gem install fastlane
           cd ..
 
+      - name: Setup temporary keychain
+        run: |
+          security create-keychain -p "" fastlane_tmp_keychain
+          security default-keychain -s fastlane_tmp_keychain
+          security unlock-keychain -p "" fastlane_tmp_keychain
+          security set-keychain-settings -t 3600 -u fastlane_tmp_keychain
+
       - name: Update iOS version
         run: |
           VERSION_NAME="${{ steps.bump_version.outputs.version_name }}"

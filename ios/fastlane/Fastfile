@@ -22,8 +22,10 @@ platform :ios do
 
     match(
       type: type,
-      readonly: false,
-      app_identifier: "com.hansol.coworkfit"
+      readonly: true,
+      app_identifier: "com.hansol.coworkfit",
+      keychain_name: "fastlane_tmp_keychain",
+      keychain_password: ""
     )
   end
 
