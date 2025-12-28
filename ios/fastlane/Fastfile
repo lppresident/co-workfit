@@ -53,12 +53,22 @@ platform :ios do
     # Sync certificates
     sync_code_signing(type: "adhoc")
 
+    # Update code signing settings to manual
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Runner.xcodeproj",
+      team_id: "DRPP364BVT",
+      profile_name: "match AdHoc com.hansol.coworkfit",
+      code_sign_identity: "Apple Distribution"
+    )
+
     # Build
     build_app(
       scheme: "Runner",
       export_method: "ad-hoc",
       export_options: {
         method: "ad-hoc",
+        signingStyle: "manual",
         provisioningProfiles: {
           "com.hansol.coworkfit" => "match AdHoc com.hansol.coworkfit"
         }
@@ -71,12 +81,22 @@ platform :ios do
     # Sync certificates
     sync_code_signing(type: "appstore")
 
+    # Update code signing settings to manual
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Runner.xcodeproj",
+      team_id: "DRPP364BVT",
+      profile_name: "match AppStore com.hansol.coworkfit",
+      code_sign_identity: "Apple Distribution"
+    )
+
     # Build
     build_app(
       scheme: "Runner",
       export_method: "app-store",
       export_options: {
         method: "app-store",
+        signingStyle: "manual",
         provisioningProfiles: {
           "com.hansol.coworkfit" => "match AppStore com.hansol.coworkfit"
         }
