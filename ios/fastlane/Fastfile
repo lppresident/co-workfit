@@ -1,0 +1,89 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Sync certificates and profiles using Match"
+  lane :sync_code_signing do |options|
+    type = options[:type] || "adhoc"
+
+    match(
+      type: type,
+      readonly: true,
+      app_identifier: "com.hansol.coworkfit"
+    )
+  end
+
+  desc "Build IPA for Firebase App Distribution (Ad-Hoc)"
+  lane :build_adhoc do |options|
+    # Sync certificates
+    sync_code_signing(type: "adhoc")
+
+    # Build
+    build_app(
+      scheme: "Runner",
+      export_method: "ad-hoc",
+      export_options: {
+        method: "ad-hoc",
+        provisioningProfiles: {
+          "com.hansol.coworkfit" => "match AdHoc com.hansol.coworkfit"
+        }
+      }
+    )
+  end
+
+  desc "Build IPA for TestFlight (App Store)"
+  lane :build_appstore do |options|
+    # Sync certificates
+    sync_code_signing(type: "appstore")
+
+    # Build
+    build_app(
+      scheme: "Runner",
+      export_method: "app-store",
+      export_options: {
+        method: "app-store",
+        provisioningProfiles: {
+          "com.hansol.coworkfit" => "match AppStore com.hansol.coworkfit"
+        }
+      }
+    )
+  end
+
+  desc "Upload to Firebase App Distribution"
+  lane :firebase do |options|
+    firebase_app_distribution(
+      app: ENV["FIREBASE_IOS_APP_ID"],
+      service_credentials_file: "firebase-credentials.json",
+      groups: "testers",
+      release_notes: options[:release_notes] || "New build from CI"
+    )
+  end
+
+  desc "Upload to TestFlight"
+  lane :beta do |options|
+    # Build
+    build_appstore
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      apple_id: ENV["APPLE_ID"],
+      app_identifier: "com.hansol.coworkfit",
+      team_id: ENV["APPLE_TEAM_ID"]
+    )
+  end
+end

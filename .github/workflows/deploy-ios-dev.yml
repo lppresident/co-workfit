@@ -115,6 +115,30 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: false
+
+      - name: Install Fastlane
+        run: |
+          cd ios
+          gem install fastlane
+          cd ..
+
+      - name: Setup Match Code Signing
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd ios
+          fastlane match adhoc --readonly
+          cd ..
+
       - name: Install CocoaPods dependencies
         run: |
           cd ios
@@ -122,12 +146,15 @@ jobs:
           cd ..
 
       - name: Build IPA (Ad-Hoc for Firebase)
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
         run: |
           flutter clean
           flutter build ipa --release \
             --build-name=${{ steps.bump_version.outputs.version_name }} \
             --build-number=${{ steps.bump_version.outputs.build_number }} \
-            --export-method=ad-hoc
+            --export-method=ad-hoc \
+            --export-options-plist=ios/ExportOptions-AdHoc.plist
 
       - name: Get IPA info
         id: ipa_info

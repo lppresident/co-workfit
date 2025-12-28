@@ -1,0 +1,13 @@
+git_url(ENV["MATCH_GIT_URL"] || "https://github.com/lppresident/coworkfit-certificates.git")
+
+storage_mode("git")
+
+type("adhoc") # Default type
+
+app_identifier(["com.hansol.coworkfit"])
+
+# Apple Team ID (found in Apple Developer Portal)
+team_id("DRPP364BVT")
+
+# For more information about the Appfile, see:
+#     https://docs.fastlane.tools/advanced/#appfile
