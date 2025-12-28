@@ -26,7 +26,7 @@ on:
       deploy_to_github:
         description: 'GitHub Release 생성'
         required: true
-        default: true
+        default: false
         type: boolean
 
   # Push 이벤트 (선택사항)
