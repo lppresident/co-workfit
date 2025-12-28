@@ -127,7 +127,19 @@ jobs:
           gem install fastlane
           cd ..
 
-      - name: Setup Match Code Signing
+      - name: Update iOS version
+        run: |
+          VERSION_NAME="${{ steps.bump_version.outputs.version_name }}"
+          BUILD_NUMBER="${{ steps.bump_version.outputs.build_number }}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION_NAME" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/Runner/Info.plist
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install
+
+      - name: Build IPA using Fastlane Match
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
@@ -136,24 +148,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           cd ios
-          fastlane match adhoc --readonly
-          cd ..
-
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios
-          pod install
-          cd ..
-
-      - name: Build IPA (Ad-Hoc for Firebase)
-        env:
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        run: |
-          flutter clean
-          flutter build ipa --release \
-            --build-name=${{ steps.bump_version.outputs.version_name }} \
-            --build-number=${{ steps.bump_version.outputs.build_number }} \
-            --export-options-plist=ios/ExportOptions-AdHoc.plist
+          fastlane build_adhoc
 
       - name: Get IPA info
         id: ipa_info
