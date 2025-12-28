@@ -282,19 +282,24 @@ jobs:
 
       - name: Deploy to Firebase App Distribution
         if: github.event.inputs.deploy_ios_to_firebase == 'true'
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
-        with:
-          appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          groups: testers
-          file: ${{ steps.ipa_info.outputs.ipa_path }}
-          releaseNotes: |
-            ${{ github.event.inputs.release_notes }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          # Install Firebase CLI
+          npm install -g firebase-tools
 
-            Version: ${{ steps.read_version.outputs.new_version }}
-            Platform: iOS
-            Build Date: ${{ github.event.repository.updated_at }}
-            Commit: ${{ github.sha }}
+          # Create service account file
+          echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /tmp/firebase-sa.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-sa.json
+
+          # Upload to Firebase App Distribution
+          firebase appdistribution:distribute "${{ steps.ipa_info.outputs.ipa_path }}" \
+            --app "${{ secrets.FIREBASE_IOS_APP_ID }}" \
+            --groups "testers" \
+            --release-notes "${{ github.event.inputs.release_notes }} | Version: ${{ steps.read_version.outputs.new_version }} | Platform: iOS | Commit: ${{ github.sha }}"
+
+          # Cleanup
+          rm -f /tmp/firebase-sa.json
 
       - name: Upload to TestFlight
         if: github.event.inputs.deploy_ios_to_testflight == 'true'
