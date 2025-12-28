@@ -22,7 +22,7 @@ platform :ios do
 
     match(
       type: type,
-      readonly: true,
+      readonly: false,
       app_identifier: "com.hansol.coworkfit",
       keychain_name: "fastlane_tmp_keychain",
       keychain_password: ""
