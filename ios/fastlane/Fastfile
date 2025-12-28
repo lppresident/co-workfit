@@ -62,10 +62,18 @@ platform :ios do
       code_sign_identity: "Apple Distribution"
     )
 
-    # Build
+    # Flutter build first (compile Dart code)
+    Dir.chdir("..") do
+      sh("flutter", "build", "ios", "--release", "--no-codesign")
+    end
+
+    # Build and sign with Xcode
     build_app(
       scheme: "Runner",
+      workspace: "Runner.xcworkspace",
       export_method: "ad-hoc",
+      output_directory: "../build/ios/ipa",
+      output_name: "co_workfit.ipa",
       export_options: {
         method: "ad-hoc",
         signingStyle: "manual",
@@ -90,10 +98,18 @@ platform :ios do
       code_sign_identity: "Apple Distribution"
     )
 
-    # Build
+    # Flutter build first (compile Dart code)
+    Dir.chdir("..") do
+      sh("flutter", "build", "ios", "--release", "--no-codesign")
+    end
+
+    # Build and sign with Xcode
     build_app(
       scheme: "Runner",
+      workspace: "Runner.xcworkspace",
       export_method: "app-store",
+      output_directory: "../build/ios/ipa",
+      output_name: "co_workfit.ipa",
       export_options: {
         method: "app-store",
         signingStyle: "manual",
