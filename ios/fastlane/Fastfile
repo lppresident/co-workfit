@@ -32,15 +32,19 @@ platform :ios do
     # Sync certificates
     sync_code_signing(type: "adhoc")
 
-    # Build
+    # Build and archive
     build_app(
       scheme: "Runner",
       export_method: "ad-hoc",
+      configuration: "Release",
+      clean: true,
       export_options: {
         method: "ad-hoc",
         provisioningProfiles: {
           "com.hansol.coworkfit" => "match AdHoc com.hansol.coworkfit"
-        }
+        },
+        signingStyle: "manual",
+        teamID: "DRPP364BVT"
       }
     )
   end

@@ -127,6 +127,18 @@ jobs:
           gem install fastlane
           cd ..
 
+      - name: Update iOS version
+        run: |
+          # iOS 프로젝트 버전 업데이트
+          VERSION_NAME="${{ steps.bump_version.outputs.version_name }}"
+          BUILD_NUMBER="${{ steps.bump_version.outputs.build_number }}"
+
+          # Info.plist 업데이트
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION_NAME" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/Runner/Info.plist
+
+          echo "Updated iOS version to $VERSION_NAME ($BUILD_NUMBER)"
+
       - name: Install CocoaPods dependencies
         run: |
           cd ios
@@ -141,14 +153,6 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # Flutter 빌드 (코드 서명 없이)
-          flutter clean
-          flutter build ios --release \
-            --no-codesign \
-            --build-name=${{ steps.bump_version.outputs.version_name }} \
-            --build-number=${{ steps.bump_version.outputs.build_number }}
-
-          # Fastlane으로 코드 서명 및 IPA 생성
           cd ios
           fastlane build_adhoc
           cd ..
