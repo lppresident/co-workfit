@@ -153,7 +153,6 @@ jobs:
           flutter build ipa --release \
             --build-name=${{ steps.bump_version.outputs.version_name }} \
             --build-number=${{ steps.bump_version.outputs.build_number }} \
-            --export-method=ad-hoc \
             --export-options-plist=ios/ExportOptions-AdHoc.plist
 
       - name: Get IPA info
