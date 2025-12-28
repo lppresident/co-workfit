@@ -139,6 +139,21 @@ jobs:
 
           echo "Updated iOS version to $VERSION_NAME ($BUILD_NUMBER)"
 
+      - name: Configure Manual Code Signing
+        run: |
+          # Xcode 프로젝트에서 Automatic Signing 비활성화
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = DRPP364BVT;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+
+          # Release 빌드 설정에 프로비저닝 프로파일 지정
+          sed -i '' '/Release.*{/,/}/ {
+            /PROVISIONING_PROFILE_SPECIFIER/d
+            /CODE_SIGN_IDENTITY/d
+          }' ios/Runner.xcodeproj/project.pbxproj
+
+          echo "Configured manual code signing"
+
       - name: Install CocoaPods dependencies
         run: |
           cd ios
