@@ -36,7 +36,7 @@ on:
       deploy_to_github:
         description: 'GitHub Release 생성 (Android & iOS)'
         required: true
-        default: true
+        default: false
         type: boolean
 
 jobs:
