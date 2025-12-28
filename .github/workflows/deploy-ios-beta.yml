@@ -115,19 +115,34 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: false
+
+      - name: Install Fastlane
+        run: |
+          cd ios
+          gem install fastlane
+
       - name: Install CocoaPods dependencies
         run: |
           cd ios
           pod install
-          cd ..
 
-      - name: Build IPA (App Store for TestFlight)
+      - name: Build IPA using Fastlane Match (App Store)
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          # App Store Connect API Key
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
-          flutter clean
-          flutter build ipa --release \
-            --build-name=${{ steps.bump_version.outputs.version_name }} \
-            --build-number=${{ steps.bump_version.outputs.build_number }} \
-            --export-method=app-store
+          cd ios
+          fastlane build_appstore
 
       - name: Get IPA info
         id: ipa_info
@@ -152,17 +167,19 @@ jobs:
       - name: Upload to TestFlight
         if: github.event.inputs.deploy_to_testflight == 'true'
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
-          xcrun altool --upload-app \
-            --type ios \
-            --file "${{ steps.ipa_info.outputs.ipa_path }}" \
-            --username "$APPLE_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --verbose
+          cd ios
+          fastlane run app_store_connect_api_key \
+            key_id:"$APP_STORE_CONNECT_API_KEY_ID" \
+            issuer_id:"$APP_STORE_CONNECT_API_KEY_ISSUER_ID" \
+            key_content:"$APP_STORE_CONNECT_API_KEY_CONTENT" \
+            is_key_content_base64:true
+          fastlane run upload_to_testflight \
+            ipa:"../${{ steps.ipa_info.outputs.ipa_path }}" \
+            skip_waiting_for_build_processing:true
 
       - name: Create GitHub Release
         if: github.event.inputs.deploy_to_github == 'true'
