@@ -218,31 +218,47 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: false
+
+      - name: Install Fastlane
+        run: |
+          cd ios
+          gem install fastlane
+
       - name: Install CocoaPods dependencies
         run: |
           cd ios
           pod install
-          cd ..
 
-      - name: Determine export method
-        id: export_method
+      - name: Determine build type
+        id: build_type
         run: |
-          # TestFlight 배포 시 app-store, Firebase만 배포 시 ad-hoc
+          # TestFlight 배포 시 appstore, Firebase만 배포 시 adhoc
           if [ "${{ github.event.inputs.deploy_ios_to_testflight }}" == "true" ]; then
-            echo "method=app-store" >> $GITHUB_OUTPUT
-            echo "Export method: app-store (for TestFlight)"
+            echo "type=appstore" >> $GITHUB_OUTPUT
+            echo "lane=build_appstore" >> $GITHUB_OUTPUT
+            echo "Build type: appstore (for TestFlight)"
           else
-            echo "method=ad-hoc" >> $GITHUB_OUTPUT
-            echo "Export method: ad-hoc (for Firebase)"
+            echo "type=adhoc" >> $GITHUB_OUTPUT
+            echo "lane=build_adhoc" >> $GITHUB_OUTPUT
+            echo "Build type: adhoc (for Firebase)"
           fi
 
-      - name: Build IPA
+      - name: Build IPA using Fastlane Match
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
-          flutter clean
-          flutter build ipa --release \
-            --build-name=${{ steps.read_version.outputs.version_name }} \
-            --build-number=${{ steps.read_version.outputs.build_number }} \
-            --export-method=${{ steps.export_method.outputs.method }}
+          cd ios
+          fastlane ${{ steps.build_type.outputs.lane }}
 
       - name: Get IPA info
         id: ipa_info
@@ -283,17 +299,19 @@ jobs:
       - name: Upload to TestFlight
         if: github.event.inputs.deploy_ios_to_testflight == 'true'
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
-          xcrun altool --upload-app \
-            --type ios \
-            --file "${{ steps.ipa_info.outputs.ipa_path }}" \
-            --username "$APPLE_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --verbose
+          cd ios
+          fastlane run app_store_connect_api_key \
+            key_id:"$APP_STORE_CONNECT_API_KEY_ID" \
+            issuer_id:"$APP_STORE_CONNECT_API_KEY_ISSUER_ID" \
+            key_content:"$APP_STORE_CONNECT_API_KEY_CONTENT" \
+            is_key_content_base64:true
+          fastlane run upload_to_testflight \
+            ipa:"../${{ steps.ipa_info.outputs.ipa_path }}" \
+            skip_waiting_for_build_processing:true
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4

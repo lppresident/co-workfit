@@ -16,9 +16,28 @@
 default_platform(:ios)
 
 platform :ios do
+  # Setup App Store Connect API Key for authentication
+  desc "Setup App Store Connect API Key"
+  lane :setup_api_key do
+    if ENV["APP_STORE_CONNECT_API_KEY_ID"] && ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"] && ENV["APP_STORE_CONNECT_API_KEY_CONTENT"]
+      app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+        key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+        is_key_content_base64: true,
+        in_house: false
+      )
+    else
+      UI.user_error!("App Store Connect API Key environment variables are not set!")
+    end
+  end
+
   desc "Sync certificates and profiles using Match"
   lane :sync_code_signing do |options|
     type = options[:type] || "adhoc"
+
+    # Setup API Key first
+    setup_api_key
 
     match(
       type: type,
@@ -77,15 +96,16 @@ platform :ios do
 
   desc "Upload to TestFlight"
   lane :beta do |options|
+    # Setup API Key first
+    setup_api_key
+
     # Build
     build_appstore
 
-    # Upload to TestFlight
+    # Upload to TestFlight (API key is automatically used)
     upload_to_testflight(
       skip_waiting_for_build_processing: true,
-      apple_id: ENV["APPLE_ID"],
-      app_identifier: "com.hansol.coworkfit",
-      team_id: ENV["APPLE_TEAM_ID"]
+      app_identifier: "com.hansol.coworkfit"
     )
   end
 end
