@@ -1,0 +1,445 @@
+name: Deploy All Platforms
+
+on:
+  # 수동 트리거
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: '버전 증가 타입 (major/minor/patch/build)'
+        required: true
+        default: 'build'
+        type: choice
+        options:
+          - build
+          - patch
+          - minor
+          - major
+      release_notes:
+        description: '릴리스 노트'
+        required: false
+        default: 'New test release'
+      deploy_android_to_firebase:
+        description: 'Android - Firebase App Distribution에 배포'
+        required: true
+        default: true
+        type: boolean
+      deploy_ios_to_firebase:
+        description: 'iOS - Firebase App Distribution에 배포'
+        required: true
+        default: true
+        type: boolean
+      deploy_ios_to_testflight:
+        description: 'iOS - TestFlight에 배포'
+        required: true
+        default: false
+        type: boolean
+      deploy_to_github:
+        description: 'GitHub Release 생성 (Android & iOS)'
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests (optional)
+        run: flutter test || echo "No tests or tests failed - continuing anyway"
+
+      - name: Read current version
+        id: read_version
+        run: |
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          VERSION_BUMP="${{ github.event.inputs.version_bump || 'build' }}"
+
+          # 현재 버전 읽기
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          VERSION_NAME=$(echo "$CURRENT_VERSION" | cut -d'+' -f1)
+          BUILD_NUMBER=$(echo "$CURRENT_VERSION" | cut -d'+' -f2)
+
+          # 버전 번호 분리
+          MAJOR=$(echo "$VERSION_NAME" | cut -d'.' -f1)
+          MINOR=$(echo "$VERSION_NAME" | cut -d'.' -f2)
+          PATCH=$(echo "$VERSION_NAME" | cut -d'.' -f3)
+
+          # 버전 증가
+          case "$VERSION_BUMP" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              BUILD_NUMBER=1
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              BUILD_NUMBER=1
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              BUILD_NUMBER=1
+              ;;
+            build)
+              BUILD_NUMBER=$((BUILD_NUMBER + 1))
+              ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH+$BUILD_NUMBER"
+
+          # pubspec.yaml 업데이트
+          sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_name=$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "Version updated: $CURRENT_VERSION → $NEW_VERSION"
+
+      - name: Build APK
+        run: |
+          flutter clean
+          flutter build apk --release
+
+      - name: Get APK info
+        id: apk_info
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          FILE_SIZE=$(du -h "$APK_PATH" | cut -f1)
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
+          echo "APK built: $APK_PATH ($FILE_SIZE)"
+
+      - name: Rename APK with version
+        id: rename_apk
+        run: |
+          VERSION="${{ steps.bump_version.outputs.version_name }}"
+          BUILD="${{ steps.bump_version.outputs.build_number }}"
+          OLD_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          NEW_PATH="build/app/outputs/flutter-apk/coworkfit-v${VERSION}-build${BUILD}.apk"
+          cp "$OLD_PATH" "$NEW_PATH"
+          echo "renamed_apk=$NEW_PATH" >> $GITHUB_OUTPUT
+          echo "Renamed APK: $NEW_PATH"
+
+      - name: Deploy to Firebase App Distribution
+        if: github.event.inputs.deploy_android_to_firebase == 'true'
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: testers
+          file: ${{ steps.apk_info.outputs.apk_path }}
+          releaseNotes: |
+            ${{ github.event.inputs.release_notes }}
+
+            Version: ${{ steps.bump_version.outputs.new_version }}
+            Platform: Android
+            Build Date: ${{ github.event.repository.updated_at }}
+            Commit: ${{ github.sha }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: |
+            ${{ steps.apk_info.outputs.apk_path }}
+            ${{ steps.rename_apk.outputs.renamed_apk }}
+          retention-days: 30
+
+      - name: Upload version info
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-info
+          path: pubspec.yaml
+          retention-days: 1
+
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    needs: build-android
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download version info
+        uses: actions/download-artifact@v4
+        with:
+          name: version-info
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Read version
+        id: read_version
+        run: |
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          VERSION_NAME=$(echo "$CURRENT_VERSION" | cut -d'+' -f1)
+          BUILD_NUMBER=$(echo "$CURRENT_VERSION" | cut -d'+' -f2)
+          echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "Version: $CURRENT_VERSION"
+
+      - name: Setup Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install
+          cd ..
+
+      - name: Determine export method
+        id: export_method
+        run: |
+          # TestFlight 배포 시 app-store, Firebase만 배포 시 ad-hoc
+          if [ "${{ github.event.inputs.deploy_ios_to_testflight }}" == "true" ]; then
+            echo "method=app-store" >> $GITHUB_OUTPUT
+            echo "Export method: app-store (for TestFlight)"
+          else
+            echo "method=ad-hoc" >> $GITHUB_OUTPUT
+            echo "Export method: ad-hoc (for Firebase)"
+          fi
+
+      - name: Build IPA
+        run: |
+          flutter clean
+          flutter build ipa --release \
+            --build-name=${{ steps.read_version.outputs.version_name }} \
+            --build-number=${{ steps.read_version.outputs.build_number }} \
+            --export-method=${{ steps.export_method.outputs.method }}
+
+      - name: Get IPA info
+        id: ipa_info
+        run: |
+          IPA_PATH="build/ios/ipa/co_workfit.ipa"
+          FILE_SIZE=$(du -h "$IPA_PATH" | cut -f1)
+          echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
+          echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
+          echo "IPA built: $IPA_PATH ($FILE_SIZE)"
+
+      - name: Rename IPA with version
+        id: rename_ipa
+        run: |
+          VERSION="${{ steps.read_version.outputs.version_name }}"
+          BUILD="${{ steps.read_version.outputs.build_number }}"
+          OLD_PATH="build/ios/ipa/co_workfit.ipa"
+          NEW_PATH="build/ios/ipa/coworkfit-v${VERSION}-build${BUILD}.ipa"
+          cp "$OLD_PATH" "$NEW_PATH"
+          echo "renamed_ipa=$NEW_PATH" >> $GITHUB_OUTPUT
+          echo "Renamed IPA: $NEW_PATH"
+
+      - name: Deploy to Firebase App Distribution
+        if: github.event.inputs.deploy_ios_to_firebase == 'true'
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: testers
+          file: ${{ steps.ipa_info.outputs.ipa_path }}
+          releaseNotes: |
+            ${{ github.event.inputs.release_notes }}
+
+            Version: ${{ steps.read_version.outputs.new_version }}
+            Platform: iOS
+            Build Date: ${{ github.event.repository.updated_at }}
+            Commit: ${{ github.sha }}
+
+      - name: Upload to TestFlight
+        if: github.event.inputs.deploy_ios_to_testflight == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun altool --upload-app \
+            --type ios \
+            --file "${{ steps.ipa_info.outputs.ipa_path }}" \
+            --username "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --verbose
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: |
+            ${{ steps.ipa_info.outputs.ipa_path }}
+            ${{ steps.rename_ipa.outputs.renamed_ipa }}
+          retention-days: 30
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios]
+    if: github.event.inputs.deploy_to_github == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download version info
+        uses: actions/download-artifact@v4
+        with:
+          name: version-info
+
+      - name: Download Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: ./android-artifacts
+
+      - name: Download iOS IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-ipa
+          path: ./ios-artifacts
+
+      - name: Read version
+        id: read_version
+        run: |
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          VERSION_NAME=$(echo "$CURRENT_VERSION" | cut -d'+' -f1)
+          BUILD_NUMBER=$(echo "$CURRENT_VERSION" | cut -d'+' -f2)
+          echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Get file sizes
+        id: file_sizes
+        run: |
+          APK_SIZE=$(du -h ./android-artifacts/app-release.apk | cut -f1)
+          IPA_SIZE=$(du -h ./ios-artifacts/co_workfit.ipa | cut -f1)
+          echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
+          echo "ipa_size=$IPA_SIZE" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.read_version.outputs.new_version }}
+          name: CoWorkfit v${{ steps.read_version.outputs.new_version }}
+          body: |
+            ## Release Notes
+            ${{ github.event.inputs.release_notes }}
+
+            ## Details
+            - Version: ${{ steps.read_version.outputs.new_version }}
+            - Build Number: ${{ steps.read_version.outputs.build_number }}
+            - Android APK Size: ${{ steps.file_sizes.outputs.apk_size }}
+            - iOS IPA Size: ${{ steps.file_sizes.outputs.ipa_size }}
+            - Commit: ${{ github.sha }}
+
+            ## Installation
+
+            ### Android
+            1. Download the APK file below
+            2. Enable "Install from Unknown Sources" in Android settings
+            3. Install the APK
+
+            ### iOS
+            1. Install via Firebase App Distribution
+            2. Or download the IPA for enterprise distribution
+
+            ## Notes
+            This is a test release. Feedback is welcome!
+          files: |
+            ./android-artifacts/**
+            ./ios-artifacts/**
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  commit-version:
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios]
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download version info
+        uses: actions/download-artifact@v4
+        with:
+          name: version-info
+
+      - name: Read version
+        id: read_version
+        run: |
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add pubspec.yaml
+          git commit -m "chore: Bump version to ${{ steps.read_version.outputs.new_version }}" || echo "No changes to commit"
+          git push || echo "Failed to push - manual push may be required"
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios, create-release]
+    if: always()
+
+    steps:
+      - name: Download version info
+        uses: actions/download-artifact@v4
+        with:
+          name: version-info
+
+      - name: Read version
+        id: read_version
+        run: |
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Deployment Summary
+        run: |
+          echo "## Multi-Platform Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.read_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Android Firebase**: ${{ github.event.inputs.deploy_android_to_firebase }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **iOS Firebase**: ${{ github.event.inputs.deploy_ios_to_firebase }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **iOS TestFlight**: ${{ github.event.inputs.deploy_ios_to_testflight }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release**: ${{ github.event.inputs.deploy_to_github }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Platforms" >> $GITHUB_STEP_SUMMARY
+          echo "- Android (APK)" >> $GITHUB_STEP_SUMMARY
+          echo "- iOS (IPA)" >> $GITHUB_STEP_SUMMARY

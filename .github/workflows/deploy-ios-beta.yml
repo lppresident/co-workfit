@@ -1,0 +1,228 @@
+name: Deploy iOS (Beta/TestFlight)
+
+on:
+  # 수동 트리거
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: '버전 증가 타입 (major/minor/patch/build)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - build
+          - patch
+          - minor
+          - major
+      release_notes:
+        description: '릴리스 노트'
+        required: false
+        default: 'New beta release'
+      deploy_to_testflight:
+        description: 'TestFlight에 배포'
+        required: true
+        default: true
+        type: boolean
+      deploy_to_github:
+        description: 'GitHub Release 생성'
+        required: true
+        default: true
+        type: boolean
+
+  # Push 이벤트 (선택사항)
+  # push:
+  #   tags:
+  #     - 'v*-ios-beta'
+
+jobs:
+  build-and-deploy:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests (optional)
+        run: flutter test || echo "No tests or tests failed - continuing anyway"
+
+      - name: Read current version
+        id: read_version
+        run: |
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          VERSION_BUMP="${{ github.event.inputs.version_bump || 'patch' }}"
+
+          # 현재 버전 읽기
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          VERSION_NAME=$(echo "$CURRENT_VERSION" | cut -d'+' -f1)
+          BUILD_NUMBER=$(echo "$CURRENT_VERSION" | cut -d'+' -f2)
+
+          # 버전 번호 분리
+          MAJOR=$(echo "$VERSION_NAME" | cut -d'.' -f1)
+          MINOR=$(echo "$VERSION_NAME" | cut -d'.' -f2)
+          PATCH=$(echo "$VERSION_NAME" | cut -d'.' -f3)
+
+          # 버전 증가
+          case "$VERSION_BUMP" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              BUILD_NUMBER=1
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              BUILD_NUMBER=1
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              BUILD_NUMBER=1
+              ;;
+            build)
+              BUILD_NUMBER=$((BUILD_NUMBER + 1))
+              ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH+$BUILD_NUMBER"
+
+          # pubspec.yaml 업데이트
+          sed -i '' "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_name=$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "Version updated: $CURRENT_VERSION → $NEW_VERSION"
+
+      - name: Setup Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install
+          cd ..
+
+      - name: Build IPA (App Store for TestFlight)
+        run: |
+          flutter clean
+          flutter build ipa --release \
+            --build-name=${{ steps.bump_version.outputs.version_name }} \
+            --build-number=${{ steps.bump_version.outputs.build_number }} \
+            --export-method=app-store
+
+      - name: Get IPA info
+        id: ipa_info
+        run: |
+          IPA_PATH="build/ios/ipa/co_workfit.ipa"
+          FILE_SIZE=$(du -h "$IPA_PATH" | cut -f1)
+          echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
+          echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
+          echo "IPA built: $IPA_PATH ($FILE_SIZE)"
+
+      - name: Rename IPA with version
+        id: rename_ipa
+        run: |
+          VERSION="${{ steps.bump_version.outputs.version_name }}"
+          BUILD="${{ steps.bump_version.outputs.build_number }}"
+          OLD_PATH="build/ios/ipa/co_workfit.ipa"
+          NEW_PATH="build/ios/ipa/coworkfit-v${VERSION}-build${BUILD}-beta.ipa"
+          cp "$OLD_PATH" "$NEW_PATH"
+          echo "renamed_ipa=$NEW_PATH" >> $GITHUB_OUTPUT
+          echo "Renamed IPA: $NEW_PATH"
+
+      - name: Upload to TestFlight
+        if: github.event.inputs.deploy_to_testflight == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun altool --upload-app \
+            --type ios \
+            --file "${{ steps.ipa_info.outputs.ipa_path }}" \
+            --username "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --verbose
+
+      - name: Create GitHub Release
+        if: github.event.inputs.deploy_to_github == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}-ios-beta
+          name: CoWorkfit iOS (Beta) v${{ steps.bump_version.outputs.new_version }}
+          body: |
+            ## Release Notes
+            ${{ github.event.inputs.release_notes }}
+
+            ## Details
+            - Platform: iOS (Beta/TestFlight)
+            - Version: ${{ steps.bump_version.outputs.new_version }}
+            - Build Number: ${{ steps.bump_version.outputs.build_number }}
+            - IPA Size: ${{ steps.ipa_info.outputs.file_size }}
+            - Commit: ${{ github.sha }}
+
+            ## Installation
+            This is an iOS beta build distributed via TestFlight. Check TestFlight app for installation.
+
+            ## Notes
+            This is a beta release for wider testing. Feedback is welcome!
+          files: |
+            ${{ steps.ipa_info.outputs.ipa_path }}
+            ${{ steps.rename_ipa.outputs.renamed_ipa }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit version bump
+        if: success()
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add pubspec.yaml
+          git commit -m "chore: Bump version to ${{ steps.bump_version.outputs.new_version }} [iOS Beta]" || echo "No changes to commit"
+          git push || echo "Failed to push - manual push may be required"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coworkfit-ios-beta-${{ steps.bump_version.outputs.new_version }}
+          path: |
+            ${{ steps.ipa_info.outputs.ipa_path }}
+            ${{ steps.rename_ipa.outputs.renamed_ipa }}
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## iOS Beta Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Platform**: iOS (Beta/TestFlight)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **IPA Size**: ${{ steps.ipa_info.outputs.file_size }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **TestFlight**: ${{ github.event.inputs.deploy_to_testflight }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release**: ${{ github.event.inputs.deploy_to_github }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Files" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ steps.ipa_info.outputs.ipa_path }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ steps.rename_ipa.outputs.renamed_ipa }}" >> $GITHUB_STEP_SUMMARY
