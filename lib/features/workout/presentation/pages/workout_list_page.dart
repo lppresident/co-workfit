@@ -27,10 +27,14 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   int _loadedDays = 30;
   bool _isLoadingMore = false;
   bool _isAutoLoadingForFilter = false; // 필터용 자동 로드 중인지
+  bool _hasReachedEnd = false; // 더 이상 로드할 데이터가 없는지
   List<WorkoutEntity> _allWorkouts = []; // 로컬에서 관리하는 전체 데이터
+  int _previousWorkoutCount = 0; // 이전 로드 시 운동 개수 (더 로드할 데이터 있는지 확인용)
 
   // 필터 결과 최소 개수 (이보다 적으면 자동으로 더 로드)
   static const int _minFilteredResults = 3;
+  // 최소 화면 채움 개수 (필터 없이도 이보다 적으면 자동 로드)
+  static const int _minScreenFillCount = 5;
   // 최대 로드 일수 (무한 로드 방지)
   static const int _maxLoadDays = 365;
 
@@ -63,10 +67,12 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   }
 
   void _loadMoreData() {
-    if (_isLoadingMore || _loadedDays >= _maxLoadDays) return;
+    // 이미 로딩 중이거나, 최대치 도달, 또는 더 이상 데이터 없음
+    if (_isLoadingMore || _loadedDays >= _maxLoadDays || _hasReachedEnd) return;
 
     setState(() {
       _isLoadingMore = true;
+      _previousWorkoutCount = _allWorkouts.length;
     });
 
     final newDays = (_loadedDays + 30).clamp(0, _maxLoadDays);
@@ -75,16 +81,10 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
     context.read<WorkoutBloc>().add(FetchRecentWorkoutsEvent(days: newDays));
   }
 
-  /// 필터 적용 시 결과가 적으면 자동으로 더 로드
-  void _checkAndLoadMoreForFilter() {
-    // 필터가 적용되지 않았으면 스킵
-    if (_selectedType == null && _selectedSource == null) {
-      _isAutoLoadingForFilter = false;
-      return;
-    }
-
-    // 이미 최대치까지 로드했으면 스킵
-    if (_loadedDays >= _maxLoadDays) {
+  /// 데이터가 적으면 자동으로 더 로드 (필터 유무 관계없이)
+  void _checkAndLoadMoreIfNeeded() {
+    // 이미 최대치까지 로드했거나 끝에 도달했으면 스킵
+    if (_loadedDays >= _maxLoadDays || _hasReachedEnd) {
       _isAutoLoadingForFilter = false;
       return;
     }
@@ -98,8 +98,13 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
       filteredWorkouts = filteredWorkouts.where((w) => w.source == _selectedSource).toList();
     }
 
+    // 필터가 적용된 경우: 최소 필터 결과 개수 확인
+    // 필터가 없는 경우: 화면 채움 최소 개수 확인
+    final hasFilter = _selectedType != null || _selectedSource != null;
+    final minCount = hasFilter ? _minFilteredResults : _minScreenFillCount;
+
     // 결과가 최소 개수보다 적으면 더 로드
-    if (filteredWorkouts.length < _minFilteredResults && !_isLoadingMore) {
+    if (filteredWorkouts.length < minCount && !_isLoadingMore) {
       _isAutoLoadingForFilter = true;
       _loadMoreData();
     } else {
@@ -123,16 +128,32 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
       body: BlocConsumer<WorkoutBloc, WorkoutState>(
         listener: (context, state) {
           if (state is WorkoutLoaded) {
+            final newWorkouts = state.workouts;
+            
+            // 더 이상 새 데이터가 없는지 확인 (로드 후 개수가 같으면 끝)
+            final noNewData = _isLoadingMore && newWorkouts.length == _previousWorkoutCount;
+            
             setState(() {
-              _allWorkouts = state.workouts;
-              _loadedDays = (_allWorkouts.isNotEmpty)
-                  ? DateTime.now().difference(_allWorkouts.last.startTime).inDays + 1
-                  : 30;
+              _allWorkouts = newWorkouts;
+              // 가장 오래된 운동 기준으로 로드된 일수 계산 (정렬과 무관하게)
+              if (_allWorkouts.isNotEmpty) {
+                final oldestWorkout = _allWorkouts.reduce(
+                  (a, b) => a.startTime.isBefore(b.startTime) ? a : b,
+                );
+                _loadedDays = DateTime.now().difference(oldestWorkout.startTime).inDays + 1;
+              } else {
+                _loadedDays = 30;
+              }
               _isLoadingMore = false;
+              
+              // 더 이상 데이터가 없거나 최대치 도달
+              if (noNewData || _loadedDays >= _maxLoadDays) {
+                _hasReachedEnd = true;
+              }
             });
 
-            // 필터가 적용된 상태에서 결과가 적으면 자동으로 더 로드
-            _checkAndLoadMoreForFilter();
+            // 데이터가 적으면 자동으로 더 로드 (필터 유무 관계없이)
+            _checkAndLoadMoreIfNeeded();
           } else if (state is WorkoutError) {
             setState(() {
               _isLoadingMore = false;
@@ -313,6 +334,9 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                 setState(() {
                   _loadedDays = 30;
                   _allWorkouts = [];
+                  _hasReachedEnd = false; // 리셋
+                  _previousWorkoutCount = 0;
+                  // 필터는 유지 (사용자가 필터 상태에서 새로고침할 수 있음)
                 });
                 context.read<WorkoutBloc>().add(
                       const FetchRecentWorkoutsEvent(days: 30),
@@ -324,16 +348,31 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: groupedWorkouts.length + 1, // +1 for loading indicator
                 itemBuilder: (context, index) {
-                  // 마지막 아이템은 로딩 인디케이터
+                  // 마지막 아이템은 로딩 인디케이터 또는 끝 표시
                   if (index == groupedWorkouts.length) {
-                    return _isLoadingMore
-                        ? const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Center(
-                              child: CircularProgressIndicator(),
+                    if (_isLoadingMore) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    } else if (_hasReachedEnd || _loadedDays >= _maxLoadDays) {
+                      return Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Center(
+                          child: Text(
+                            '모든 운동 기록을 불러왔습니다',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 12,
                             ),
-                          )
-                        : const SizedBox(height: 16);
+                          ),
+                        ),
+                      );
+                    } else {
+                      return const SizedBox(height: 16);
+                    }
                   }
 
                   final entry = groupedWorkouts[index];
@@ -398,7 +437,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
             _sortBy = sortBy;
           });
           // 필터 변경 시 자동 로드 체크
-          _checkAndLoadMoreForFilter();
+          _checkAndLoadMoreIfNeeded();
         },
       ),
     );
