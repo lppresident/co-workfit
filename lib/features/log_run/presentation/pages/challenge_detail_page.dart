@@ -70,6 +70,73 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     );
   }
 
+  Widget _buildScoreSection(
+    BuildContext context,
+    Map<String, int> awardedScores,
+    List<LogRunContributionEntity> contributions,
+  ) {
+    // 사용자별 닉네임 매핑 (contributions에서 추출)
+    final Map<String, String> userNicknames = {};
+    for (final contribution in contributions) {
+      userNicknames[contribution.userId] = contribution.userNickname;
+    }
+
+    // 점수 높은 순으로 정렬
+    final sortedEntries = awardedScores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.1),
+        border: Border(
+          bottom: BorderSide(color: Colors.amber.withValues(alpha: 0.3)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.stars, color: Colors.amber, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '획득 점수',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...sortedEntries.map((entry) {
+            final nickname = userNicknames[entry.key] ?? '알 수 없음';
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      nickname,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  Text(
+                    '+${entry.value}점',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.amber.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   void _showDeleteConfirmation() {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) return;
@@ -201,17 +268,26 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                 color: Theme.of(context).colorScheme.primaryContainer,
                 child: Column(
                   children: [
-                    Text('남은 무게', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    Text('${challenge.remainingWeight.toStringAsFixed(1)} kg',
-                        style: Theme.of(context).textTheme.displayMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    if (challenge.isCompleted) ...[
+                      const Icon(Icons.emoji_events, size: 48, color: Colors.amber),
+                      const SizedBox(height: 8),
+                      Text('챌린지 완료!', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    ] else ...[
+                      Text('남은 무게', style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      Text('${challenge.remainingWeight.toStringAsFixed(1)} kg',
+                          style: Theme.of(context).textTheme.displayMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    ],
                     const SizedBox(height: 16),
-                    LinearProgressIndicator(value: challenge.progress, minHeight: 12),
+                    LinearProgressIndicator(value: challenge.progress.clamp(0.0, 1.0), minHeight: 12),
                     const SizedBox(height: 8),
-                    Text('${(challenge.progress * 100).toStringAsFixed(0)}% 완료'),
+                    Text('${(challenge.progress * 100).clamp(0, 100).toStringAsFixed(0)}% 완료'),
                   ],
                 ),
               ),
+              // 완료된 챌린지면 점수 표시
+              if (challenge.isCompleted && challenge.awardedScores.isNotEmpty)
+                _buildScoreSection(context, challenge.awardedScores, contributions),
               Expanded(child: ContributionFeedWidget(
                 contributions: contributions,
                 challengeId: widget.challengeId,

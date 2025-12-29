@@ -14,13 +14,12 @@ class FirestoreLogRunDataSource {
 
   FirestoreLogRunDataSource({required this.firestore});
 
-  /// 챌린지 생성
+  /// 챌린지 생성 (단일 날짜)
   Future<LogRunChallengeModel> createChallenge({
     required String userId,
     required String userNickname,
     required double targetWeight,
-    required DateTime startDate,
-    required DateTime endDate,
+    required DateTime challengeDate,
     int? maxParticipants,
   }) async {
     final now = DateTime.now();
@@ -47,6 +46,10 @@ class FirestoreLogRunDataSource {
     if (!isUnique) {
       throw Exception('초대 코드 생성에 실패했습니다. 다시 시도해주세요.');
     }
+
+    // 단일 날짜: startDate와 endDate를 같은 날로 설정
+    final startDate = DateTime(challengeDate.year, challengeDate.month, challengeDate.day);
+    final endDate = DateTime(challengeDate.year, challengeDate.month, challengeDate.day, 23, 59, 59);
 
     await challengeRef.set({
       'createdBy': userId,
@@ -407,13 +410,18 @@ class FirestoreLogRunDataSource {
     }
   }
 
-  /// 완료 시 참가자들에게 점수 부여
+  /// 챌린지 완료 시 점수 부여
   ///
   /// 점수 시스템:
-  /// - 기본 점수: 개인 기여 거리(km) × 10점
-  /// - 완료 보너스: 목표 달성 시 전원 +50점
-  /// - 협력 보너스: 참가자 수 × 10점 (최대 40점, 4명까지)
-  /// - 속도 보너스: 기간의 50% 내 완료 시 +30점
+  /// - 기본 점수: (목표 거리 × 10) × (내 기여도 / 총 달성 거리)
+  ///   - 초과 성공 시에도 목표 거리 기준으로 분배
+  /// - 성공 시 보너스 (전원 동일 지급):
+  ///   - 완료 보너스: +10점/인
+  ///   - 협력 보너스: +5점 × (참가자 수 - 1), 최대 +20점
+  ///   - 거리 마일스톤 보너스:
+  ///     - 10km 이상: +10점
+  ///     - 21.0975km(하프마라톤) 이상: +30점
+  ///     - 42.195km(풀마라톤) 이상: +60점
   Future<void> _awardCompletionScores({
     required Transaction transaction,
     required LogRunChallengeModel challenge,
@@ -421,6 +429,19 @@ class FirestoreLogRunDataSource {
     required String contributorId,
   }) async {
     try {
+      final challengeRef = firestore.collection(_challengesCollection).doc(challenge.id);
+
+      // 중복 지급 방지: 이미 점수가 지급되었는지 확인
+      final challengeDoc = await transaction.get(challengeRef);
+      final data = challengeDoc.data();
+      if (data != null && data['scoreAwarded'] == true) {
+        AppLogger.info('FirestoreLogRunDataSource', '이미 점수가 지급된 챌린지입니다: ${challenge.id}');
+        return;
+      }
+
+      // 점수 지급 완료 표시 (중복 방지)
+      transaction.update(challengeRef, {'scoreAwarded': true});
+
       // 모든 기여 내역 조회
       final contributionsSnapshot = await firestore
           .collection(_challengesCollection)
@@ -431,50 +452,90 @@ class FirestoreLogRunDataSource {
       // 참가자별 기여 거리 합산
       final Map<String, double> userDistances = {};
       for (final doc in contributionsSnapshot.docs) {
-        final data = doc.data();
-        final oderId = data['userId'] as String;
-        final distance = (data['distance'] as num).toDouble();
+        final docData = doc.data();
+        final oderId = docData['userId'] as String;
+        final distance = (docData['distance'] as num).toDouble();
         userDistances[oderId] = (userDistances[oderId] ?? 0) + distance;
       }
 
       // 마지막 기여자의 기여도 추가 (아직 DB에 반영 안됨)
       userDistances[contributorId] = (userDistances[contributorId] ?? 0) + contributionDistance;
 
-      // 협력 보너스 계산 (참가자 수 × 10, 최대 40점)
-      final participantCount = challenge.participants.length;
-      final cooperationBonus = (participantCount * 10).clamp(0, 40);
+      // 총 달성 거리 계산
+      final totalAchievedDistance = userDistances.values.fold(0.0, (sum, d) => sum + d);
 
-      // 속도 보너스 계산 (기간의 50% 내 완료 시 30점)
-      final now = DateTime.now();
-      final totalDuration = challenge.endDate.difference(challenge.startDate);
-      final elapsedDuration = now.difference(challenge.startDate);
-      final isEarlyCompletion = elapsedDuration.inSeconds < (totalDuration.inSeconds * 0.5);
-      final speedBonus = isEarlyCompletion ? 30 : 0;
+      // 실제 기여자 수 (기여가 있는 참가자만)
+      final contributorCount = userDistances.entries.where((e) => e.value > 0).length;
+
+      // 성공 여부 확인
+      final isSuccess = totalAchievedDistance >= challenge.targetDistance;
+
+      // 점수 분배 기준 거리 (성공 시 목표, 실패 시 달성 거리)
+      final scoreBaseDistance = isSuccess ? challenge.targetDistance : totalAchievedDistance;
+      final totalBaseScore = (scoreBaseDistance * 10).round();
+
+      // 성공 시 보너스 계산
+      int completionBonus = 0;
+      int cooperationBonus = 0;
+      int milestoneBonus = 0;
+
+      if (isSuccess) {
+        // 완료 보너스: +10점/인
+        completionBonus = 10;
+
+        // 협력 보너스: +5점 × (참가자 수 - 1), 최대 20점
+        cooperationBonus = (5 * (contributorCount - 1)).clamp(0, 20);
+
+        // 거리 마일스톤 보너스 (중복 지급 아님, 가장 높은 것만)
+        final targetDistance = challenge.targetDistance;
+        if (targetDistance >= 42.195) {
+          milestoneBonus = 60; // 풀마라톤
+        } else if (targetDistance >= 21.0975) {
+          milestoneBonus = 30; // 하프마라톤
+        } else if (targetDistance >= 10) {
+          milestoneBonus = 10; // 10km
+        }
+      }
+
+      // 참가자별 획득 점수 기록용
+      final Map<String, int> awardedScores = {};
 
       // 각 참가자에게 점수 부여
-      for (final oderId in challenge.participants) {
-        final userDistance = userDistances[oderId] ?? 0;
+      for (final entry in userDistances.entries) {
+        final oderId = entry.key;
+        final userDistance = entry.value;
 
         // 기여하지 않은 참가자는 점수 없음
         if (userDistance <= 0) continue;
 
-        // 점수 계산
-        final baseScore = (userDistance * 10).round(); // 기본 점수
-        const completionBonus = 50; // 완료 보너스
-        final totalScore = baseScore + completionBonus + cooperationBonus + speedBonus;
+        // 기본 점수: 기여 비율로 분배
+        final contributionRatio = userDistance / totalAchievedDistance;
+        final baseScore = (totalBaseScore * contributionRatio).round();
 
-        // users 컬렉션의 logRunScore 필드 업데이트
+        // 총점 계산
+        final userTotalScore = baseScore + completionBonus + cooperationBonus + milestoneBonus;
+
+        // 점수 기록
+        awardedScores[oderId] = userTotalScore;
+
+        // users 컬렉션 업데이트
         final userRef = firestore.collection(FirebaseConfig.usersCollection).doc(oderId);
         transaction.update(userRef, {
-          'logRunScore': FieldValue.increment(totalScore),
-          'logRunCompletedCount': FieldValue.increment(1),
+          'totalScore': FieldValue.increment(userTotalScore),
+          'logRunScore': FieldValue.increment(userTotalScore),
+          'logRunCompletedCount': FieldValue.increment(isSuccess ? 1 : 0),
         });
 
         AppLogger.info(
           'FirestoreLogRunDataSource',
-          '통나무런 점수 부여: userId=$oderId, 기본=$baseScore, 완료=$completionBonus, 협력=$cooperationBonus, 속도=$speedBonus, 총=$totalScore',
+          '통나무런 점수 부여: userId=$oderId, 기여=${userDistance.toStringAsFixed(1)}km, '
+          '기본=$baseScore, 완료=$completionBonus, 협력=$cooperationBonus, 마일스톤=$milestoneBonus, '
+          '총=$userTotalScore (성공=$isSuccess)',
         );
       }
+
+      // 챌린지에 획득 점수 정보 저장
+      transaction.update(challengeRef, {'awardedScores': awardedScores});
     } catch (e) {
       AppLogger.error('FirestoreLogRunDataSource', '점수 부여 실패', e);
       // 점수 부여 실패해도 챌린지 완료는 진행

@@ -49,6 +49,12 @@ class LogRunChallengeEntity extends Equatable {
   /// 최대 참가자 수 (null이면 무제한)
   final int? maxParticipants;
 
+  /// 점수 지급 완료 여부
+  final bool scoreAwarded;
+
+  /// 참가자별 획득 점수 (userId -> score)
+  final Map<String, int> awardedScores;
+
   const LogRunChallengeEntity({
     required this.id,
     required this.createdBy,
@@ -65,6 +71,8 @@ class LogRunChallengeEntity extends Equatable {
     this.completedAt,
     this.expireAt,
     this.maxParticipants,
+    this.scoreAwarded = false,
+    this.awardedScores = const {},
   });
 
   /// 진행률 (0.0 ~ 1.0)
@@ -130,6 +138,8 @@ class LogRunChallengeEntity extends Equatable {
         expireAt,
         inviteCode,
         maxParticipants,
+        scoreAwarded,
+        awardedScores,
       ];
 }
 

@@ -14,8 +14,7 @@ class LogRunRepositoryImpl implements LogRunRepository {
     required String userId,
     required String userNickname,
     required double targetWeight,
-    required DateTime startDate,
-    required DateTime endDate,
+    required DateTime challengeDate,
     int? maxParticipants,
   }) async {
     try {
@@ -23,8 +22,7 @@ class LogRunRepositoryImpl implements LogRunRepository {
         userId: userId,
         userNickname: userNickname,
         targetWeight: targetWeight,
-        startDate: startDate,
-        endDate: endDate,
+        challengeDate: challengeDate,
         maxParticipants: maxParticipants,
       );
       return Right(challenge);

@@ -10,8 +10,7 @@ abstract class LogRunRepository {
     required String userId,
     required String userNickname,
     required double targetWeight,
-    required DateTime startDate,
-    required DateTime endDate,
+    required DateTime challengeDate,
     int? maxParticipants,
   });
 

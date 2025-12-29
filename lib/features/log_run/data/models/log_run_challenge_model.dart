@@ -19,6 +19,8 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
     super.completedAt,
     super.expireAt,
     super.maxParticipants,
+    super.scoreAwarded,
+    super.awardedScores,
   });
 
   /// Firestore 문서에서 모델 생성
@@ -50,6 +52,14 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
           ? (data['expireAt'] as Timestamp).toDate()
           : null,
       maxParticipants: data['maxParticipants'] as int?,
+      scoreAwarded: data['scoreAwarded'] as bool? ?? false,
+      awardedScores: data['awardedScores'] != null
+          ? Map<String, int>.from(
+              (data['awardedScores'] as Map<String, dynamic>).map(
+                (key, value) => MapEntry(key, (value as num).toInt()),
+              ),
+            )
+          : const {},
     );
   }
 
@@ -70,6 +80,8 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'expireAt': expireAt != null ? Timestamp.fromDate(expireAt!) : null,
       'maxParticipants': maxParticipants,
+      'scoreAwarded': scoreAwarded,
+      'awardedScores': awardedScores,
     };
   }
 
@@ -91,6 +103,8 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       completedAt: entity.completedAt,
       expireAt: entity.expireAt,
       maxParticipants: entity.maxParticipants,
+      scoreAwarded: entity.scoreAwarded,
+      awardedScores: entity.awardedScores,
     );
   }
 }

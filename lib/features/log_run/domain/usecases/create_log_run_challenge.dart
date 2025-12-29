@@ -16,8 +16,7 @@ class CreateLogRunChallenge implements UseCase<LogRunChallengeEntity, CreateChal
       userId: params.userId,
       userNickname: params.userNickname,
       targetWeight: params.targetWeight,
-      startDate: params.startDate,
-      endDate: params.endDate,
+      challengeDate: params.challengeDate,
       maxParticipants: params.maxParticipants,
     );
   }
@@ -27,16 +26,14 @@ class CreateChallengeParams {
   final String userId;
   final String userNickname;
   final double targetWeight;
-  final DateTime startDate;
-  final DateTime endDate;
+  final DateTime challengeDate;
   final int? maxParticipants;
 
   CreateChallengeParams({
     required this.userId,
     required this.userNickname,
     required this.targetWeight,
-    required this.startDate,
-    required this.endDate,
+    required this.challengeDate,
     this.maxParticipants,
   });
 }

@@ -75,7 +75,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => CreateChallengeBottomSheet(
-        onCreate: (targetWeight, startDate, endDate, maxParticipants) {
+        onCreate: (targetWeight, challengeDate, maxParticipants) {
           final authState = context.read<AuthBloc>().state;
           if (authState is Authenticated) {
             context.read<LogRunBloc>().add(
@@ -83,8 +83,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
                     userId: authState.user.id,
                     userNickname: authState.user.nickname,
                     targetWeight: targetWeight,
-                    startDate: startDate,
-                    endDate: endDate,
+                    challengeDate: challengeDate,
                     maxParticipants: maxParticipants,
                   ),
                 );

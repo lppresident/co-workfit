@@ -33,16 +33,14 @@ class CreateChallenge extends LogRunEvent {
   final String userId;
   final String userNickname;
   final double targetWeight;
-  final DateTime startDate;
-  final DateTime endDate;
+  final DateTime challengeDate;
   final int? maxParticipants;
 
   const CreateChallenge({
     required this.userId,
     required this.userNickname,
     required this.targetWeight,
-    required this.startDate,
-    required this.endDate,
+    required this.challengeDate,
     this.maxParticipants,
   });
 
@@ -51,8 +49,7 @@ class CreateChallenge extends LogRunEvent {
         userId,
         userNickname,
         targetWeight,
-        startDate,
-        endDate,
+        challengeDate,
         maxParticipants,
       ];
 }
