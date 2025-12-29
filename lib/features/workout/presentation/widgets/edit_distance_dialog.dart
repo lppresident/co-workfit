@@ -163,9 +163,8 @@ class EditDistanceDialog extends StatelessWidget {
             }
 
             // 페이스 기반 검증 (세계 기록 수준보다 빠르면 비현실적)
-            // 단, 1km 이하는 단거리 스프린트일 수 있으므로 검증 스킵
-            // (우사인볼트 100m: 9.58초 → 1'36"/km)
-            if (distance > 1.0) {
+            // 단, 3km 이하는 단거리/중거리일 수 있으므로 검증 스킵
+            if (distance > 3.0) {
               final paceSeconds = _calculatePaceSeconds(distance);
               if (paceSeconds != null && paceSeconds < _minPaceSecondsPerKm) {
                 final inputPace = _formatPace(paceSeconds);
