@@ -110,11 +110,10 @@ jobs:
 
   # ==================== iOS Build ====================
   build-ios:
-    if: github.event.inputs.deploy_ios == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
     needs: build-android
-    # Android가 스킵되어도 iOS는 실행
+    # Android가 스킵되거나 실패해도 iOS는 실행
     if: always() && github.event.inputs.deploy_ios == 'true'
 
     steps:
