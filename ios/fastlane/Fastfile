@@ -101,13 +101,20 @@ platform :ios do
 
   desc "Upload IPA to TestFlight (for CI)"
   lane :upload_testflight do |options|
-    # Setup API Key first
-    setup_api_key
+    # Setup API Key and store it
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+      is_key_content_base64: true,
+      in_house: false
+    )
 
     ipa_path = options[:ipa] || "../build/ios/ipa/co_workfit.ipa"
     changelog = options[:changelog] || "New build"
 
     upload_to_testflight(
+      api_key: api_key,
       ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       app_identifier: "com.hansol.coworkfit",
