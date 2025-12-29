@@ -42,6 +42,7 @@ platform :ios do
     match(
       type: type,
       readonly: false,
+      force_for_new_devices: true,  # 새 기기가 등록되면 프로비저닝 프로파일 자동 갱신
       app_identifier: "com.hansol.coworkfit",
       keychain_name: "fastlane_tmp_keychain",
       keychain_password: ""
