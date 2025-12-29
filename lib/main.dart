@@ -18,6 +18,7 @@ import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderboard_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/core/services/deep_link_service.dart';
 
@@ -57,7 +58,9 @@ class CoWorkFitApp extends StatefulWidget {
 class _CoWorkFitAppState extends State<CoWorkFitApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   StreamSubscription<DeepLinkData>? _deepLinkSubscription;
+  StreamSubscription<LogRunState>? _logRunStateSubscription;
   DeepLinkData? _pendingDeepLink;
+  bool _isJoiningFromDeepLink = false;
 
   @override
   void initState() {
@@ -70,6 +73,38 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
       AppLogger.info('CoWorkFitApp', 'Received deep link: ${data.type}');
       _handleDeepLink(data);
     });
+  }
+
+  void _setupLogRunStateListener(BuildContext context) {
+    _logRunStateSubscription?.cancel();
+    _logRunStateSubscription = context.read<LogRunBloc>().stream.listen((state) {
+      if (!_isJoiningFromDeepLink) return;
+
+      if (state is ChallengeJoined) {
+        _isJoiningFromDeepLink = false;
+        _showResultSnackBar(context, '챌린지에 참가했습니다! 🎉', Colors.green);
+        // 통나무런 탭으로 이동하도록 새로고침
+        context.read<LogRunBloc>().add(RefreshChallenges(
+          (context.read<AuthBloc>().state as Authenticated).user.id,
+        ));
+      } else if (state is LogRunError) {
+        _isJoiningFromDeepLink = false;
+        _showResultSnackBar(context, state.message, Colors.red);
+      }
+    });
+  }
+
+  void _showResultSnackBar(BuildContext context, String message, Color color) {
+    final scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
+    if (scaffoldMessenger != null) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: color,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _handleDeepLink(DeepLinkData data) {
@@ -103,11 +138,22 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
       return;
     }
 
+    // LogRunBloc 상태 리스너 설정
+    _setupLogRunStateListener(context);
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('통나무런 초대'),
-        content: Text('초대 코드: $inviteCode\n\n이 챌린지에 참가하시겠습니까?'),
+        title: const Text('🏃 통나무런 초대'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('초대 코드: $inviteCode'),
+            const SizedBox(height: 12),
+            const Text('이 챌린지에 참가하시겠습니까?'),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -116,6 +162,7 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(dialogContext);
+              _isJoiningFromDeepLink = true;
               context.read<LogRunBloc>().add(
                     JoinChallengeByCode(
                       inviteCode: inviteCode,
@@ -123,12 +170,6 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
                       userNickname: authState.user.nickname,
                     ),
                   );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('챌린지 참가 중...'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
             },
             child: const Text('참가하기'),
           ),
@@ -140,6 +181,7 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
   @override
   void dispose() {
     _deepLinkSubscription?.cancel();
+    _logRunStateSubscription?.cancel();
     super.dispose();
   }
 
