@@ -68,25 +68,29 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
   }
 
   void _showCreateChallengeSheet() {
+    // BottomSheet 내부에서 Bloc에 접근하기 위해 미리 참조를 가져옴
+    final authBloc = context.read<AuthBloc>();
+    final logRunBloc = context.read<LogRunBloc>();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => CreateChallengeBottomSheet(
+      builder: (bottomSheetContext) => CreateChallengeBottomSheet(
         onCreate: (targetWeight, challengeDate, maxParticipants) {
-          final authState = context.read<AuthBloc>().state;
+          final authState = authBloc.state;
           if (authState is Authenticated) {
-            context.read<LogRunBloc>().add(
-                  CreateChallenge(
-                    userId: authState.user.id,
-                    userNickname: authState.user.nickname,
-                    targetWeight: targetWeight,
-                    challengeDate: challengeDate,
-                    maxParticipants: maxParticipants,
-                  ),
-                );
+            logRunBloc.add(
+              CreateChallenge(
+                userId: authState.user.id,
+                userNickname: authState.user.nickname,
+                targetWeight: targetWeight,
+                challengeDate: challengeDate,
+                maxParticipants: maxParticipants,
+              ),
+            );
           }
         },
       ),
@@ -94,23 +98,27 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
   }
 
   void _showJoinByCodeSheet() {
+    // BottomSheet 내부에서 Bloc에 접근하기 위해 미리 참조를 가져옴
+    final authBloc = context.read<AuthBloc>();
+    final logRunBloc = context.read<LogRunBloc>();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => InviteCodeBottomSheet(
+      builder: (bottomSheetContext) => InviteCodeBottomSheet(
         onJoin: (inviteCode) {
-          final authState = context.read<AuthBloc>().state;
+          final authState = authBloc.state;
           if (authState is Authenticated) {
-            context.read<LogRunBloc>().add(
-                  JoinChallengeByCode(
-                    inviteCode: inviteCode,
-                    userId: authState.user.id,
-                    userNickname: authState.user.nickname,
-                  ),
-                );
+            logRunBloc.add(
+              JoinChallengeByCode(
+                inviteCode: inviteCode,
+                userId: authState.user.id,
+                userNickname: authState.user.nickname,
+              ),
+            );
           }
         },
       ),

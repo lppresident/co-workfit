@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'package:co_workfit/shared/theme/app_theme.dart';
 import 'package:co_workfit/features/workout/presentation/pages/dashboard_page.dart';
@@ -19,6 +20,9 @@ import 'package:co_workfit/core/utils/logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Korean locale for date formatting
+  await initializeDateFormatting('ko', null);
 
   // Initialize Firebase
   try {
