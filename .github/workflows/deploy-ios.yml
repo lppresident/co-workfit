@@ -1,0 +1,150 @@
+name: Deploy iOS (TestFlight)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: '버전 증가 타입'
+        required: true
+        default: 'build'
+        type: choice
+        options:
+          - build
+          - patch
+          - minor
+          - major
+      release_notes:
+        description: '릴리스 노트'
+        required: false
+        default: 'New build'
+
+jobs:
+  build-and-deploy:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Read current version
+        id: read_version
+        run: |
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          VERSION_BUMP="${{ github.event.inputs.version_bump || 'build' }}"
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          VERSION_NAME=$(echo "$CURRENT_VERSION" | cut -d'+' -f1)
+          BUILD_NUMBER=$(echo "$CURRENT_VERSION" | cut -d'+' -f2)
+
+          MAJOR=$(echo "$VERSION_NAME" | cut -d'.' -f1)
+          MINOR=$(echo "$VERSION_NAME" | cut -d'.' -f2)
+          PATCH=$(echo "$VERSION_NAME" | cut -d'.' -f3)
+
+          case "$VERSION_BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0; BUILD_NUMBER=1 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0; BUILD_NUMBER=1 ;;
+            patch) PATCH=$((PATCH + 1)); BUILD_NUMBER=1 ;;
+            build) BUILD_NUMBER=$((BUILD_NUMBER + 1)) ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH+$BUILD_NUMBER"
+          sed -i '' "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_name=$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "Version: $CURRENT_VERSION → $NEW_VERSION"
+
+      - name: Setup Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: false
+
+      - name: Install Fastlane
+        run: |
+          cd ios
+          gem install fastlane
+
+      - name: Setup temporary keychain
+        run: |
+          security create-keychain -p "" fastlane_tmp_keychain
+          security default-keychain -s fastlane_tmp_keychain
+          security unlock-keychain -p "" fastlane_tmp_keychain
+          security set-keychain-settings -t 3600 -u fastlane_tmp_keychain
+
+      - name: Update iOS version
+        run: |
+          VERSION_NAME="${{ steps.bump_version.outputs.version_name }}"
+          BUILD_NUMBER="${{ steps.bump_version.outputs.build_number }}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION_NAME" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/Runner/Info.plist
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install
+
+      - name: Build IPA for TestFlight
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: |
+          cd ios
+          fastlane build_appstore
+
+      - name: Upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: |
+          cd ios
+          fastlane run upload_to_testflight \
+            ipa:"../build/ios/ipa/co_workfit.ipa" \
+            skip_waiting_for_build_processing:true \
+            changelog:"${{ github.event.inputs.release_notes }}"
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add pubspec.yaml ios/Runner/Info.plist
+          git commit -m "chore: Bump iOS version to ${{ steps.bump_version.outputs.new_version }}" || echo "No changes to commit"
+          git push || echo "Push failed"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## iOS TestFlight Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Notes**: ${{ github.event.inputs.release_notes }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ 내부 테스터는 TestFlight 앱에서 바로 설치 가능!" >> $GITHUB_STEP_SUMMARY
+
