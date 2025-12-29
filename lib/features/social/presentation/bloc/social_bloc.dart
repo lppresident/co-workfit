@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_state.dart';
+import 'package:co_workfit/features/social/domain/entities/friendship_entity.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_friends.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_friends_data.dart';
 import 'package:co_workfit/features/social/domain/usecases/send_friend_request.dart';
@@ -9,6 +10,7 @@ import 'package:co_workfit/features/social/domain/usecases/get_received_friend_r
 import 'package:co_workfit/features/social/domain/usecases/accept_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/reject_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/search_users_by_nickname.dart';
+import 'package:co_workfit/features/social/domain/usecases/remove_friend.dart';
 
 class SocialBloc extends Bloc<SocialEvent, SocialState> {
   final GetFriends getFriends;
@@ -18,6 +20,7 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
   final AcceptFriendRequest acceptFriendRequest;
   final RejectFriendRequest rejectFriendRequest;
   final SearchUsersByNickname searchUsersByNickname;
+  final RemoveFriend removeFriend;
 
   SocialBloc({
     required this.getFriends,
@@ -27,6 +30,7 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     required this.acceptFriendRequest,
     required this.rejectFriendRequest,
     required this.searchUsersByNickname,
+    required this.removeFriend,
   }) : super(const SocialInitial()) {
     on<LoadFriendsData>(_onLoadFriendsData);
     on<LoadFriends>(_onLoadFriends);
@@ -42,6 +46,7 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
           .switchMap(mapper),
     );
     on<ClearSearchResults>(_onClearSearchResults);
+    on<RemoveFriendEvent>(_onRemoveFriend);
   }
 
   Future<void> _onLoadFriendsData(
@@ -181,12 +186,36 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
       },
       (_) {
         if (currentState is SocialLoaded) {
+          // 수락된 요청 찾기
+          final acceptedRequest = currentState.receivedRequests
+              .where((req) => req.id == event.requestId)
+              .firstOrNull;
+
+          // 요청 목록에서 제거
           final updatedRequests = currentState.receivedRequests
               .where((req) => req.id != event.requestId)
               .toList();
 
+          // 새 친구를 목록에 추가 (요청자 정보 사용)
+          final updatedFriends = [...currentState.friends];
+          if (acceptedRequest != null) {
+            final newFriend = FriendshipEntity(
+              id: '', // Firestore에서 자동 생성된 ID는 알 수 없음
+              userId: acceptedRequest.receiverId,
+              friendId: acceptedRequest.senderId,
+              createdAt: DateTime.now(),
+              friendName: acceptedRequest.senderName,
+              friendEmail: acceptedRequest.senderEmail,
+              friendPhotoUrl: acceptedRequest.senderPhotoUrl,
+              friendTotalScore: 0, // 초기값, 새로고침 시 업데이트됨
+              friendWorkoutCount: 0,
+            );
+            updatedFriends.insert(0, newFriend); // 맨 앞에 추가
+          }
+
           emit(SocialActionSuccess(
             newState: currentState.copyWith(
+              friends: updatedFriends,
               receivedRequests: updatedRequests,
               requestCount: updatedRequests.length,
             ),
@@ -284,5 +313,49 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     if (currentState is SocialLoaded) {
       emit(currentState.copyWith(searchResults: []));
     }
+  }
+
+  Future<void> _onRemoveFriend(
+    RemoveFriendEvent event,
+    Emitter<SocialState> emit,
+  ) async {
+    final currentState = state;
+
+    if (currentState is SocialLoaded) {
+      emit(SocialActionInProgress(
+        currentState: currentState,
+        actionType: 'remove_friend',
+      ));
+    }
+
+    final result = await removeFriend(
+      userId: event.userId,
+      friendId: event.friendId,
+    );
+
+    result.fold(
+      (failure) {
+        if (currentState is SocialLoaded) {
+          emit(SocialError(failure.message, previousState: currentState));
+        } else {
+          emit(SocialError(failure.message));
+        }
+      },
+      (_) {
+        if (currentState is SocialLoaded) {
+          // 친구 목록에서 삭제된 친구 제거
+          final updatedFriends = currentState.friends
+              .where((f) => f.friendId != event.friendId)
+              .toList();
+
+          emit(SocialActionSuccess(
+            newState: currentState.copyWith(friends: updatedFriends),
+            message: '친구가 삭제되었습니다',
+          ));
+        } else {
+          emit(const SocialLoaded());
+        }
+      },
+    );
   }
 }

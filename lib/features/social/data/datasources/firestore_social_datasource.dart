@@ -235,6 +235,7 @@ class FirestoreSocialDataSource {
   // ========== 친구 관계 관련 ==========
 
   /// 친구 데이터 통합 조회 (친구 목록 + 받은 요청)
+  /// 친구와 요청자의 상세 정보도 함께 조회
   Future<Either<String, FriendsDataEntity>> getFriendsData(
     String userId,
   ) async {
@@ -244,7 +245,6 @@ class FirestoreSocialDataSource {
 
     try {
       AppLogger.info('FirestoreSocialDataSource', 'getFriendsData 시작 - userId: $userId');
-      AppLogger.info('FirestoreSocialDataSource', 'friendRequestsCollection: ${FirebaseConfig.friendRequestsCollection}');
 
       // 두 쿼리를 병렬로 실행
       final results = await Future.wait([
@@ -269,21 +269,58 @@ class FirestoreSocialDataSource {
       AppLogger.info('FirestoreSocialDataSource', 'friends 개수: ${friendsSnapshot.docs.length}');
       AppLogger.info('FirestoreSocialDataSource', 'requests 개수: ${requestsSnapshot.docs.length}');
 
-      // Friends 파싱
+      // 친구들과 요청자들의 userId 수집
+      final friendIds = friendsSnapshot.docs
+          .map((doc) => doc.data()['friendId'] as String)
+          .toList();
+      final senderIds = requestsSnapshot.docs
+          .map((doc) => doc.data()['senderId'] as String)
+          .toList();
+
+      // 모든 관련 사용자 ID 합치기 (중복 제거)
+      final allUserIds = {...friendIds, ...senderIds}.toList();
+
+      // 사용자 정보 조회 (10개씩 배치 - Firestore 제한)
+      final Map<String, Map<String, dynamic>> usersMap = {};
+      for (int i = 0; i < allUserIds.length; i += 10) {
+        final batch = allUserIds.skip(i).take(10).toList();
+        if (batch.isNotEmpty) {
+          final usersSnapshot = await _firestore
+              .collection(FirebaseConfig.usersCollection)
+              .where(FieldPath.documentId, whereIn: batch)
+              .get();
+
+          for (final doc in usersSnapshot.docs) {
+            usersMap[doc.id] = doc.data();
+          }
+        }
+      }
+
+      // Friends 파싱 (사용자 정보 포함)
       final friends = friendsSnapshot.docs.map((doc) {
         final data = doc.data();
+        final friendId = data['friendId'] as String;
+        final friendData = usersMap[friendId];
+
         return FriendshipEntity(
           id: doc.id,
           userId: data['userId'] as String,
-          friendId: data['friendId'] as String,
+          friendId: friendId,
           createdAt: (data['createdAt'] as Timestamp).toDate(),
+          friendName: friendData?['displayName'] as String?,
+          friendEmail: friendData?['email'] as String?,
+          friendPhotoUrl: friendData?['photoUrl'] as String?,
+          friendTotalScore: (friendData?['totalScore'] as num?)?.toInt(),
+          friendWorkoutCount: (friendData?['workoutCount'] as num?)?.toInt(),
         );
       }).toList();
 
-      // Requests 파싱
-      final requests = requestsSnapshot.docs
-          .map((doc) => FriendRequestModel.fromFirestore(doc))
-          .toList();
+      // Requests 파싱 (보낸 사람 정보 포함)
+      final requests = requestsSnapshot.docs.map((doc) {
+        final senderId = doc.data()['senderId'] as String;
+        final senderData = usersMap[senderId] ?? {};
+        return FriendRequestModel.fromFirestoreWithSender(doc, senderData);
+      }).toList();
 
       return Right(FriendsDataEntity(
         friends: friends,
@@ -292,17 +329,11 @@ class FirestoreSocialDataSource {
       ));
     } catch (e) {
       AppLogger.error('FirestoreSocialDataSource', '친구 데이터 조회 실패', e);
-      print('========================================');
-      print('친구 데이터 조회 에러 상세 정보:');
-      print('Error: $e');
-      print('UserId: $userId');
-      print('Collection: ${FirebaseConfig.friendRequestsCollection}');
-      print('========================================');
       return Left('친구 데이터 조회에 실패했습니다: $e');
     }
   }
 
-  /// 친구 목록 가져오기
+  /// 친구 목록 가져오기 (친구 정보 포함)
   Future<Either<String, List<FriendshipEntity>>> getFriends(
     String userId,
   ) async {
@@ -317,13 +348,46 @@ class FirestoreSocialDataSource {
           .orderBy('createdAt', descending: true)
           .get();
 
+      if (snapshot.docs.isEmpty) {
+        return const Right([]);
+      }
+
+      // 친구들의 userId 수집
+      final friendIds = snapshot.docs
+          .map((doc) => doc.data()['friendId'] as String)
+          .toList();
+
+      // 사용자 정보 조회 (10개씩 배치 - Firestore 제한)
+      final Map<String, Map<String, dynamic>> usersMap = {};
+      for (int i = 0; i < friendIds.length; i += 10) {
+        final batch = friendIds.skip(i).take(10).toList();
+        if (batch.isNotEmpty) {
+          final usersSnapshot = await _firestore
+              .collection(FirebaseConfig.usersCollection)
+              .where(FieldPath.documentId, whereIn: batch)
+              .get();
+
+          for (final doc in usersSnapshot.docs) {
+            usersMap[doc.id] = doc.data();
+          }
+        }
+      }
+
       final friends = snapshot.docs.map((doc) {
         final data = doc.data();
+        final friendId = data['friendId'] as String;
+        final friendData = usersMap[friendId];
+
         return FriendshipEntity(
           id: doc.id,
           userId: data['userId'] as String,
-          friendId: data['friendId'] as String,
+          friendId: friendId,
           createdAt: (data['createdAt'] as Timestamp).toDate(),
+          friendName: friendData?['displayName'] as String?,
+          friendEmail: friendData?['email'] as String?,
+          friendPhotoUrl: friendData?['photoUrl'] as String?,
+          friendTotalScore: (friendData?['totalScore'] as num?)?.toInt(),
+          friendWorkoutCount: (friendData?['workoutCount'] as num?)?.toInt(),
         );
       }).toList();
 

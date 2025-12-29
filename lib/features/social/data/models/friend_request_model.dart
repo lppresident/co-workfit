@@ -14,6 +14,9 @@ class FriendRequestModel extends FriendRequestEntity {
     required super.status,
     required super.createdAt,
     super.respondedAt,
+    super.senderName,
+    super.senderEmail,
+    super.senderPhotoUrl,
   });
 
   factory FriendRequestModel.fromJson(Map<String, dynamic> json) =>
@@ -38,6 +41,30 @@ class FriendRequestModel extends FriendRequestEntity {
     );
   }
 
+  /// Firestore에서 가져온 데이터에 sender 정보를 추가하여 생성
+  factory FriendRequestModel.fromFirestoreWithSender(
+    DocumentSnapshot doc,
+    Map<String, dynamic> senderData,
+  ) {
+    final data = doc.data() as Map<String, dynamic>;
+    return FriendRequestModel(
+      id: doc.id,
+      senderId: data['senderId'] as String,
+      receiverId: data['receiverId'] as String,
+      status: FriendRequestStatus.values.firstWhere(
+        (e) => e.name == data['status'],
+        orElse: () => FriendRequestStatus.pending,
+      ),
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      respondedAt: data['respondedAt'] != null
+          ? (data['respondedAt'] as Timestamp).toDate()
+          : null,
+      senderName: senderData['displayName'] as String?,
+      senderEmail: senderData['email'] as String?,
+      senderPhotoUrl: senderData['photoUrl'] as String?,
+    );
+  }
+
   Map<String, dynamic> toFirestore() {
     return {
       'senderId': senderId,
@@ -57,6 +84,9 @@ class FriendRequestModel extends FriendRequestEntity {
       status: entity.status,
       createdAt: entity.createdAt,
       respondedAt: entity.respondedAt,
+      senderName: entity.senderName,
+      senderEmail: entity.senderEmail,
+      senderPhotoUrl: entity.senderPhotoUrl,
     );
   }
 
@@ -68,6 +98,9 @@ class FriendRequestModel extends FriendRequestEntity {
     FriendRequestStatus? status,
     DateTime? createdAt,
     DateTime? respondedAt,
+    String? senderName,
+    String? senderEmail,
+    String? senderPhotoUrl,
   }) {
     return FriendRequestModel(
       id: id ?? this.id,
@@ -76,6 +109,9 @@ class FriendRequestModel extends FriendRequestEntity {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       respondedAt: respondedAt ?? this.respondedAt,
+      senderName: senderName ?? this.senderName,
+      senderEmail: senderEmail ?? this.senderEmail,
+      senderPhotoUrl: senderPhotoUrl ?? this.senderPhotoUrl,
     );
   }
 }

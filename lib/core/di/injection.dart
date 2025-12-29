@@ -52,6 +52,7 @@ import 'package:co_workfit/features/social/domain/usecases/get_received_friend_r
 import 'package:co_workfit/features/social/domain/usecases/accept_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/reject_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/search_users_by_nickname.dart';
+import 'package:co_workfit/features/social/domain/usecases/remove_friend.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_leaderboard.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_friends_leaderboard.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
@@ -226,6 +227,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => AcceptFriendRequest(sl()));
   sl.registerLazySingleton(() => RejectFriendRequest(sl()));
   sl.registerLazySingleton(() => SearchUsersByNickname(sl()));
+  sl.registerLazySingleton(() => RemoveFriend(sl()));
 
   // Use Cases - Leaderboard
   sl.registerLazySingleton(() => GetLeaderboard(sl()));
@@ -241,6 +243,7 @@ Future<void> initializeDependencies() async {
       acceptFriendRequest: sl(),
       rejectFriendRequest: sl(),
       searchUsersByNickname: sl(),
+      removeFriend: sl(),
     ),
   );
 

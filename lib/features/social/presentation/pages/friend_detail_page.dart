@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/core/presentation/base_page.dart';
 import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
 import 'package:co_workfit/core/constants/app_constants.dart';
 import 'package:co_workfit/core/utils/logger.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import 'package:co_workfit/features/social/domain/entities/friendship_entity.dart';
+import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
+import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
+import 'package:co_workfit/features/social/presentation/bloc/social_state.dart';
+import 'package:intl/intl.dart';
 
-/// 친구 상세 페이지 (고스트런 진입점)
+/// 친구 상세 페이지
 class FriendDetailPage extends BasePage {
-  final String friendId;
-  final String friendName;
+  final FriendshipEntity friend;
 
   const FriendDetailPage({
     super.key,
-    required this.friendId,
-    required this.friendName,
+    required this.friend,
   });
 
   @override
@@ -20,58 +26,129 @@ class FriendDetailPage extends BasePage {
 }
 
 class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
-  // TODO: Phase 5에서 실제 친구 데이터로 대체
-  final List<Map<String, dynamic>> _recentRuns = [];
-
   @override
   void loadInitialData() {
-    AppLogger.info('FriendDetailPage', 'Loading friend detail: ${widget.friendId}');
-    // TODO: Phase 5에서 BLoC 이벤트 발생
-    // context.read<FriendBloc>().add(LoadFriendDetail(widget.friendId));
-    // context.read<GhostRunBloc>().add(LoadFriendRecentRuns(widget.friendId));
+    AppLogger.info('FriendDetailPage', 'Loading friend detail: ${widget.friend.friendId}');
   }
 
-  void _startGhostRun() {
-    AppLogger.info('FriendDetailPage', 'Start ghost run with friend: ${widget.friendId}');
-    // TODO: Phase 5에서 고스트 선택 페이지로 이동
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('고스트런 기능은 Phase 5에서 구현됩니다'),
-        backgroundColor: Colors.blue,
-      ),
-    );
-  }
-
-  @override
-  PreferredSizeWidget buildAppBar(BuildContext context) {
-    return StandardAppBar(
-      title: widget.friendName,
-    );
-  }
-
-  @override
-  Widget buildBody(BuildContext context) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(AppConstants.defaultPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 친구 프로필 카드
-          _buildProfileCard(),
-          const SizedBox(height: 24),
-
-          // 고스트런 버튼 (가장 눈에 띄게)
-          _buildGhostRunButton(),
-          const SizedBox(height: 24),
-
-          // 최근 운동 기록
-          _buildRecentRunsSection(),
+  void _showDeleteConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('친구 삭제'),
+        content: Text('${widget.friend.friendName ?? '이 친구'}님을 친구 목록에서 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _removeFriend();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
         ],
       ),
     );
   }
 
+  void _removeFriend() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      AppLogger.info('FriendDetailPage', 'Remove friend: ${widget.friend.friendId}');
+      context.read<SocialBloc>().add(RemoveFriendEvent(
+            userId: authState.user.id,
+            friendId: widget.friend.friendId,
+          ));
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('yyyy년 M월 d일').format(date);
+  }
+
+  int _getDaysSinceFriend() {
+    return DateTime.now().difference(widget.friend.createdAt).inDays;
+  }
+
+  @override
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return StandardAppBar(
+      title: widget.friend.friendName ?? '친구 상세',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.delete_outline),
+          tooltip: '친구 삭제',
+          onPressed: _showDeleteConfirmDialog,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
+    return BlocListener<SocialBloc, SocialState>(
+      listener: (context, state) {
+        if (state is SocialActionSuccess && state.message == '친구가 삭제되었습니다') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context); // 삭제 후 이전 페이지로 돌아가기
+        } else if (state is SocialError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      child: BlocBuilder<SocialBloc, SocialState>(
+        builder: (context, state) {
+          final isLoading = state is SocialActionInProgress &&
+              state.actionType == 'remove_friend';
+
+          return Stack(
+            children: [
+              SingleChildScrollView(
+                padding: EdgeInsets.all(AppConstants.defaultPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildProfileCard(),
+                    const SizedBox(height: 24),
+                    _buildStatsSection(),
+                    const SizedBox(height: 24),
+                    _buildFriendshipInfoSection(),
+                    const SizedBox(height: 24),
+                    _buildDeleteButton(),
+                  ],
+                ),
+              ),
+              if (isLoading)
+                Container(
+                  color: Colors.black26,
+                  child: const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildProfileCard() {
+    final friendName = widget.friend.friendName ?? '알 수 없음';
+    final friendEmail = widget.friend.friendEmail ?? '';
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(AppConstants.defaultPadding),
@@ -79,13 +156,21 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
           children: [
             // 프로필 아바타
             CircleAvatar(
-              radius: 40,
+              radius: 48,
+              backgroundImage: widget.friend.friendPhotoUrl != null
+                  ? NetworkImage(widget.friend.friendPhotoUrl!)
+                  : null,
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              child: Icon(
-                Icons.person,
-                size: 40,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              child: widget.friend.friendPhotoUrl == null
+                  ? Text(
+                      friendName.isNotEmpty ? friendName[0].toUpperCase() : '?',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(width: 16),
 
@@ -95,27 +180,20 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.friendName,
+                    friendName,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '함께 달린 지 30일',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  // 통계 요약
-                  Row(
-                    children: [
-                      _buildStatChip(Icons.directions_run, '127회'),
-                      const SizedBox(width: 8),
-                      _buildStatChip(Icons.social_distance, '523km'),
-                    ],
-                  ),
+                  if (friendEmail.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      friendEmail,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -125,94 +203,157 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
     );
   }
 
-  Widget _buildStatChip(IconData icon, String label) {
-    return Chip(
-      avatar: Icon(icon, size: 16),
-      label: Text(label, style: const TextStyle(fontSize: 12)),
-      visualDensity: VisualDensity.compact,
-    );
-  }
+  Widget _buildStatsSection() {
+    final totalScore = widget.friend.friendTotalScore ?? 0;
+    final workoutCount = widget.friend.friendWorkoutCount ?? 0;
 
-  Widget _buildGhostRunButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _startGhostRun,
-        icon: const Icon(Icons.directions_run, size: 28),
-        label: const Text(
-          '이 친구의 고스트로 달리기',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        style: ElevatedButton.styleFrom(
-          padding: EdgeInsets.all(AppConstants.defaultPadding),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecentRunsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '최근 러닝 기록',
+          '운동 통계',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
         ),
         const SizedBox(height: 12),
-
-        // TODO: Phase 5에서 실제 데이터로 대체
-        _recentRuns.isEmpty
-            ? Card(
-                child: Padding(
-                  padding: EdgeInsets.all(AppConstants.defaultPadding * 2),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.directions_run_outlined,
-                          size: 48,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '최근 러닝 기록이 없습니다',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              )
-            : ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _recentRuns.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: const Icon(Icons.directions_run),
-                      title: Text('러닝 ${index + 1}'),
-                      subtitle: const Text('5.2km • 28분 • 5:23/km'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.play_arrow),
-                        onPressed: () {
-                          AppLogger.info('FriendDetailPage', 'Ghost run selected: ${index + 1}');
-                          _startGhostRun();
-                        },
-                      ),
-                    ),
-                  );
-                },
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.emoji_events,
+                label: '총 점수',
+                value: totalScore.toString(),
+                color: Colors.amber,
               ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.directions_run,
+                label: '운동 횟수',
+                value: '$workoutCount회',
+                color: Colors.blue,
+              ),
+            ),
+          ],
+        ),
       ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(AppConstants.defaultPadding),
+        child: Column(
+          children: [
+            Icon(icon, size: 32, color: color),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFriendshipInfoSection() {
+    final daysSinceFriend = _getDaysSinceFriend();
+    final friendSince = _formatDate(widget.friend.createdAt);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '친구 정보',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: EdgeInsets.all(AppConstants.defaultPadding),
+            child: Column(
+              children: [
+                _buildInfoRow(
+                  icon: Icons.calendar_today,
+                  label: '친구가 된 날',
+                  value: friendSince,
+                ),
+                const Divider(),
+                _buildInfoRow(
+                  icon: Icons.schedule,
+                  label: '함께한 기간',
+                  value: daysSinceFriend == 0 ? '오늘' : '$daysSinceFriend일',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeleteButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _showDeleteConfirmDialog,
+        icon: const Icon(Icons.person_remove, color: Colors.red),
+        label: const Text('친구 삭제'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.red,
+          side: const BorderSide(color: Colors.red),
+          padding: EdgeInsets.all(AppConstants.defaultPadding),
+        ),
+      ),
     );
   }
 }
