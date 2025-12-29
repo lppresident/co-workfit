@@ -686,6 +686,27 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
           ],
         ),
         actions: [
+          // 수정된 경우에만 초기화 버튼 표시
+          if (workout.hasDistanceCorrection)
+            TextButton(
+              onPressed: () {
+                // BLoC에 거리 초기화 이벤트 발생
+                context.read<WorkoutBloc>().add(
+                      ResetWorkoutDistanceEvent(workoutId: workout.id),
+                    );
+
+                // 로컬 상태 업데이트 (correctedDistance를 null로)
+                setState(() {
+                  workout = workout.copyWith(clearCorrectedDistance: true);
+                });
+
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('원래 거리로 복원되었습니다.'), backgroundColor: Colors.blue),
+                );
+              },
+              child: const Text('초기화', style: TextStyle(color: Colors.orange)),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('취소'),

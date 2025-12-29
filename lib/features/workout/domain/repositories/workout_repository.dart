@@ -39,6 +39,11 @@ abstract class WorkoutRepository {
     required double correctedDistance,
   });
 
+  /// 운동 거리 수정 초기화 (원래 값으로 되돌리기)
+  Future<Either<String, WorkoutEntity>> resetWorkoutDistance({
+    required String workoutId,
+  });
+
   /// 로컬에 저장된 모든 운동 데이터
   Future<Either<String, List<WorkoutEntity>>> getLocalWorkouts();
 

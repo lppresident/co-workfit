@@ -65,3 +65,15 @@ class UpdateWorkoutDistanceEvent extends WorkoutEvent {
   @override
   List<Object?> get props => [workoutId, correctedDistance];
 }
+
+/// 운동 거리 초기화 이벤트 (원래 값으로 되돌리기)
+class ResetWorkoutDistanceEvent extends WorkoutEvent {
+  final String workoutId;
+
+  const ResetWorkoutDistanceEvent({
+    required this.workoutId,
+  });
+
+  @override
+  List<Object?> get props => [workoutId];
+}

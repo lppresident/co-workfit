@@ -422,6 +422,45 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
+  Future<Either<String, WorkoutEntity>> resetWorkoutDistance({
+    required String workoutId,
+  }) async {
+    try {
+      AppLogger.info('WorkoutRepo', '운동 거리 초기화: $workoutId');
+
+      // 로컬 저장소에서 수정된 거리 제거
+      final correctedDistances = await _loadCorrectedDistances();
+      correctedDistances.remove(workoutId);
+      _correctedDistancesCache = correctedDistances;
+      await _saveCorrectedDistances();
+
+      // 현재 운동 데이터 조회 (최근 30일)
+      final now = DateTime.now();
+      final startDate = now.subtract(const Duration(days: 30));
+      final workoutsResult = await getWorkouts(
+        startDate: startDate,
+        endDate: now,
+      );
+
+      return workoutsResult.fold(
+        (error) => Left('운동 데이터 조회 실패: $error'),
+        (workouts) {
+          final resetWorkout = workouts.firstWhere(
+            (w) => w.id == workoutId,
+            orElse: () => throw Exception('운동 기록을 찾을 수 없습니다.'),
+          );
+
+          AppLogger.info('WorkoutRepo', '거리 초기화 완료: ${resetWorkout.distance}km (원래 값)');
+          return Right(resetWorkout);
+        },
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error('WorkoutRepo', '거리 초기화 실패', e, stackTrace);
+      return Left('거리 초기화 실패: $e');
+    }
+  }
+
+  @override
   Future<Either<String, List<WorkoutEntity>>> getLocalWorkouts() async {
     // TODO: 로컬 데이터베이스에서 가져오기 구현
     return Left('로컬 조회 기능 아직 미구현');

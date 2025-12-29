@@ -5,6 +5,7 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart
 import 'package:co_workfit/features/workout/domain/usecases/request_health_permission.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_workouts.dart';
 import 'package:co_workfit/features/workout/domain/usecases/update_workout_distance.dart';
+import 'package:co_workfit/features/workout/domain/usecases/reset_workout_distance.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 /// 운동 BLoC
@@ -14,6 +15,7 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
   final GetRecentWorkouts getRecentWorkouts;
   final GetWorkouts getWorkouts;
   final UpdateWorkoutDistance updateWorkoutDistance;
+  final ResetWorkoutDistance resetWorkoutDistance;
 
   WorkoutBloc({
     required this.requestHealthPermission,
@@ -21,6 +23,7 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     required this.getRecentWorkouts,
     required this.getWorkouts,
     required this.updateWorkoutDistance,
+    required this.resetWorkoutDistance,
   }) : super(const WorkoutInitial()) {
     on<RequestHealthPermissionEvent>(_onRequestHealthPermission);
     on<FetchTodayWorkoutsEvent>(_onFetchTodayWorkouts);
@@ -28,6 +31,7 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     on<FetchWorkoutsEvent>(_onFetchWorkouts);
     on<RefreshWorkoutsEvent>(_onRefreshWorkouts);
     on<UpdateWorkoutDistanceEvent>(_onUpdateWorkoutDistance);
+    on<ResetWorkoutDistanceEvent>(_onResetWorkoutDistance);
   }
 
   Future<void> _onRequestHealthPermission(
@@ -286,6 +290,47 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
         final updatedWorkouts = currentState.workouts.map((workout) {
           if (workout.id == updatedWorkout.id) {
             return updatedWorkout;
+          }
+          return workout;
+        }).toList();
+
+        // 통계 재계산 (fromWorkouts 팩토리 사용)
+        emit(WorkoutLoaded.fromWorkouts(updatedWorkouts));
+      },
+    );
+  }
+
+  Future<void> _onResetWorkoutDistance(
+    ResetWorkoutDistanceEvent event,
+    Emitter<WorkoutState> emit,
+  ) async {
+    AppLogger.info('WorkoutBloc', '거리 초기화 시작: ${event.workoutId}');
+
+    // 현재 상태가 WorkoutLoaded인 경우만 처리
+    if (state is! WorkoutLoaded) {
+      AppLogger.warning('WorkoutBloc', '현재 상태가 WorkoutLoaded가 아님: $state');
+      return;
+    }
+
+    final currentState = state as WorkoutLoaded;
+
+    final result = await resetWorkoutDistance(
+      ResetWorkoutDistanceParams(workoutId: event.workoutId),
+    );
+
+    result.fold(
+      (failure) {
+        final errorMessage = failure.message;
+        AppLogger.error('WorkoutBloc', '거리 초기화 실패: $errorMessage');
+        emit(WorkoutError(errorMessage));
+      },
+      (resetWorkout) {
+        AppLogger.info('WorkoutBloc', '거리 초기화 완료: ${resetWorkout.distance}km (원래 값)');
+
+        // 기존 운동 목록에서 초기화된 운동 업데이트
+        final updatedWorkouts = currentState.workouts.map((workout) {
+          if (workout.id == resetWorkout.id) {
+            return resetWorkout;
           }
           return workout;
         }).toList();

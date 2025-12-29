@@ -100,6 +100,7 @@ class WorkoutEntity extends Equatable {
     int? durationMinutes,
     double? distance,
     double? correctedDistance,
+    bool clearCorrectedDistance = false, // true면 correctedDistance를 null로 설정
     int? calories,
     int? averageHeartRate,
     int? maxHeartRate,
@@ -119,7 +120,7 @@ class WorkoutEntity extends Equatable {
       endTime: endTime ?? this.endTime,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       distance: distance ?? this.distance,
-      correctedDistance: correctedDistance ?? this.correctedDistance,
+      correctedDistance: clearCorrectedDistance ? null : (correctedDistance ?? this.correctedDistance),
       calories: calories ?? this.calories,
       averageHeartRate: averageHeartRate ?? this.averageHeartRate,
       maxHeartRate: maxHeartRate ?? this.maxHeartRate,
