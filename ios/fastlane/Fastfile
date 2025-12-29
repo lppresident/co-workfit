@@ -98,4 +98,20 @@ platform :ios do
       app_identifier: "com.hansol.coworkfit"
     )
   end
+
+  desc "Upload IPA to TestFlight (for CI)"
+  lane :upload_testflight do |options|
+    # Setup API Key first
+    setup_api_key
+
+    ipa_path = options[:ipa] || "../build/ios/ipa/co_workfit.ipa"
+    changelog = options[:changelog] || "New build"
+
+    upload_to_testflight(
+      ipa: ipa_path,
+      skip_waiting_for_build_processing: true,
+      app_identifier: "com.hansol.coworkfit",
+      changelog: changelog
+    )
+  end
 end
