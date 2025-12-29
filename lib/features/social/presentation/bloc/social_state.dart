@@ -21,28 +21,42 @@ class SocialLoading extends SocialState {
 class SocialLoaded extends SocialState {
   final List<FriendshipEntity> friends;
   final List<FriendRequestEntity> receivedRequests;
+  final List<FriendRequestEntity> sentRequests; // 보낸 친구 요청 목록
   final List<UserEntity> searchResults;
   final int requestCount;
 
   const SocialLoaded({
     this.friends = const [],
     this.receivedRequests = const [],
+    this.sentRequests = const [],
     this.searchResults = const [],
     this.requestCount = 0,
   });
 
   @override
-  List<Object?> get props => [friends, receivedRequests, searchResults, requestCount];
+  List<Object?> get props => [friends, receivedRequests, sentRequests, searchResults, requestCount];
+
+  /// 특정 사용자에게 이미 친구 요청을 보냈는지 확인
+  bool hasSentRequestTo(String userId) {
+    return sentRequests.any((req) => req.receiverId == userId);
+  }
+
+  /// 특정 사용자가 이미 친구인지 확인
+  bool isFriend(String userId) {
+    return friends.any((f) => f.friendId == userId);
+  }
 
   SocialLoaded copyWith({
     List<FriendshipEntity>? friends,
     List<FriendRequestEntity>? receivedRequests,
+    List<FriendRequestEntity>? sentRequests,
     List<UserEntity>? searchResults,
     int? requestCount,
   }) {
     return SocialLoaded(
       friends: friends ?? this.friends,
       receivedRequests: receivedRequests ?? this.receivedRequests,
+      sentRequests: sentRequests ?? this.sentRequests,
       searchResults: searchResults ?? this.searchResults,
       requestCount: requestCount ?? this.requestCount,
     );

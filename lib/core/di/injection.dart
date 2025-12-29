@@ -49,6 +49,7 @@ import 'package:co_workfit/features/social/domain/usecases/get_friends.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_friends_data.dart';
 import 'package:co_workfit/features/social/domain/usecases/send_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_received_friend_requests.dart';
+import 'package:co_workfit/features/social/domain/usecases/get_sent_friend_requests.dart';
 import 'package:co_workfit/features/social/domain/usecases/accept_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/reject_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/search_users_by_nickname.dart';
@@ -225,6 +226,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => GetFriendsData(sl()));
   sl.registerLazySingleton(() => SendFriendRequest(sl()));
   sl.registerLazySingleton(() => GetReceivedFriendRequests(sl()));
+  sl.registerLazySingleton(() => GetSentFriendRequests(sl()));
   sl.registerLazySingleton(() => AcceptFriendRequest(sl()));
   sl.registerLazySingleton(() => RejectFriendRequest(sl()));
   sl.registerLazySingleton(() => SearchUsersByNickname(sl()));
@@ -241,6 +243,7 @@ Future<void> initializeDependencies() async {
       getFriendsData: sl(),
       sendFriendRequest: sl(),
       getReceivedFriendRequests: sl(),
+      getSentFriendRequests: sl(),
       acceptFriendRequest: sl(),
       rejectFriendRequest: sl(),
       searchUsersByNickname: sl(),

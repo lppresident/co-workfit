@@ -3,10 +3,12 @@ import 'package:rxdart/rxdart.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_state.dart';
 import 'package:co_workfit/features/social/domain/entities/friendship_entity.dart';
+import 'package:co_workfit/features/social/domain/entities/friend_request_entity.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_friends.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_friends_data.dart';
 import 'package:co_workfit/features/social/domain/usecases/send_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/get_received_friend_requests.dart';
+import 'package:co_workfit/features/social/domain/usecases/get_sent_friend_requests.dart';
 import 'package:co_workfit/features/social/domain/usecases/accept_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/reject_friend_request.dart';
 import 'package:co_workfit/features/social/domain/usecases/search_users_by_nickname.dart';
@@ -17,6 +19,7 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
   final GetFriendsData getFriendsData;
   final SendFriendRequest sendFriendRequest;
   final GetReceivedFriendRequests getReceivedFriendRequests;
+  final GetSentFriendRequests getSentFriendRequests;
   final AcceptFriendRequest acceptFriendRequest;
   final RejectFriendRequest rejectFriendRequest;
   final SearchUsersByNickname searchUsersByNickname;
@@ -27,6 +30,7 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     required this.getFriendsData,
     required this.sendFriendRequest,
     required this.getReceivedFriendRequests,
+    required this.getSentFriendRequests,
     required this.acceptFriendRequest,
     required this.rejectFriendRequest,
     required this.searchUsersByNickname,
@@ -36,6 +40,7 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     on<LoadFriends>(_onLoadFriends);
     on<RefreshFriends>(_onRefreshFriends);
     on<LoadReceivedFriendRequests>(_onLoadReceivedFriendRequests);
+    on<LoadSentFriendRequests>(_onLoadSentFriendRequests);
     on<SendFriendRequestEvent>(_onSendFriendRequest);
     on<AcceptFriendRequestEvent>(_onAcceptFriendRequest);
     on<RejectFriendRequestEvent>(_onRejectFriendRequest);
@@ -122,6 +127,32 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     );
   }
 
+  Future<void> _onLoadSentFriendRequests(
+    LoadSentFriendRequests event,
+    Emitter<SocialState> emit,
+  ) async {
+    final currentState = state;
+
+    final result = await getSentFriendRequests(event.userId);
+
+    result.fold(
+      (failure) {
+        if (currentState is SocialLoaded) {
+          emit(SocialError(failure.message, previousState: currentState));
+        } else {
+          emit(SocialError(failure.message));
+        }
+      },
+      (requests) {
+        if (currentState is SocialLoaded) {
+          emit(currentState.copyWith(sentRequests: requests));
+        } else {
+          emit(SocialLoaded(sentRequests: requests));
+        }
+      },
+    );
+  }
+
   Future<void> _onSendFriendRequest(
     SendFriendRequestEvent event,
     Emitter<SocialState> emit,
@@ -150,8 +181,21 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
       },
       (_) {
         if (currentState is SocialLoaded) {
+          // 새로 보낸 요청을 sentRequests에 추가
+          final newRequest = FriendRequestEntity(
+            id: '', // 서버에서 생성된 ID는 알 수 없음
+            senderId: event.senderId,
+            receiverId: event.receiverId,
+            status: FriendRequestStatus.pending,
+            createdAt: DateTime.now(),
+          );
+          final updatedSentRequests = [...currentState.sentRequests, newRequest];
+
           emit(SocialActionSuccess(
-            newState: currentState.copyWith(searchResults: []),
+            newState: currentState.copyWith(
+              searchResults: [],
+              sentRequests: updatedSentRequests,
+            ),
             message: '친구 요청을 보냈습니다',
           ));
         } else {

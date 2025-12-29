@@ -50,6 +50,21 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  Future<Either<Failure, List<FriendRequestEntity>>> getSentFriendRequests(
+    String userId,
+  ) async {
+    try {
+      final result = await dataSource.getSentFriendRequests(userId);
+      return result.fold(
+        (error) => Left(ServerFailure(error)),
+        (requests) => Right(requests),
+      );
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> acceptFriendRequest(String requestId) async {
     try {
       final result = await dataSource.acceptFriendRequest(requestId);

@@ -46,6 +46,15 @@ class LoadReceivedFriendRequests extends SocialEvent {
   List<Object?> get props => [userId];
 }
 
+class LoadSentFriendRequests extends SocialEvent {
+  final String userId;
+
+  const LoadSentFriendRequests(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
+}
+
 class SendFriendRequestEvent extends SocialEvent {
   final String senderId;
   final String receiverId;

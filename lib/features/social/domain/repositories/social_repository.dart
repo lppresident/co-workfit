@@ -17,6 +17,10 @@ abstract class SocialRepository {
     String userId,
   );
 
+  Future<Either<Failure, List<FriendRequestEntity>>> getSentFriendRequests(
+    String userId,
+  );
+
   Future<Either<Failure, void>> acceptFriendRequest(String requestId);
 
   Future<Either<Failure, void>> rejectFriendRequest(String requestId);

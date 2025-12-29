@@ -28,7 +28,11 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
 
   @override
   void loadInitialData() {
-    // 초기 데이터 로딩 없음
+    // 보낸 친구 요청 목록 로드
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      context.read<SocialBloc>().add(LoadSentFriendRequests(authState.user.id));
+    }
   }
 
   void _searchUsers() {
@@ -61,19 +65,37 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
   Widget buildBody(BuildContext context) {
     return BlocBuilder<SocialBloc, SocialState>(
       builder: (context, state) {
-        final searchResults = state is SocialLoaded
-            ? state.searchResults
-            : state is SocialActionSuccess
-                ? state.newState.searchResults
-                : state is SocialActionInProgress
-                    ? state.currentState.searchResults
-                    : <dynamic>[];
+        // 현재 상태에서 데이터 추출
+        SocialLoaded? loadedState;
+        if (state is SocialLoaded) {
+          loadedState = state;
+        } else if (state is SocialActionSuccess) {
+          loadedState = state.newState;
+        } else if (state is SocialActionInProgress) {
+          loadedState = state.currentState;
+        } else if (state is SocialError && state.previousState != null) {
+          loadedState = state.previousState;
+        }
+
+        final searchResults = loadedState?.searchResults ?? <dynamic>[];
+        final sentRequests = loadedState?.sentRequests ?? [];
+        final friends = loadedState?.friends ?? [];
 
         final isSearching = state is SocialActionInProgress &&
             state.actionType == 'search_users';
 
         final authState = context.read<AuthBloc>().state;
         final currentUserId = authState is Authenticated ? authState.user.id : null;
+
+        // 이미 요청을 보냈는지 확인하는 헬퍼 함수
+        bool hasSentRequestTo(String userId) {
+          return sentRequests.any((req) => req.receiverId == userId);
+        }
+
+        // 이미 친구인지 확인하는 헬퍼 함수
+        bool isFriend(String userId) {
+          return friends.any((f) => f.friendId == userId);
+        }
 
         return Padding(
           padding: const EdgeInsets.all(AppConstants.defaultPadding),
@@ -131,6 +153,38 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
                       final user = searchResults[index];
                       final isCurrentUser = user.id == currentUserId;
 
+                      // 버튼 상태 결정
+                      final bool alreadySent = hasSentRequestTo(user.id);
+                      final bool alreadyFriend = isFriend(user.id);
+
+                      Widget trailingWidget;
+                      if (isCurrentUser) {
+                        trailingWidget = const Chip(
+                          label: Text('나'),
+                          backgroundColor: Colors.blue,
+                        );
+                      } else if (alreadyFriend) {
+                        trailingWidget = const Chip(
+                          label: Text('친구'),
+                          backgroundColor: Colors.green,
+                        );
+                      } else if (alreadySent) {
+                        trailingWidget = OutlinedButton.icon(
+                          onPressed: null,
+                          icon: const Icon(Icons.check, size: 18),
+                          label: const Text('요청됨'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.grey,
+                          ),
+                        );
+                      } else {
+                        trailingWidget = ElevatedButton.icon(
+                          onPressed: () => _sendFriendRequest(user.id),
+                          icon: const Icon(Icons.person_add, size: 18),
+                          label: const Text('요청'),
+                        );
+                      }
+
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 8),
                         child: ListTile(
@@ -144,16 +198,7 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
                           ),
                           title: Text(user.displayName),
                           subtitle: Text('@${user.nickname}'),
-                          trailing: isCurrentUser
-                              ? const Chip(
-                                  label: Text('나'),
-                                  backgroundColor: Colors.blue,
-                                )
-                              : ElevatedButton.icon(
-                                  onPressed: () => _sendFriendRequest(user.id),
-                                  icon: const Icon(Icons.person_add, size: 18),
-                                  label: const Text('요청'),
-                                ),
+                          trailing: trailingWidget,
                         ),
                       );
                     },
