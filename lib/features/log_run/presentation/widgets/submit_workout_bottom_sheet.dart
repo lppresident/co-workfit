@@ -10,11 +10,15 @@ import 'package:intl/intl.dart';
 /// 운동 기록 제출 Bottom Sheet
 class SubmitWorkoutBottomSheet extends StatefulWidget {
   final String challengeId;
+  final DateTime startDate;
+  final DateTime endDate;
   final Function(String workoutId, double distance, String workoutType, DateTime workoutDate) onSubmit;
 
   const SubmitWorkoutBottomSheet({
     super.key,
     required this.challengeId,
+    required this.startDate,
+    required this.endDate,
     required this.onSubmit,
   });
 
@@ -88,16 +92,68 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                     }
 
                     if (state is WorkoutLoaded) {
-                      // 러닝과 걷기만 필터링
+                      // 챌린지 기간 계산
+                      final startOfStartDate = DateTime(
+                        widget.startDate.year,
+                        widget.startDate.month,
+                        widget.startDate.day,
+                      );
+                      final endOfEndDate = DateTime(
+                        widget.endDate.year,
+                        widget.endDate.month,
+                        widget.endDate.day,
+                        23,
+                        59,
+                        59,
+                      );
+
+                      // 러닝/걷기 + 챌린지 기간 내 운동만 필터링
                       final validWorkouts = state.workouts
                           .where((workout) =>
-                              workout.type == WorkoutType.running ||
-                              workout.type == WorkoutType.walking)
+                              (workout.type == WorkoutType.running ||
+                                  workout.type == WorkoutType.walking) &&
+                              workout.startTime.isAfter(
+                                  startOfStartDate.subtract(const Duration(seconds: 1))) &&
+                              workout.startTime.isBefore(
+                                  endOfEndDate.add(const Duration(seconds: 1))))
                           .toList();
 
                       if (validWorkouts.isEmpty) {
-                        return const Center(
-                          child: Text('제출할 러닝/걷기 기록이 없습니다.'),
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.event_busy,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  '제출 가능한 운동 기록이 없습니다',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '챌린지 기간: ${DateFormat('MM/dd').format(widget.startDate)} ~ ${DateFormat('MM/dd').format(widget.endDate)}',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '이 기간 내의 러닝/걷기 기록만 제출 가능합니다',
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         );
                       }
 
@@ -132,7 +188,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.withOpacity(0.1),
+                                        color: Colors.orange.withValues(alpha: 0.1),
                                         border: Border.all(color: Colors.orange, width: 1),
                                         borderRadius: BorderRadius.circular(4),
                                       ),

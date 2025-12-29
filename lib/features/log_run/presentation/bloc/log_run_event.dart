@@ -33,17 +33,17 @@ class CreateChallenge extends LogRunEvent {
   final String userId;
   final String userNickname;
   final double targetWeight;
-  final int? recordTimeLimit;
-  final bool? allowFutureRecordsOnly;
-  final DateTime? expiresAt;
+  final DateTime startDate;
+  final DateTime endDate;
+  final int? maxParticipants;
 
   const CreateChallenge({
     required this.userId,
     required this.userNickname,
     required this.targetWeight,
-    this.recordTimeLimit,
-    this.allowFutureRecordsOnly,
-    this.expiresAt,
+    required this.startDate,
+    required this.endDate,
+    this.maxParticipants,
   });
 
   @override
@@ -51,9 +51,9 @@ class CreateChallenge extends LogRunEvent {
         userId,
         userNickname,
         targetWeight,
-        recordTimeLimit,
-        allowFutureRecordsOnly,
-        expiresAt,
+        startDate,
+        endDate,
+        maxParticipants,
       ];
 }
 
@@ -197,4 +197,20 @@ class RefreshChallenges extends LogRunEvent {
 
   @override
   List<Object?> get props => [userId];
+}
+
+/// 기여 기록 삭제
+class DeleteContributionEvent extends LogRunEvent {
+  final String challengeId;
+  final String contributionId;
+  final String userId;
+
+  const DeleteContributionEvent({
+    required this.challengeId,
+    required this.contributionId,
+    required this.userId,
+  });
+
+  @override
+  List<Object?> get props => [challengeId, contributionId, userId];
 }

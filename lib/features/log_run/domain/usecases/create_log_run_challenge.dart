@@ -16,9 +16,9 @@ class CreateLogRunChallenge implements UseCase<LogRunChallengeEntity, CreateChal
       userId: params.userId,
       userNickname: params.userNickname,
       targetWeight: params.targetWeight,
-      recordTimeLimit: params.recordTimeLimit,
-      allowFutureRecordsOnly: params.allowFutureRecordsOnly,
-      expiresAt: params.expiresAt,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      maxParticipants: params.maxParticipants,
     );
   }
 }
@@ -27,16 +27,16 @@ class CreateChallengeParams {
   final String userId;
   final String userNickname;
   final double targetWeight;
-  final int? recordTimeLimit;
-  final bool? allowFutureRecordsOnly;
-  final DateTime? expiresAt;
+  final DateTime startDate;
+  final DateTime endDate;
+  final int? maxParticipants;
 
   CreateChallengeParams({
     required this.userId,
     required this.userNickname,
     required this.targetWeight,
-    this.recordTimeLimit,
-    this.allowFutureRecordsOnly,
-    this.expiresAt,
+    required this.startDate,
+    required this.endDate,
+    this.maxParticipants,
   });
 }

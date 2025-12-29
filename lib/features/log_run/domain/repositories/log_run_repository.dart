@@ -10,9 +10,9 @@ abstract class LogRunRepository {
     required String userId,
     required String userNickname,
     required double targetWeight,
-    int? recordTimeLimit,
-    bool? allowFutureRecordsOnly,
-    DateTime? expiresAt,
+    required DateTime startDate,
+    required DateTime endDate,
+    int? maxParticipants,
   });
 
   /// 챌린지 참가
@@ -83,6 +83,13 @@ abstract class LogRunRepository {
   /// 챌린지 삭제 (방장만 가능)
   Future<Either<Failure, void>> deleteChallenge({
     required String challengeId,
+    required String userId,
+  });
+
+  /// 기여 기록 삭제
+  Future<Either<Failure, void>> deleteContribution({
+    required String challengeId,
+    required String contributionId,
     required String userId,
   });
 }

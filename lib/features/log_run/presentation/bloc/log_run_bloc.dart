@@ -12,6 +12,7 @@ import 'package:co_workfit/features/log_run/domain/usecases/join_challenge_by_in
 import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_active_challenges.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contributions.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/delete_contribution.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
@@ -23,6 +24,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
   final SubmitWorkoutToChallenge submitWorkoutUseCase;
   final GetActiveChallenges getActiveChallengesUseCase;
   final GetChallengeContributions getChallengeContributionsUseCase;
+  final DeleteContribution deleteContributionUseCase;
   final LogRunRepository repository;
 
   StreamSubscription? _challengeSubscription;
@@ -35,6 +37,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     required this.submitWorkoutUseCase,
     required this.getActiveChallengesUseCase,
     required this.getChallengeContributionsUseCase,
+    required this.deleteContributionUseCase,
     required this.repository,
   }) : super(const LogRunInitial()) {
     on<LoadActiveChallenges>(_onLoadActiveChallenges);
@@ -49,6 +52,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     on<WatchChallenge>(_onWatchChallenge);
     on<WatchContributions>(_onWatchContributions);
     on<DeleteChallenge>(_onDeleteChallenge);
+    on<DeleteContributionEvent>(_onDeleteContribution);
     on<RefreshChallenges>(_onRefreshChallenges);
   }
 
@@ -129,9 +133,9 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
         userId: event.userId,
         userNickname: event.userNickname,
         targetWeight: event.targetWeight,
-        recordTimeLimit: event.recordTimeLimit,
-        allowFutureRecordsOnly: event.allowFutureRecordsOnly,
-        expiresAt: event.expiresAt,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        maxParticipants: event.maxParticipants,
       ),
     );
 
@@ -410,6 +414,30 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
       (_) {
         AppLogger.info('LogRunBloc', 'Challenge deleted: ${event.challengeId}');
         emit(ChallengeDeleted(event.challengeId));
+      },
+    );
+  }
+
+  Future<void> _onDeleteContribution(
+    DeleteContributionEvent event,
+    Emitter<LogRunState> emit,
+  ) async {
+    final result = await deleteContributionUseCase(
+      DeleteContributionParams(
+        challengeId: event.challengeId,
+        contributionId: event.contributionId,
+        userId: event.userId,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(LogRunError(failure.toString())),
+      (_) {
+        AppLogger.info('LogRunBloc', 'Contribution deleted: ${event.contributionId}');
+        emit(ContributionDeleted(
+          contributionId: event.contributionId,
+          challengeId: event.challengeId,
+        ));
       },
     );
   }

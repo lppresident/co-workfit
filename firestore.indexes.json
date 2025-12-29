@@ -33,7 +33,23 @@
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "friendId", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "log_run_challenges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "participants", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "expireAt", "order": "ASCENDING" }
+      ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "log_run_challenges",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    }
+  ]
 }

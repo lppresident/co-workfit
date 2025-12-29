@@ -153,17 +153,11 @@ class FirestoreSocialDataSource {
 
       final request = FriendRequestModel.fromFirestore(requestDoc);
 
-      // 친구 요청 상태 업데이트
-      await _firestore
-          .collection(FirebaseConfig.friendRequestsCollection)
-          .doc(requestId)
-          .update({
-        'status': FriendRequestStatus.accepted.name,
-        'respondedAt': FieldValue.serverTimestamp(),
-      });
-
-      // 양방향 친구 관계 생성
+      // 양방향 친구 관계 생성 + 친구 요청 삭제를 batch로 처리
       final batch = _firestore.batch();
+
+      // 친구 요청 삭제 (accepted 상태로 유지할 필요 없음)
+      batch.delete(requestDoc.reference);
 
       // 보낸 사람 -> 받은 사람
       final senderFriendship =
@@ -200,13 +194,11 @@ class FirestoreSocialDataSource {
     }
 
     try {
+      // 거절된 요청은 바로 삭제 (rejected 상태로 유지할 필요 없음)
       await _firestore
           .collection(FirebaseConfig.friendRequestsCollection)
           .doc(requestId)
-          .update({
-        'status': FriendRequestStatus.rejected.name,
-        'respondedAt': FieldValue.serverTimestamp(),
-      });
+          .delete();
 
       return const Right(null);
     } catch (e) {

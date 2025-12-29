@@ -68,6 +68,7 @@ import 'package:co_workfit/features/log_run/domain/usecases/join_challenge_by_in
 import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_active_challenges.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contributions.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/delete_contribution.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
 
 final sl = GetIt.instance;
@@ -273,6 +274,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => SubmitWorkoutToChallenge(sl()));
   sl.registerLazySingleton(() => GetActiveChallenges(sl()));
   sl.registerLazySingleton(() => GetChallengeContributions(sl()));
+  sl.registerLazySingleton(() => DeleteContribution(sl()));
 
   // BLoC
   sl.registerFactory(
@@ -283,6 +285,7 @@ Future<void> initializeDependencies() async {
       submitWorkoutUseCase: sl(),
       getActiveChallengesUseCase: sl(),
       getChallengeContributionsUseCase: sl(),
+      deleteContributionUseCase: sl(),
       repository: sl(),
     ),
   );

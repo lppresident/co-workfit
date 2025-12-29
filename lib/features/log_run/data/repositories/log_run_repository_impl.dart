@@ -11,13 +11,22 @@ class LogRunRepositoryImpl implements LogRunRepository {
 
   @override
   Future<Either<Failure, LogRunChallengeEntity>> createChallenge({
-    required String userId, required String userNickname, required double targetWeight,
-    int? recordTimeLimit, bool? allowFutureRecordsOnly, DateTime? expiresAt,
+    required String userId,
+    required String userNickname,
+    required double targetWeight,
+    required DateTime startDate,
+    required DateTime endDate,
+    int? maxParticipants,
   }) async {
     try {
-      final challenge = await dataSource.createChallenge(userId: userId, userNickname: userNickname,
-        targetWeight: targetWeight, recordTimeLimit: recordTimeLimit,
-        allowFutureRecordsOnly: allowFutureRecordsOnly, expiresAt: expiresAt);
+      final challenge = await dataSource.createChallenge(
+        userId: userId,
+        userNickname: userNickname,
+        targetWeight: targetWeight,
+        startDate: startDate,
+        endDate: endDate,
+        maxParticipants: maxParticipants,
+      );
       return Right(challenge);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
@@ -121,5 +130,23 @@ class LogRunRepositoryImpl implements LogRunRepository {
       await dataSource.deleteChallenge(challengeId: challengeId, userId: userId);
       return const Right(null);
     } catch (e) { return Left(ServerFailure(e.toString())); }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteContribution({
+    required String challengeId,
+    required String contributionId,
+    required String userId,
+  }) async {
+    try {
+      await dataSource.deleteContribution(
+        challengeId: challengeId,
+        contributionId: contributionId,
+        userId: userId,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
   }
 }

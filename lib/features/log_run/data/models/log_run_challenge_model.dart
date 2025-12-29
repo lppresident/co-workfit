@@ -13,16 +13,18 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
     required super.participants,
     required super.status,
     required super.createdAt,
+    required super.startDate,
+    required super.endDate,
     required super.inviteCode,
-    super.expiresAt,
-    super.recordTimeLimit,
-    super.allowFutureRecordsOnly,
+    super.completedAt,
+    super.expireAt,
     super.maxParticipants,
   });
 
   /// Firestore 문서에서 모델 생성
   factory LogRunChallengeModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final createdAt = (data['createdAt'] as Timestamp).toDate();
 
     return LogRunChallengeModel(
       id: doc.id,
@@ -33,13 +35,20 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       remainingWeight: (data['remainingWeight'] as num?)?.toDouble() ?? (data['targetWeight'] as num).toDouble(),
       participants: List<String>.from(data['participants'] as List),
       status: ChallengeStatusExtension.fromFirestore(data['status'] as String),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: createdAt,
+      startDate: data['startDate'] != null
+          ? (data['startDate'] as Timestamp).toDate()
+          : createdAt, // 기존 데이터 호환: startDate 없으면 createdAt 사용
+      endDate: data['endDate'] != null
+          ? (data['endDate'] as Timestamp).toDate()
+          : createdAt.add(const Duration(days: 30)), // 기존 데이터 호환: endDate 없으면 30일 후
       inviteCode: data['inviteCode'] as String,
-      expiresAt: data['expiresAt'] != null
-          ? (data['expiresAt'] as Timestamp).toDate()
+      completedAt: data['completedAt'] != null
+          ? (data['completedAt'] as Timestamp).toDate()
           : null,
-      recordTimeLimit: data['recordTimeLimit'] as int? ?? 7,
-      allowFutureRecordsOnly: data['allowFutureRecordsOnly'] as bool? ?? false,
+      expireAt: data['expireAt'] != null
+          ? (data['expireAt'] as Timestamp).toDate()
+          : null,
       maxParticipants: data['maxParticipants'] as int?,
     );
   }
@@ -55,10 +64,11 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       'participants': participants,
       'status': status.toFirestore(),
       'createdAt': Timestamp.fromDate(createdAt),
+      'startDate': Timestamp.fromDate(startDate),
+      'endDate': Timestamp.fromDate(endDate),
       'inviteCode': inviteCode,
-      'expiresAt': expiresAt != null ? Timestamp.fromDate(expiresAt!) : null,
-      'recordTimeLimit': recordTimeLimit,
-      'allowFutureRecordsOnly': allowFutureRecordsOnly,
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      'expireAt': expireAt != null ? Timestamp.fromDate(expireAt!) : null,
       'maxParticipants': maxParticipants,
     };
   }
@@ -75,10 +85,11 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       participants: entity.participants,
       status: entity.status,
       createdAt: entity.createdAt,
+      startDate: entity.startDate,
+      endDate: entity.endDate,
       inviteCode: entity.inviteCode,
-      expiresAt: entity.expiresAt,
-      recordTimeLimit: entity.recordTimeLimit,
-      allowFutureRecordsOnly: entity.allowFutureRecordsOnly,
+      completedAt: entity.completedAt,
+      expireAt: entity.expireAt,
       maxParticipants: entity.maxParticipants,
     );
   }

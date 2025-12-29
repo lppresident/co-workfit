@@ -31,14 +31,17 @@ class LogRunChallengeEntity extends Equatable {
   /// 생성 시간
   final DateTime createdAt;
 
-  /// 만료 시간 (옵션)
-  final DateTime? expiresAt;
+  /// 챌린지 시작일 (이 날짜 이후의 운동만 제출 가능)
+  final DateTime startDate;
 
-  /// 제출 가능한 기록의 최대 나이 (일) - 기본값: 7일
-  final int recordTimeLimit;
+  /// 챌린지 종료일 (이 날짜까지의 운동만 제출 가능)
+  final DateTime endDate;
 
-  /// 방 생성 후 기록만 허용할지 여부
-  final bool allowFutureRecordsOnly;
+  /// 완료 시간 (챌린지 완료 시 기록)
+  final DateTime? completedAt;
+
+  /// TTL 만료 시간 (완료 후 7일 뒤 자동 삭제)
+  final DateTime? expireAt;
 
   /// 초대 코드 (6자리 영숫자)
   final String inviteCode;
@@ -56,10 +59,11 @@ class LogRunChallengeEntity extends Equatable {
     required this.participants,
     required this.status,
     required this.createdAt,
+    required this.startDate,
+    required this.endDate,
     required this.inviteCode,
-    this.expiresAt,
-    this.recordTimeLimit = 7,
-    this.allowFutureRecordsOnly = false,
+    this.completedAt,
+    this.expireAt,
     this.maxParticipants,
   });
 
@@ -72,10 +76,35 @@ class LogRunChallengeEntity extends Equatable {
   /// 활성 여부
   bool get isActive => status == ChallengeStatus.active;
 
-  /// 만료 여부
+  /// 만료 여부 (종료일이 지났는지)
   bool get isExpired {
-    if (expiresAt == null) return false;
-    return DateTime.now().isAfter(expiresAt!);
+    return DateTime.now().isAfter(endDate);
+  }
+
+  /// 챌린지가 아직 시작되지 않았는지
+  bool get isNotStarted {
+    return DateTime.now().isBefore(startDate);
+  }
+
+  /// 현재 운동 제출이 가능한 기간인지
+  bool get isSubmissionPeriod {
+    final now = DateTime.now();
+    return now.isAfter(startDate) && now.isBefore(endDate.add(const Duration(days: 1)));
+  }
+
+  /// 운동 날짜가 제출 가능한 기간인지 확인
+  bool isWorkoutDateValid(DateTime workoutDate) {
+    // 운동 날짜가 시작일 이후이고 종료일 이전이어야 함
+    final startOfStartDate = DateTime(startDate.year, startDate.month, startDate.day);
+    final endOfEndDate = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+    return workoutDate.isAfter(startOfStartDate.subtract(const Duration(seconds: 1))) &&
+           workoutDate.isBefore(endOfEndDate.add(const Duration(seconds: 1)));
+  }
+
+  /// 완료 후 보관 기간이 지났는지 (7일)
+  bool get isRetentionExpired {
+    if (completedAt == null) return false;
+    return DateTime.now().isAfter(completedAt!.add(const Duration(days: 7)));
   }
 
   /// 정원 초과 여부
@@ -95,9 +124,10 @@ class LogRunChallengeEntity extends Equatable {
         participants,
         status,
         createdAt,
-        expiresAt,
-        recordTimeLimit,
-        allowFutureRecordsOnly,
+        startDate,
+        endDate,
+        completedAt,
+        expireAt,
         inviteCode,
         maxParticipants,
       ];

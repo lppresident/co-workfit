@@ -28,7 +28,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     context.read<LogRunBloc>().add(WatchContributions(widget.challengeId));
   }
 
-  void _showSubmitWorkoutSheet() {
+  void _showSubmitWorkoutSheet(DateTime startDate, DateTime endDate) {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) return;
 
@@ -38,6 +38,8 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
       backgroundColor: Colors.transparent,
       builder: (context) => SubmitWorkoutBottomSheet(
         challengeId: widget.challengeId,
+        startDate: startDate,
+        endDate: endDate,
         onSubmit: (workoutId, distance, workoutType, workoutDate) {
           context.read<LogRunBloc>().add(
                 SubmitWorkout(
@@ -68,6 +70,40 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     );
   }
 
+  void _showDeleteConfirmation() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! Authenticated) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('챌린지 삭제'),
+        content: const Text(
+          '이 챌린지를 삭제하시겠습니까?\n\n모든 참가자의 기여 기록도 함께 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<LogRunBloc>().add(
+                    DeleteChallenge(
+                      challengeId: widget.challengeId,
+                      userId: authState.user.id,
+                    ),
+                  );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   PreferredSizeWidget buildAppBar(BuildContext context) {
     return StandardAppBar(
@@ -75,19 +111,29 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
       actions: [
         BlocBuilder<LogRunBloc, LogRunState>(
           builder: (context, state) {
-            // 챌린지 정보가 있을 때만 공유 버튼 표시
+            // 챌린지 정보가 있을 때만 버튼 표시
             if (state is ChallengeDetailLoaded || state is ChallengeUpdated) {
               final challenge = state is ChallengeDetailLoaded
                   ? state.challenge
                   : (state as ChallengeUpdated).challenge;
 
-              return IconButton(
-                icon: const Icon(Icons.share),
-                onPressed: () => _showShareSheet(
-                  challenge.inviteCode,
-                  '${challenge.targetWeight.toStringAsFixed(0)}kg 통나무런',
-                ),
-                tooltip: '초대 코드 공유',
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.share),
+                    onPressed: () => _showShareSheet(
+                      challenge.inviteCode,
+                      '${challenge.targetWeight.toStringAsFixed(0)}kg 통나무런',
+                    ),
+                    tooltip: '초대 코드 공유',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: _showDeleteConfirmation,
+                    tooltip: '챌린지 삭제',
+                  ),
+                ],
               );
             }
             return const SizedBox.shrink();
@@ -108,6 +154,24 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
               backgroundColor: Colors.green,
             ),
           );
+        } else if (state is ContributionDeleted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('기여 기록이 삭제되었습니다'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // 상세 페이지 새로고침
+          context.read<LogRunBloc>().add(LoadChallengeDetail(widget.challengeId));
+        } else if (state is ChallengeDeleted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('챌린지가 삭제되었습니다'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // 이전 페이지로 돌아가기
+          Navigator.pop(context);
         } else if (state is LogRunError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -148,7 +212,10 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                   ],
                 ),
               ),
-              Expanded(child: ContributionFeedWidget(contributions: contributions)),
+              Expanded(child: ContributionFeedWidget(
+                contributions: contributions,
+                challengeId: widget.challengeId,
+              )),
             ],
           );
         }
@@ -160,10 +227,30 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
 
   @override
   Widget? buildFloatingActionButton(BuildContext context) {
-    return FloatingActionButton.extended(
-      onPressed: _showSubmitWorkoutSheet,
-      icon: const Icon(Icons.add),
-      label: const Text('운동 기록 제출'),
+    return BlocBuilder<LogRunBloc, LogRunState>(
+      builder: (context, state) {
+        // 챌린지 정보가 있을 때만 FAB 표시
+        if (state is ChallengeDetailLoaded || state is ChallengeUpdated) {
+          final challenge = state is ChallengeDetailLoaded
+              ? state.challenge
+              : (state as ChallengeUpdated).challenge;
+
+          // 완료된 챌린지면 FAB 숨김
+          if (challenge.isCompleted) {
+            return const SizedBox.shrink();
+          }
+
+          return FloatingActionButton.extended(
+            onPressed: () => _showSubmitWorkoutSheet(
+              challenge.startDate,
+              challenge.endDate,
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('운동 기록 제출'),
+          );
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 }

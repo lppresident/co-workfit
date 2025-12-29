@@ -135,3 +135,17 @@ class LogRunError extends LogRunState {
 class LogRunEmpty extends LogRunState {
   const LogRunEmpty();
 }
+
+/// 기여 기록 삭제 성공
+class ContributionDeleted extends LogRunState {
+  final String contributionId;
+  final String challengeId;
+
+  const ContributionDeleted({
+    required this.contributionId,
+    required this.challengeId,
+  });
+
+  @override
+  List<Object?> get props => [contributionId, challengeId];
+}
