@@ -34,7 +34,7 @@ platform :ios do
 
   desc "Sync certificates and profiles using Match"
   lane :sync_code_signing do |options|
-    type = options[:type] || "adhoc"
+    type = options[:type] || "appstore"
 
     # Setup API Key first
     setup_api_key
@@ -42,46 +42,9 @@ platform :ios do
     match(
       type: type,
       readonly: false,
-      force_for_new_devices: true,  # 새 기기가 등록되면 프로비저닝 프로파일 자동 갱신
       app_identifier: "com.hansol.coworkfit",
       keychain_name: "fastlane_tmp_keychain",
       keychain_password: ""
-    )
-  end
-
-  desc "Build IPA for Firebase App Distribution (Ad-Hoc)"
-  lane :build_adhoc do |options|
-    # Sync certificates
-    sync_code_signing(type: "adhoc")
-
-    # Update code signing settings to manual
-    update_code_signing_settings(
-      use_automatic_signing: false,
-      path: "Runner.xcodeproj",
-      team_id: "DRPP364BVT",
-      profile_name: "match AdHoc com.hansol.coworkfit",
-      code_sign_identity: "Apple Distribution"
-    )
-
-    # Flutter build first (compile Dart code)
-    Dir.chdir("..") do
-      sh("flutter", "build", "ios", "--release", "--no-codesign")
-    end
-
-    # Build and sign with Xcode
-    build_app(
-      scheme: "Runner",
-      workspace: "Runner.xcworkspace",
-      export_method: "ad-hoc",
-      output_directory: "../build/ios/ipa",
-      output_name: "co_workfit.ipa",
-      export_options: {
-        method: "ad-hoc",
-        signingStyle: "manual",
-        provisioningProfiles: {
-          "com.hansol.coworkfit" => "match AdHoc com.hansol.coworkfit"
-        }
-      }
     )
   end
 
@@ -118,16 +81,6 @@ platform :ios do
           "com.hansol.coworkfit" => "match AppStore com.hansol.coworkfit"
         }
       }
-    )
-  end
-
-  desc "Upload to Firebase App Distribution"
-  lane :firebase do |options|
-    firebase_app_distribution(
-      app: ENV["FIREBASE_IOS_APP_ID"],
-      service_credentials_file: "firebase-credentials.json",
-      groups: "testers",
-      release_notes: options[:release_notes] || "New build from CI"
     )
   end
 
