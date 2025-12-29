@@ -163,20 +163,24 @@ class EditDistanceDialog extends StatelessWidget {
             }
 
             // 페이스 기반 검증 (세계 기록 수준보다 빠르면 비현실적)
-            final paceSeconds = _calculatePaceSeconds(distance);
-            if (paceSeconds != null && paceSeconds < _minPaceSecondsPerKm) {
-              final inputPace = _formatPace(paceSeconds);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    '입력한 거리가 비현실적입니다.\n'
-                    '페이스: $inputPace/km (세계 기록 수준: 2\'30\"/km 이상)',
+            // 단, 1km 이하는 단거리 스프린트일 수 있으므로 검증 스킵
+            // (우사인볼트 100m: 9.58초 → 1'36"/km)
+            if (distance > 1.0) {
+              final paceSeconds = _calculatePaceSeconds(distance);
+              if (paceSeconds != null && paceSeconds < _minPaceSecondsPerKm) {
+                final inputPace = _formatPace(paceSeconds);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '입력한 거리가 비현실적입니다.\n'
+                      '페이스: $inputPace/km (세계 기록 수준: 2\'30\"/km 이상)',
+                    ),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 4),
                   ),
-                  backgroundColor: Colors.red,
-                  duration: const Duration(seconds: 4),
-                ),
-              );
-              return;
+                );
+                return;
+              }
             }
 
             // BLoC에 거리 수정 이벤트 발생
