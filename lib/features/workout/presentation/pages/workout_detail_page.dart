@@ -262,15 +262,6 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
                 '${workout.maxHeartRate} BPM',
               ),
             ],
-            if (workout.steps != null) ...[
-              const Divider(height: 24),
-              _buildInfoRow(
-                context,
-                Icons.directions_walk,
-                '걸음 수',
-                '${workout.steps} 걸음',
-              ),
-            ],
             if (workout.elevationGain != null) ...[
               const Divider(height: 24),
               _buildInfoRow(
