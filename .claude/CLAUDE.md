@@ -56,7 +56,26 @@ lib/
 
 ---
 
-## 📚 문서 우선 순위
+## 📚 문서 구조
+
+```
+.claude/
+├── CLAUDE.md                 ← 🎯 이 파일 (AI 개발 룰 메인)
+└── docs/
+    ├── UI_STRUCTURE.md       ← UI 패턴 가이드
+    ├── AI_QUICK_REFERENCE.md ← 코드 템플릿
+    ├── ARCHITECTURE.md       ← Clean Architecture
+    └── CONTRIBUTING.md       ← 기여 가이드
+
+docs/
+├── README.md                 ← 전체 문서 인덱스
+├── APPLE_SIGNIN_SETUP.md     ← 설정 가이드
+├── DEPLOYMENT.md             ← 배포 가이드
+├── FASTLANE_MATCH_SETUP.md   ← 인증서 관리
+└── health_*.md               ← Health 시스템 문서
+```
+
+## 📖 문서 읽는 순서
 
 코딩하기 전에 **반드시** 다음 순서로 문서를 확인하세요:
 
@@ -72,6 +91,7 @@ lib/
 
 ### 4단계: 기존 코드 참고
 - `lib/features/social/` - 친구, 리더보드 참고용
+- `lib/features/log_run/` - 통나무런 참고용
 - `lib/features/auth/` - 인증 참고용
 - `lib/features/workout/` - 운동 데이터 참고용
 
@@ -925,13 +945,21 @@ import 'package:co_workfit/features/user/domain/entities/user_entity.dart'; // O
 
 ## 📚 학습 순서 (처음 시작하는 AI)
 
-1. **이 파일 (`.claude/CLAUDE.md`)** 읽기 - 가장 먼저!
+### 필수 (10분)
+1. **이 파일 (`.claude/CLAUDE.md`)** 읽기 - 핵심 규칙
+
+### 코딩 전 (15분)
 2. **`.claude/docs/UI_STRUCTURE.md`** 읽기 - UI 패턴 익히기
 3. **`.claude/docs/AI_QUICK_REFERENCE.md`** 읽기 - 템플릿 익히기
-4. **`lib/features/social/presentation/pages/friends_page.dart`** 코드 읽기 - 실제 예제
-5. **`lib/features/social/presentation/pages/leaderboard_page.dart`** 코드 읽기 - 또 다른 예제
-6. **`.claude/docs/CONTRIBUTING.md`** 읽기 - 전체 프로세스
-7. **`.claude/docs/ARCHITECTURE.md`** 읽기 - Clean Architecture
+
+### 실제 코드 확인 (20분)
+4. **`lib/features/social/presentation/pages/friends_page.dart`** - TabbedMixin 예제
+5. **`lib/features/log_run/presentation/pages/log_run_page.dart`** - BasePage 예제
+
+### 필요시 상세 확인
+6. **`.claude/docs/CONTRIBUTING.md`** - 전체 프로세스
+7. **`.claude/docs/ARCHITECTURE.md`** - Clean Architecture
+8. **`docs/README.md`** - 전체 문서 인덱스
 
 ---
 
@@ -969,11 +997,23 @@ import 'package:co_workfit/features/user/domain/entities/user_entity.dart'; // O
 
 ## 📖 추가 참고 자료
 
-- **Full Documentation**: `.claude/docs/ARCHITECTURE.md`, `.claude/docs/CONTRIBUTING.md`, `.claude/docs/UI_STRUCTURE.md`
-- **Quick Templates**: `.claude/docs/AI_QUICK_REFERENCE.md`
-- **Example Code**: `lib/features/social/`
+### AI 개발 문서 (`.claude/docs/`)
+- **UI 구조**: `.claude/docs/UI_STRUCTURE.md` - BasePage, Mixins, 패턴
+- **빠른 템플릿**: `.claude/docs/AI_QUICK_REFERENCE.md` - 코드 스니펫
+- **아키텍처**: `.claude/docs/ARCHITECTURE.md` - Clean Architecture
+- **기여 가이드**: `.claude/docs/CONTRIBUTING.md` - 전체 프로세스
+
+### 설정/배포 문서 (`docs/`)
+- **전체 인덱스**: `docs/README.md`
+- **Apple Sign-In**: `docs/APPLE_SIGNIN_SETUP.md`
+- **배포**: `docs/DEPLOYMENT.md`
+- **Health 시스템**: `docs/health_*.md`
+
+### 참고 코드
+- **최신 패턴**: `lib/features/social/` (FriendsPage, LeaderboardPage)
+- **통나무런**: `lib/features/log_run/`
 
 ---
 
-_Last Updated: 2025-12-22_
-_Version: 2.1 (Moved to .claude/CLAUDE.md)_
+_Last Updated: 2025-12-29_
+_Version: 2.2 (Documentation structure reorganized)_

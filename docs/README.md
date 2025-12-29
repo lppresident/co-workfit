@@ -1,353 +1,222 @@
-# Health Permission System Documentation
+# Co-WorkFit Documentation Index
 
-This directory contains comprehensive documentation for the iOS (HealthKit) and Android (Health Connect) health permission and data loading system refactoring.
-
----
-
-## 📚 Documentation Index
-
-### 🎯 Start Here
-
-**New to the system?** Read these documents in order:
-
-1. **[Quick Reference](health_quick_reference.md)** ⭐ START HERE
-   - Quick start guide
-   - Common code snippets
-   - Essential APIs
-   - Troubleshooting tips
-
-2. **[Summary Document](health_refactoring_summary.md)**
-   - Executive overview
-   - Architecture summary
-   - Deliverables checklist
-   - Implementation status
-
-3. **[Main Specification](health_permission_refactoring.md)**
-   - Complete requirements
-   - Platform-specific policies
-   - Implementation phases
-   - Success criteria
+이 폴더는 Co-WorkFit 프로젝트의 모든 문서를 포함합니다.
 
 ---
 
-## 📖 Detailed Documentation
+## 📚 문서 구조
 
-### Architecture & Design
+```
+docs/
+├── README.md                          # 이 파일 (문서 인덱스)
+├── APPLE_SIGNIN_SETUP.md              # Apple Sign-In 설정 가이드
+├── DEPLOYMENT.md                      # 배포 가이드
+├── FASTLANE_MATCH_SETUP.md            # Fastlane Match 설정
+└── health_*.md                        # Health 시스템 문서
 
-**[State Machine Diagrams](health_state_machine_diagrams.md)**
-- Visual flow diagrams
-- iOS state machine
-- Android state machine
-- Background-to-foreground logic
-- Data flow architecture
-
-### Implementation
-
-**[UI Implementation Guide](health_ui_implementation_guide.md)**
-- Step-by-step UI setup
-- Widget code templates
-- Platform-specific components
-- Dependency injection
-- Widget testing examples
-
-### Testing
-
-**[Test Scenarios](health_test_scenarios.md)**
-- 20+ comprehensive test scenarios
-- iOS test cases (7)
-- Android test cases (8)
-- Cross-platform tests (5)
-- Mock data examples
-- Acceptance criteria
+.claude/
+├── CLAUDE.md                          # 🎯 AI 개발 룰 (메인)
+└── docs/
+    ├── AI_QUICK_REFERENCE.md          # 빠른 참조 가이드
+    ├── ARCHITECTURE.md                # Clean Architecture 가이드
+    ├── CONTRIBUTING.md                # 기여 가이드
+    └── UI_STRUCTURE.md                # UI 구조 가이드
+```
 
 ---
 
-## 🗂️ Document Categories
+## 🎯 AI 개발자를 위한 문서
 
-### By Role
+> **Claude Code 사용 시 `.claude/CLAUDE.md`가 자동으로 로드됩니다.**
 
-**For Product Managers:**
-- [Summary Document](health_refactoring_summary.md) - Overview and status
-- [Main Specification](health_permission_refactoring.md) - Requirements
+### 핵심 문서 (필독)
 
-**For Developers:**
-- [Quick Reference](health_quick_reference.md) - Daily reference
-- [UI Implementation Guide](health_ui_implementation_guide.md) - Implementation
-- [State Machine Diagrams](health_state_machine_diagrams.md) - Flow understanding
+| 순서 | 문서 | 설명 | 언제 읽나요? |
+|------|------|------|-------------|
+| 1 | [CLAUDE.md](../.claude/CLAUDE.md) | AI 개발 규칙 (메인) | **가장 먼저!** |
+| 2 | [UI_STRUCTURE.md](../.claude/docs/UI_STRUCTURE.md) | BasePage, Mixins, UI 패턴 | 페이지 만들 때 |
+| 3 | [AI_QUICK_REFERENCE.md](../.claude/docs/AI_QUICK_REFERENCE.md) | 코드 템플릿, 스니펫 | 코딩할 때 |
+| 4 | [ARCHITECTURE.md](../.claude/docs/ARCHITECTURE.md) | Clean Architecture 상세 | 아키텍처 이해 |
+| 5 | [CONTRIBUTING.md](../.claude/docs/CONTRIBUTING.md) | 기여 프로세스 전체 | 전체 흐름 파악 |
 
-**For QA Engineers:**
-- [Test Scenarios](health_test_scenarios.md) - Test cases
-- [Main Specification](health_permission_refactoring.md) - Expected behavior
+### 학습 순서
 
-**For Architects:**
-- [State Machine Diagrams](health_state_machine_diagrams.md) - Architecture
-- [Main Specification](health_permission_refactoring.md) - Design decisions
-
----
-
-## 🎯 Use Cases
-
-### "I need to implement a new UI widget"
-→ Read: [UI Implementation Guide](health_ui_implementation_guide.md)
-
-### "I need to understand the iOS flow"
-→ Read: [State Machine Diagrams](health_state_machine_diagrams.md) - iOS section
-
-### "I need to write tests"
-→ Read: [Test Scenarios](health_test_scenarios.md)
-
-### "I need quick code examples"
-→ Read: [Quick Reference](health_quick_reference.md)
-
-### "I need to understand platform differences"
-→ Read: [Main Specification](health_permission_refactoring.md) - Platform sections
-
-### "I need an overview for stakeholders"
-→ Read: [Summary Document](health_refactoring_summary.md)
+```
+1. CLAUDE.md          → 핵심 규칙 (10분)
+2. UI_STRUCTURE.md    → UI 패턴 (15분)
+3. AI_QUICK_REFERENCE → 템플릿 확인 (10분)
+4. 기존 코드 확인     → lib/features/social/ 참고
+5. ARCHITECTURE.md    → 필요시 상세 확인
+```
 
 ---
 
-## 📋 Document Summaries
+## 🔧 설정 및 배포 문서
 
-### 1. Quick Reference
-- **Purpose:** Daily developer reference
-- **Length:** Short (5 pages)
-- **Format:** Code snippets and quick tips
-- **Audience:** Developers actively coding
+### Apple Sign-In 설정
 
-### 2. Summary Document
-- **Purpose:** Project overview and status
-- **Length:** Long (15 pages)
-- **Format:** Comprehensive summary
-- **Audience:** All stakeholders
+📄 [APPLE_SIGNIN_SETUP.md](./APPLE_SIGNIN_SETUP.md)
 
-### 3. Main Specification
-- **Purpose:** Complete technical specification
-- **Length:** Long (20 pages)
-- **Format:** Detailed requirements
-- **Audience:** Developers, architects, QA
+Apple Sign-In을 사용하기 위한 설정 가이드:
+- Apple Developer Program 설정
+- Firebase Authentication 설정
+- Xcode 프로젝트 설정
+- 문제 해결 가이드
 
-### 4. State Machine Diagrams
-- **Purpose:** Visual architecture documentation
-- **Length:** Medium (10 pages)
-- **Format:** ASCII diagrams and flow charts
-- **Audience:** Developers, architects
+### 배포 가이드
 
-### 5. UI Implementation Guide
-- **Purpose:** Step-by-step UI coding instructions
-- **Length:** Long (15 pages)
-- **Format:** Code templates and explanations
-- **Audience:** Frontend developers
+📄 [DEPLOYMENT.md](./DEPLOYMENT.md)
 
-### 6. Test Scenarios
-- **Purpose:** Comprehensive test documentation
-- **Length:** Long (20 pages)
-- **Format:** Scenario descriptions and test data
-- **Audience:** QA engineers, developers
+iOS/Android 앱 배포 프로세스:
+- 빌드 설정
+- TestFlight / Google Play 배포
+- CI/CD 설정
+
+### Fastlane Match 설정
+
+📄 [FASTLANE_MATCH_SETUP.md](./FASTLANE_MATCH_SETUP.md)
+
+iOS 인증서 및 프로비저닝 프로파일 관리:
+- Match 초기 설정
+- 팀 공유 설정
+- 인증서 갱신
 
 ---
 
-## 🚀 Getting Started
+## 🏥 Health 시스템 문서
 
-### For New Developers
+Health Permission 시스템 (HealthKit/Health Connect) 관련 상세 문서입니다.
 
-1. **Day 1:** Read [Quick Reference](health_quick_reference.md) (30 min)
-2. **Day 1:** Skim [Summary Document](health_refactoring_summary.md) (15 min)
-3. **Day 2:** Study [State Machine Diagrams](health_state_machine_diagrams.md) (1 hour)
-4. **Day 2:** Read [UI Implementation Guide](health_ui_implementation_guide.md) (1 hour)
-5. **Day 3:** Review [Test Scenarios](health_test_scenarios.md) (30 min)
-6. **Day 3:** Start coding with [Quick Reference](health_quick_reference.md) open
+### 문서 목록
 
-### For Code Review
+| 문서 | 설명 | 대상 |
+|------|------|------|
+| [health_quick_reference.md](./health_quick_reference.md) | 빠른 참조 가이드 | 개발자 |
+| [health_refactoring_summary.md](./health_refactoring_summary.md) | 리팩토링 요약 | 전체 |
+| [health_permission_refactoring.md](./health_permission_refactoring.md) | 전체 스펙 | 개발자, QA |
+| [health_state_machine_diagrams.md](./health_state_machine_diagrams.md) | 상태 머신 다이어그램 | 아키텍트 |
+| [health_ui_implementation_guide.md](./health_ui_implementation_guide.md) | UI 구현 가이드 | 프론트엔드 |
+| [health_test_scenarios.md](./health_test_scenarios.md) | 테스트 시나리오 | QA |
 
-**Check these aspects:**
-- [ ] All states handled (reference: [State Machine Diagrams](health_state_machine_diagrams.md))
-- [ ] Platform-specific logic correct (reference: [Main Specification](health_permission_refactoring.md))
-- [ ] Events dispatched properly (reference: [Quick Reference](health_quick_reference.md))
-- [ ] UI follows patterns (reference: [UI Implementation Guide](health_ui_implementation_guide.md))
-- [ ] Tests cover scenarios (reference: [Test Scenarios](health_test_scenarios.md))
+### Health 문서 읽는 순서
 
----
+```
+신규 개발자:
+1. health_quick_reference.md (30분)
+2. health_refactoring_summary.md (15분)
+3. health_state_machine_diagrams.md (1시간)
 
-## 🔍 Key Concepts
+UI 구현 시:
+→ health_ui_implementation_guide.md
 
-### State-Driven Architecture
-All behavior is controlled by explicit state enums. No complex conditionals in UI code.
-
-**Learn more:** [State Machine Diagrams](health_state_machine_diagrams.md)
-
-### Platform-Aware Design
-iOS and Android have separate flows that respect platform-specific policies.
-
-**Learn more:** [Main Specification](health_permission_refactoring.md) - Platform sections
-
-### Smart Background-to-Foreground
-State comparison prevents unnecessary refreshes when app returns from background.
-
-**Learn more:** [State Machine Diagrams](health_state_machine_diagrams.md) - BG→FG section
-
-### Permission Check → Data Load
-This flow is always followed, regardless of entry point.
-
-**Learn more:** [Main Specification](health_permission_refactoring.md) - Common Goals
+테스트 작성 시:
+→ health_test_scenarios.md
+```
 
 ---
 
-## 📊 Implementation Status
+## 📋 문서별 요약
 
-### ✅ Complete
-- Core state definitions
-- Event definitions
-- BLoC implementation
-- Repository implementation
-- Use cases
-- DataSource updates
-- All documentation
+### .claude/CLAUDE.md (메인 룰파일)
 
-### ⏳ Pending
-- UI implementation
-- Dependency injection setup
-- Unit tests
-- Integration tests
-- Widget tests
-- Manual device testing
+**용도**: AI Assistant가 따라야 할 모든 개발 규칙
 
-### 📅 Next Steps
-1. Implement UI layer (reference: [UI Implementation Guide](health_ui_implementation_guide.md))
-2. Update dependency injection
-3. Write tests (reference: [Test Scenarios](health_test_scenarios.md))
-4. Manual testing on devices
-5. Deploy to staging
+**포함 내용**:
+- 프로젝트 구조
+- UI 규칙 (BasePage, StandardAppBar, Mixins)
+- Clean Architecture 규칙
+- Naming Conventions
+- Git 워크플로우
+- 개발 체크리스트
+- 자주 하는 실수
 
----
+### .claude/docs/UI_STRUCTURE.md
 
-## 🆘 Troubleshooting
+**용도**: UI 구조 및 패턴 가이드
 
-### Issue: Can't find what I'm looking for
+**포함 내용**:
+- BasePage & BasePageState
+- TabbedMixin, RefreshableMixin, LoadableMixin
+- StandardAppBar
+- Common Widgets
+- 페이지 타입별 템플릿
 
-**Try:**
-1. Start with [Quick Reference](health_quick_reference.md)
-2. Use "Use Cases" section above
-3. Check document summaries
-4. Search in specific documents
+### .claude/docs/AI_QUICK_REFERENCE.md
 
-### Issue: Code doesn't match documentation
+**용도**: 빠른 코드 참조
 
-**Reason:** UI implementation is pending. Only core architecture is implemented.
+**포함 내용**:
+- Entity/Model/UseCase 템플릿
+- BLoC Event/State/Bloc 템플릿
+- Page 템플릿
+- DI 등록 예제
+- Common Patterns
 
-**Solution:** Follow [UI Implementation Guide](health_ui_implementation_guide.md) to complete implementation.
+### .claude/docs/ARCHITECTURE.md
 
-### Issue: Need more examples
+**용도**: Clean Architecture 상세 가이드
 
-**See:**
-- [Quick Reference](health_quick_reference.md) - Code snippets
-- [Test Scenarios](health_test_scenarios.md) - Mock data
-- [UI Implementation Guide](health_ui_implementation_guide.md) - Widget examples
+**포함 내용**:
+- Layer 구조
+- Domain/Data/Presentation 상세
+- DI 설정
+- 베스트 프랙티스
 
----
+### .claude/docs/CONTRIBUTING.md
 
-## 📝 Document Maintenance
+**용도**: 전체 기여 프로세스
 
-### When to Update
-
-**Update documentation when:**
-- Adding new states
-- Adding new events
-- Changing flows
-- Adding platform support
-- Fixing bugs that affect behavior
-- Adding new features
-
-### How to Update
-
-1. Update the relevant document(s)
-2. Update this README if adding new documents
-3. Update version number and date
-4. Note changes in changelog (if document has one)
+**포함 내용**:
+- Development Checklist
+- Feature Template
+- Code Style Guide
+- Commit Message Format
+- Code Review Checklist
 
 ---
 
-## 📞 Support
+## 🔗 빠른 링크
 
-### Questions About:
+### 개발 시작
 
-**Architecture & Design**
-→ Review [State Machine Diagrams](health_state_machine_diagrams.md)
-→ Check [Main Specification](health_permission_refactoring.md)
+- **새 페이지 만들기**: [UI_STRUCTURE.md](../.claude/docs/UI_STRUCTURE.md)
+- **코드 템플릿**: [AI_QUICK_REFERENCE.md](../.claude/docs/AI_QUICK_REFERENCE.md)
+- **참고 코드**: `lib/features/social/` (FriendsPage, LeaderboardPage)
 
-**Implementation**
-→ Check [Quick Reference](health_quick_reference.md)
-→ Follow [UI Implementation Guide](health_ui_implementation_guide.md)
+### 설정
 
-**Testing**
-→ Review [Test Scenarios](health_test_scenarios.md)
+- **Apple 로그인**: [APPLE_SIGNIN_SETUP.md](./APPLE_SIGNIN_SETUP.md)
+- **배포**: [DEPLOYMENT.md](./DEPLOYMENT.md)
+- **인증서 관리**: [FASTLANE_MATCH_SETUP.md](./FASTLANE_MATCH_SETUP.md)
 
-**Platform Policies**
-→ Read [Main Specification](health_permission_refactoring.md) - Platform sections
+### Health 시스템
 
----
-
-## 🎓 Learning Path
-
-### Beginner
-1. [Quick Reference](health_quick_reference.md)
-2. [Summary Document](health_refactoring_summary.md)
-3. Start coding with examples
-
-### Intermediate
-1. [State Machine Diagrams](health_state_machine_diagrams.md)
-2. [UI Implementation Guide](health_ui_implementation_guide.md)
-3. Implement full features
-
-### Advanced
-1. [Main Specification](health_permission_refactoring.md)
-2. [Test Scenarios](health_test_scenarios.md)
-3. Design new features
+- **빠른 시작**: [health_quick_reference.md](./health_quick_reference.md)
+- **전체 스펙**: [health_permission_refactoring.md](./health_permission_refactoring.md)
 
 ---
 
-## 📈 Metrics
+## 📝 문서 관리 가이드
 
-### Documentation Coverage
+### 문서 추가 시
 
-- **Total Documents:** 6
-- **Total Pages:** ~100
-- **Code Examples:** 50+
-- **Test Scenarios:** 20+
-- **Diagrams:** 15+
+1. 적절한 위치에 파일 생성
+2. 이 README.md에 링크 추가
+3. 관련 문서에서 참조 추가
 
-### Completeness
+### 문서 위치 규칙
 
-- ✅ Requirements: 100%
-- ✅ Architecture: 100%
-- ✅ Implementation Guide: 100%
-- ✅ Test Scenarios: 100%
-- ✅ Quick Reference: 100%
+| 문서 타입 | 위치 |
+|----------|------|
+| AI 개발 규칙/가이드 | `.claude/docs/` |
+| 설정/배포 가이드 | `docs/` |
+| 기능별 상세 스펙 | `docs/` |
 
----
+### 버전 관리
 
-## 🏆 Documentation Best Practices
-
-This documentation follows these principles:
-
-1. **Multiple Entry Points**: Quick start for beginners, deep dives for experts
-2. **Visual Learning**: Diagrams and flowcharts throughout
-3. **Code Examples**: Practical, copy-paste-ready snippets
-4. **Platform-Specific**: Clear iOS vs Android guidance
-5. **Test-Driven**: Comprehensive test scenarios
-6. **Maintainable**: Versioned, dated, with clear structure
+- 문서 하단에 Last Updated 날짜 기록
+- 주요 변경 시 버전 번호 업데이트
 
 ---
 
-## 📄 License & Attribution
-
-**Project:** Co-WorkFit
-**Feature:** Health Permission System Refactoring
-**Version:** 1.0
-**Date:** 2025-12-09
-**Author:** Claude AI (via Claude Code)
-
----
-
-**Last Updated:** 2025-12-09
-**Documentation Version:** 1.0
+**Last Updated**: 2025-12-29

@@ -57,10 +57,12 @@ lib/
 - `presentation/`: UI 레이어 (BLoC, 페이지, 위젯)
 
 **📚 개발자 가이드**:
-- [`UI_STRUCTURE.md`](UI_STRUCTURE.md) - UI 구조 가이드 (BasePage, Mixins, Patterns)
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) - 상세한 아키텍처 가이드
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) - 기여 가이드 (AI Assistant용)
-- [`AI_QUICK_REFERENCE.md`](AI_QUICK_REFERENCE.md) - 빠른 참조 가이드
+- [`.claude/CLAUDE.md`](.claude/CLAUDE.md) - **AI 개발 룰 (메인)** ⭐
+- [`.claude/docs/UI_STRUCTURE.md`](.claude/docs/UI_STRUCTURE.md) - UI 구조 가이드 (BasePage, Mixins, Patterns)
+- [`.claude/docs/ARCHITECTURE.md`](.claude/docs/ARCHITECTURE.md) - 상세한 아키텍처 가이드
+- [`.claude/docs/CONTRIBUTING.md`](.claude/docs/CONTRIBUTING.md) - 기여 가이드 (AI Assistant용)
+- [`.claude/docs/AI_QUICK_REFERENCE.md`](.claude/docs/AI_QUICK_REFERENCE.md) - 빠른 참조 가이드
+- [`docs/README.md`](docs/README.md) - 전체 문서 인덱스
 
 ## 🛠️ 기술 스택
 
@@ -144,16 +146,17 @@ flutter build apk
 이 프로젝트는 AI Assistant와 협업하기 위해 최적화되어 있습니다.
 
 **Claude Code를 사용하는 경우:**
-- Claude Code는 자동으로 [`.claud`](.claud) 파일을 읽어들입니다
+- Claude Code는 자동으로 [`.claude/CLAUDE.md`](.claude/CLAUDE.md) 파일을 읽어들입니다
 - 모든 개발 규칙과 패턴이 이 파일에 통합되어 있습니다
 
 **새 기능을 추가하거나 코드를 수정할 때 참고 문서:**
 
-1. **개발 규칙**: [`.claud`](.claud) - AI 개발 규칙 (Claude Code 자동 참조)
-2. **UI 구조**: [`UI_STRUCTURE.md`](UI_STRUCTURE.md) - 페이지/위젯 패턴
-3. **빠른 템플릿**: [`AI_QUICK_REFERENCE.md`](AI_QUICK_REFERENCE.md) - 코드 스니펫
-4. **아키텍처**: [`ARCHITECTURE.md`](ARCHITECTURE.md) - Clean Architecture 패턴
-5. **기여 가이드**: [`CONTRIBUTING.md`](CONTRIBUTING.md) - 전체 프로세스
+1. **개발 규칙**: [`.claude/CLAUDE.md`](.claude/CLAUDE.md) - AI 개발 규칙 (메인) ⭐
+2. **UI 구조**: [`.claude/docs/UI_STRUCTURE.md`](.claude/docs/UI_STRUCTURE.md) - 페이지/위젯 패턴
+3. **빠른 템플릿**: [`.claude/docs/AI_QUICK_REFERENCE.md`](.claude/docs/AI_QUICK_REFERENCE.md) - 코드 스니펫
+4. **아키텍처**: [`.claude/docs/ARCHITECTURE.md`](.claude/docs/ARCHITECTURE.md) - Clean Architecture 패턴
+5. **기여 가이드**: [`.claude/docs/CONTRIBUTING.md`](.claude/docs/CONTRIBUTING.md) - 전체 프로세스
+6. **전체 문서**: [`docs/README.md`](docs/README.md) - 문서 인덱스
 
 **기본 워크플로우**:
 ```
