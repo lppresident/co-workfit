@@ -13,12 +13,30 @@ class EditDistanceDialog extends StatelessWidget {
   final VoidCallback? onDistanceUpdated;
   final VoidCallback? onDistanceReset;
 
+  // 페이스 검증 상수 (초/km)
+  // 세계 기록: 마라톤 2'52"/km, 하프 2'44"/km, 10km 2'37"/km
+  // 안전 마진을 두고 2'30"/km (150초) 미만이면 비현실적으로 판단
+  static const double _minPaceSecondsPerKm = 150.0; // 2분 30초/km
+
   const EditDistanceDialog({
     super.key,
     required this.workout,
     this.onDistanceUpdated,
     this.onDistanceReset,
   });
+
+  /// 페이스 계산 (초/km)
+  double? _calculatePaceSeconds(double distanceKm) {
+    if (distanceKm <= 0 || workout.durationMinutes <= 0) return null;
+    return (workout.durationMinutes * 60) / distanceKm;
+  }
+
+  /// 페이스를 "분'초"" 형식으로 변환
+  String _formatPace(double paceSeconds) {
+    final minutes = (paceSeconds / 60).floor();
+    final seconds = (paceSeconds % 60).round();
+    return "$minutes'${seconds.toString().padLeft(2, '0')}\"";
+  }
 
   /// 다이얼로그를 표시하는 편의 메서드
   static Future<void> show({
@@ -144,11 +162,18 @@ class EditDistanceDialog extends StatelessWidget {
               return;
             }
 
-            if (distance > 100) {
+            // 페이스 기반 검증 (세계 기록 수준보다 빠르면 비현실적)
+            final paceSeconds = _calculatePaceSeconds(distance);
+            if (paceSeconds != null && paceSeconds < _minPaceSecondsPerKm) {
+              final inputPace = _formatPace(paceSeconds);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('거리가 너무 큽니다. (100km 이하로 입력해주세요)'),
+                SnackBar(
+                  content: Text(
+                    '입력한 거리가 비현실적입니다.\n'
+                    '페이스: $inputPace/km (세계 기록 수준: 2\'30\"/km 이상)',
+                  ),
                   backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 4),
                 ),
               );
               return;
