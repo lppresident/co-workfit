@@ -1,4 +1,4 @@
-name: Deploy All
+name: Deploy All (Android + iOS)
 
 on:
   workflow_dispatch:
