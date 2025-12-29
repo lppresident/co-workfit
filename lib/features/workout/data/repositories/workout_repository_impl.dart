@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dartz/dartz.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_kit_datasource.dart';
@@ -18,8 +20,11 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   final HealthDataMapper _healthDataMapper;
   final String _userId; // TODO: AuthRepository에서 가져오도록 변경
 
-  // 메모리에 수정된 거리 정보 임시 저장 (workoutId -> correctedDistance)
-  final Map<String, double> _correctedDistances = {};
+  // SharedPreferences 키
+  static const String _correctedDistancesKey = 'workout_corrected_distances';
+
+  // 메모리 캐시 (앱 실행 중 빠른 접근용)
+  Map<String, double>? _correctedDistancesCache;
 
   WorkoutRepositoryImpl({
     required HealthKitDataSource healthKitDataSource,
@@ -32,6 +37,47 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
         _garminDataSource = garminDataSource,
         _healthDataMapper = healthDataMapper,
         _userId = userId;
+
+  /// SharedPreferences에서 수정된 거리 정보 로드
+  Future<Map<String, double>> _loadCorrectedDistances() async {
+    if (_correctedDistancesCache != null) {
+      return _correctedDistancesCache!;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_correctedDistancesKey);
+      
+      if (jsonString != null) {
+        final Map<String, dynamic> decoded = jsonDecode(jsonString);
+        _correctedDistancesCache = decoded.map(
+          (key, value) => MapEntry(key, (value as num).toDouble()),
+        );
+        AppLogger.debug('WorkoutRepo', '저장된 거리 수정 정보 로드: ${_correctedDistancesCache!.length}개');
+      } else {
+        _correctedDistancesCache = {};
+      }
+    } catch (e) {
+      AppLogger.error('WorkoutRepo', '거리 수정 정보 로드 실패', e);
+      _correctedDistancesCache = {};
+    }
+
+    return _correctedDistancesCache!;
+  }
+
+  /// SharedPreferences에 수정된 거리 정보 저장
+  Future<void> _saveCorrectedDistances() async {
+    if (_correctedDistancesCache == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = jsonEncode(_correctedDistancesCache);
+      await prefs.setString(_correctedDistancesKey, jsonString);
+      AppLogger.debug('WorkoutRepo', '거리 수정 정보 저장 완료: ${_correctedDistancesCache!.length}개');
+    } catch (e) {
+      AppLogger.error('WorkoutRepo', '거리 수정 정보 저장 실패', e);
+    }
+  }
 
   /// 현재 플랫폼이 iOS인지 확인
   bool get _isIOS => Platform.isIOS;
@@ -175,9 +221,10 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       );
     }
 
-    // 3. 수정된 거리 적용
+    // 3. 수정된 거리 적용 (로컬 저장소에서 로드)
+    final correctedDistances = await _loadCorrectedDistances();
     final workoutsWithCorrections = allWorkouts.map((workout) {
-      final correctedDistance = _correctedDistances[workout.id];
+      final correctedDistance = correctedDistances[workout.id];
       if (correctedDistance != null) {
         return workout.copyWith(correctedDistance: correctedDistance);
       }
@@ -341,8 +388,11 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     try {
       AppLogger.info('WorkoutRepo', '운동 거리 수정: $workoutId -> ${correctedDistance}km');
 
-      // 메모리에 수정된 거리 저장
-      _correctedDistances[workoutId] = correctedDistance;
+      // 로컬 저장소에 수정된 거리 저장 (영구 저장)
+      final correctedDistances = await _loadCorrectedDistances();
+      correctedDistances[workoutId] = correctedDistance;
+      _correctedDistancesCache = correctedDistances;
+      await _saveCorrectedDistances();
 
       // 현재 운동 데이터 조회 (최근 30일)
       final now = DateTime.now();
@@ -361,7 +411,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
             orElse: () => throw Exception('운동 기록을 찾을 수 없습니다.'),
           );
 
-          AppLogger.info('WorkoutRepo', '거리 수정 완료: ${updatedWorkout.effectiveDistance}km');
+          AppLogger.info('WorkoutRepo', '거리 수정 완료 (로컬 저장): ${updatedWorkout.effectiveDistance}km');
           return Right(updatedWorkout);
         },
       );
