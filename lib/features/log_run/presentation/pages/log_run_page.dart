@@ -169,12 +169,12 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
         }
       },
       builder: (context, state) {
-        // 초기 로딩 상태
-        if (state is LogRunLoading) {
+        // 초기 상태 또는 로딩 상태 - 로딩 인디케이터 표시
+        if (state is LogRunInitial || state is LogRunLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Empty 상태
+        // Empty 상태 (데이터 로드 완료 후 챌린지가 없는 경우)
         if (state is LogRunEmpty) {
           return EmptyLogRunWidget(
             onCreateOrJoin: _showActionSelectionDialog,
@@ -207,10 +207,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // 기본 Empty 상태
-        return EmptyLogRunWidget(
-          onCreateOrJoin: _showActionSelectionDialog,
-        );
+        // 기본: 로딩 표시 (알 수 없는 상태)
+        return const Center(child: CircularProgressIndicator());
       },
     );
   }
