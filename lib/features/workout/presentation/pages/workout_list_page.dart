@@ -26,7 +26,13 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   final ScrollController _scrollController = ScrollController();
   int _loadedDays = 30;
   bool _isLoadingMore = false;
+  bool _isAutoLoadingForFilter = false; // 필터용 자동 로드 중인지
   List<WorkoutEntity> _allWorkouts = []; // 로컬에서 관리하는 전체 데이터
+
+  // 필터 결과 최소 개수 (이보다 적으면 자동으로 더 로드)
+  static const int _minFilteredResults = 3;
+  // 최대 로드 일수 (무한 로드 방지)
+  static const int _maxLoadDays = 365;
 
   @override
   void initState() {
@@ -57,16 +63,48 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   }
 
   void _loadMoreData() {
-    if (_isLoadingMore) return;
+    if (_isLoadingMore || _loadedDays >= _maxLoadDays) return;
 
     setState(() {
       _isLoadingMore = true;
     });
 
-    final newDays = _loadedDays + 30;
+    final newDays = (_loadedDays + 30).clamp(0, _maxLoadDays);
 
     // 새로운 범위의 데이터 요청
     context.read<WorkoutBloc>().add(FetchRecentWorkoutsEvent(days: newDays));
+  }
+
+  /// 필터 적용 시 결과가 적으면 자동으로 더 로드
+  void _checkAndLoadMoreForFilter() {
+    // 필터가 적용되지 않았으면 스킵
+    if (_selectedType == null && _selectedSource == null) {
+      _isAutoLoadingForFilter = false;
+      return;
+    }
+
+    // 이미 최대치까지 로드했으면 스킵
+    if (_loadedDays >= _maxLoadDays) {
+      _isAutoLoadingForFilter = false;
+      return;
+    }
+
+    // 필터링된 결과 개수 확인
+    var filteredWorkouts = _allWorkouts;
+    if (_selectedType != null) {
+      filteredWorkouts = filteredWorkouts.where((w) => w.type == _selectedType).toList();
+    }
+    if (_selectedSource != null) {
+      filteredWorkouts = filteredWorkouts.where((w) => w.source == _selectedSource).toList();
+    }
+
+    // 결과가 최소 개수보다 적으면 더 로드
+    if (filteredWorkouts.length < _minFilteredResults && !_isLoadingMore) {
+      _isAutoLoadingForFilter = true;
+      _loadMoreData();
+    } else {
+      _isAutoLoadingForFilter = false;
+    }
   }
 
   @override
@@ -92,9 +130,13 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                   : 30;
               _isLoadingMore = false;
             });
+
+            // 필터가 적용된 상태에서 결과가 적으면 자동으로 더 로드
+            _checkAndLoadMoreForFilter();
           } else if (state is WorkoutError) {
             setState(() {
               _isLoadingMore = false;
+              _isAutoLoadingForFilter = false;
             });
           }
         },
@@ -199,6 +241,33 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
             }
 
             if (workouts.isEmpty) {
+              // 자동 로드 중이면 로딩 표시
+              if (_isAutoLoadingForFilter || _isLoadingMore) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        '${_getFilterTypeName()} 기록을 찾는 중...',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '최근 $_loadedDays일 검색 중',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[500],
+                            ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // 최대치까지 로드했는데도 없으면 안내
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -206,11 +275,20 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                     Icon(Icons.filter_alt_off, size: 64, color: Colors.grey[400]),
                     const SizedBox(height: 16),
                     Text(
-                      '필터 조건에 맞는 운동이 없습니다',
+                      '${_getFilterTypeName()} 기록이 없습니다',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: Colors.grey[600],
                           ),
                     ),
+                    if (_loadedDays >= _maxLoadDays) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '(최근 1년간 검색)',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[500],
+                            ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: () {
@@ -319,6 +397,8 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
             _selectedSource = source;
             _sortBy = sortBy;
           });
+          // 필터 변경 시 자동 로드 체크
+          _checkAndLoadMoreForFilter();
         },
       ),
     );
@@ -370,5 +450,44 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
       context: context,
       workout: workout,
     );
+  }
+
+  /// 현재 필터 타입 이름 가져오기
+  String _getFilterTypeName() {
+    if (_selectedType != null) {
+      switch (_selectedType!) {
+        case WorkoutType.running:
+          return '러닝';
+        case WorkoutType.cycling:
+          return '사이클링';
+        case WorkoutType.walking:
+          return '걷기';
+        case WorkoutType.swimming:
+          return '수영';
+        case WorkoutType.weightTraining:
+          return '웨이트 트레이닝';
+        case WorkoutType.yoga:
+          return '요가';
+        case WorkoutType.hiking:
+          return '등산';
+        case WorkoutType.other:
+          return '기타 운동';
+      }
+    }
+    if (_selectedSource != null) {
+      switch (_selectedSource!) {
+        case WorkoutSource.appleHealth:
+          return 'Apple Health';
+        case WorkoutSource.googleFit:
+          return 'Google Fit';
+        case WorkoutSource.garmin:
+          return 'Garmin';
+        case WorkoutSource.samsungHealth:
+          return 'Samsung Health';
+        case WorkoutSource.manual:
+          return '수동 입력';
+      }
+    }
+    return '필터 조건에 맞는 운동';
   }
 }
