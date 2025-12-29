@@ -1,4 +1,4 @@
-name: Deploy Android
+name: Deploy Android (Firebase)
 
 on:
   # 수동 트리거

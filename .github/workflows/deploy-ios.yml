@@ -1,4 +1,4 @@
-name: Deploy iOS (TestFlight)
+name: 🍎 iOS 배포 (TestFlight)
 
 on:
   workflow_dispatch:
