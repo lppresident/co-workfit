@@ -125,10 +125,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          fastlane run upload_to_testflight \
-            ipa:"../build/ios/ipa/co_workfit.ipa" \
-            skip_waiting_for_build_processing:true \
-            changelog:"${{ github.event.inputs.release_notes }}"
+          fastlane upload_testflight changelog:"${{ github.event.inputs.release_notes }}"
 
       - name: Commit version bump
         run: |
