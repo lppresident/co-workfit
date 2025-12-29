@@ -5,12 +5,22 @@ default_platform(:ios)
 
 # Helper: App Store Connect API Key 생성 및 반환
 def get_api_key
-  UI.user_error!("App Store Connect API Key environment variables are not set!") unless ENV["APP_STORE_CONNECT_API_KEY_ID"] && ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"] && ENV["APP_STORE_CONNECT_API_KEY_CONTENT"]
-  
+  key_id = ENV["APP_STORE_CONNECT_API_KEY_ID"]
+  issuer_id = ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"]
+  key_content = ENV["APP_STORE_CONNECT_API_KEY_CONTENT"]
+
+  UI.user_error!("APP_STORE_CONNECT_API_KEY_ID is not set!") unless key_id && !key_id.empty?
+  UI.user_error!("APP_STORE_CONNECT_API_KEY_ISSUER_ID is not set!") unless issuer_id && !issuer_id.empty?
+  UI.user_error!("APP_STORE_CONNECT_API_KEY_CONTENT is not set!") unless key_content && !key_content.empty?
+
+  UI.message("API Key ID: #{key_id}")
+  UI.message("Issuer ID: #{issuer_id}")
+  UI.message("Key Content length: #{key_content.length} chars")
+
   app_store_connect_api_key(
-    key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
-    issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
-    key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+    key_id: key_id,
+    issuer_id: issuer_id,
+    key_content: key_content,
     is_key_content_base64: true,
     in_house: false
   )
@@ -18,7 +28,7 @@ end
 
 platform :ios do
   desc "Sync certificates and profiles using Match"
-  lane :sync_code_signing do |options|
+  lane :setup_match do |options|
     type = options[:type] || "appstore"
     api_key = get_api_key
 
@@ -35,7 +45,7 @@ platform :ios do
   desc "Build IPA for TestFlight (App Store)"
   lane :build_appstore do |options|
     # Sync certificates
-    sync_code_signing(type: "appstore")
+    setup_match(type: "appstore")
 
     # Update code signing settings to manual
     update_code_signing_settings(
