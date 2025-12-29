@@ -42,15 +42,25 @@ class WorkoutPermissionDenied extends WorkoutState {
 /// 운동 데이터 로드 성공
 class WorkoutLoaded extends WorkoutState {
   final List<WorkoutEntity> workouts;
+
+  // 전체 기간 통계
   final int totalScore;
   final int totalCalories;
   final int totalDuration;
+
+  // 오늘 통계
+  final int todayScore;
+  final int todayCalories;
+  final int todayDuration;
 
   const WorkoutLoaded({
     required this.workouts,
     required this.totalScore,
     required this.totalCalories,
     required this.totalDuration,
+    required this.todayScore,
+    required this.todayCalories,
+    required this.todayDuration,
   });
 
   @override
@@ -59,10 +69,14 @@ class WorkoutLoaded extends WorkoutState {
         totalScore,
         totalCalories,
         totalDuration,
+        todayScore,
+        todayCalories,
+        todayDuration,
       ];
 
   /// 통계 계산
   factory WorkoutLoaded.fromWorkouts(List<WorkoutEntity> workouts) {
+    // 전체 기간 통계
     final totalScore = workouts.fold<int>(
       0,
       (sum, workout) => sum + workout.calibratedScore,
@@ -78,11 +92,40 @@ class WorkoutLoaded extends WorkoutState {
       (sum, workout) => sum + workout.durationMinutes,
     );
 
+    // 오늘 날짜 운동만 필터링
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
+
+    final todayWorkouts = workouts.where((workout) {
+      return workout.startTime.isAfter(todayStart) &&
+          workout.startTime.isBefore(todayEnd);
+    }).toList();
+
+    // 오늘 통계
+    final todayScore = todayWorkouts.fold<int>(
+      0,
+      (sum, workout) => sum + workout.calibratedScore,
+    );
+
+    final todayCalories = todayWorkouts.fold<int>(
+      0,
+      (sum, workout) => sum + (workout.calories ?? 0),
+    );
+
+    final todayDuration = todayWorkouts.fold<int>(
+      0,
+      (sum, workout) => sum + workout.durationMinutes,
+    );
+
     return WorkoutLoaded(
       workouts: workouts,
       totalScore: totalScore,
       totalCalories: totalCalories,
       totalDuration: totalDuration,
+      todayScore: todayScore,
+      todayCalories: todayCalories,
+      todayDuration: todayDuration,
     );
   }
 }

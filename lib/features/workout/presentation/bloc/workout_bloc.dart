@@ -290,26 +290,8 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
           return workout;
         }).toList();
 
-        // 통계 재계산
-        final totalScore = updatedWorkouts.fold<int>(
-          0,
-          (sum, workout) => sum + workout.calibratedScore,
-        );
-        final totalCalories = updatedWorkouts.fold<int>(
-          0,
-          (sum, workout) => sum + (workout.calories ?? 0),
-        );
-        final totalDuration = updatedWorkouts.fold<int>(
-          0,
-          (sum, workout) => sum + workout.durationMinutes,
-        );
-
-        emit(WorkoutLoaded(
-          workouts: updatedWorkouts,
-          totalScore: totalScore,
-          totalCalories: totalCalories,
-          totalDuration: totalDuration,
-        ));
+        // 통계 재계산 (fromWorkouts 팩토리 사용)
+        emit(WorkoutLoaded.fromWorkouts(updatedWorkouts));
       },
     );
   }

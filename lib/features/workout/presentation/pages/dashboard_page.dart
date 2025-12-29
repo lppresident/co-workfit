@@ -497,19 +497,19 @@ class _DashboardHomeState extends State<_DashboardHome> {
                   _buildStatItem(
                     context,
                     '점수',
-                    hasData ? '${state.totalScore}' : '0',
+                    hasData ? '${state.todayScore}' : '0',
                     Icons.star,
                   ),
                   _buildStatItem(
                     context,
                     '시간',
-                    hasData ? '${state.totalDuration}분' : '0분',
+                    hasData ? '${state.todayDuration}분' : '0분',
                     Icons.timer,
                   ),
                   _buildStatItem(
                     context,
                     '칼로리',
-                    hasData ? '${state.totalCalories}' : '0',
+                    hasData ? '${state.todayCalories}' : '0',
                     Icons.local_fire_department,
                   ),
                 ],
