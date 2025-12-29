@@ -28,6 +28,29 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
     workout = widget.workout;
   }
 
+  /// 페이스 표시 대상 운동 타입인지 확인
+  bool get _shouldShowPace {
+    return workout.type == WorkoutType.running ||
+        workout.type == WorkoutType.walking ||
+        workout.type == WorkoutType.hiking;
+  }
+
+  /// 페이스 계산 (분'초"/km 형식)
+  String? get _pace {
+    final distance = workout.effectiveDistance;
+    if (distance == null || distance <= 0) return null;
+    if (workout.durationMinutes <= 0) return null;
+
+    final paceMinutesPerKm = workout.durationMinutes / distance;
+    final minutes = paceMinutesPerKm.floor();
+    final seconds = ((paceMinutesPerKm - minutes) * 60).round();
+
+    // 비정상적인 페이스 필터링
+    if (minutes < 1 || minutes > 30) return null;
+
+    return "$minutes'${seconds.toString().padLeft(2, '0')}\"";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -243,6 +266,16 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
             if (workout.effectiveDistance != null) ...[
               const Divider(height: 24),
               _buildDistanceInfoRow(context),
+            ],
+            // 페이스 표시 (러닝, 걷기, 등산)
+            if (_shouldShowPace && _pace != null) ...[
+              const Divider(height: 24),
+              _buildInfoRow(
+                context,
+                Icons.speed,
+                '페이스',
+                '$_pace /km',
+              ),
             ],
             if (workout.averageHeartRate != null) ...[
               const Divider(height: 24),
