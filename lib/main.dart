@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -16,7 +17,9 @@ import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderboard_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
 import 'package:co_workfit/core/utils/logger.dart';
+import 'package:co_workfit/core/services/deep_link_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,11 +41,107 @@ void main() async {
   // Initialize dependencies
   await di.initializeDependencies();
 
+  // Initialize deep link service
+  await DeepLinkService().initialize();
+
   runApp(const CoWorkFitApp());
 }
 
-class CoWorkFitApp extends StatelessWidget {
+class CoWorkFitApp extends StatefulWidget {
   const CoWorkFitApp({super.key});
+
+  @override
+  State<CoWorkFitApp> createState() => _CoWorkFitAppState();
+}
+
+class _CoWorkFitAppState extends State<CoWorkFitApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  StreamSubscription<DeepLinkData>? _deepLinkSubscription;
+  DeepLinkData? _pendingDeepLink;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupDeepLinkListener();
+  }
+
+  void _setupDeepLinkListener() {
+    _deepLinkSubscription = DeepLinkService().deepLinkStream.listen((data) {
+      AppLogger.info('CoWorkFitApp', 'Received deep link: ${data.type}');
+      _handleDeepLink(data);
+    });
+  }
+
+  void _handleDeepLink(DeepLinkData data) {
+    final context = _navigatorKey.currentContext;
+    if (context == null) {
+      // 아직 앱이 준비되지 않은 경우 대기
+      _pendingDeepLink = data;
+      return;
+    }
+
+    switch (data.type) {
+      case DeepLinkType.logRunJoin:
+        final inviteCode = data.data['inviteCode'] as String;
+        _showJoinChallengeDialog(context, inviteCode);
+        break;
+    }
+  }
+
+  void _showJoinChallengeDialog(BuildContext context, String inviteCode) {
+    // 인증 상태 확인
+    final authBloc = context.read<AuthBloc>();
+    final authState = authBloc.state;
+
+    if (authState is! Authenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('챌린지에 참가하려면 먼저 로그인해주세요'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('통나무런 초대'),
+        content: Text('초대 코드: $inviteCode\n\n이 챌린지에 참가하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.read<LogRunBloc>().add(
+                    JoinChallengeByCode(
+                      inviteCode: inviteCode,
+                      userId: authState.user.id,
+                      userNickname: authState.user.nickname,
+                    ),
+                  );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('챌린지 참가 중...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+            child: const Text('참가하기'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _deepLinkSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,34 +167,48 @@ class CoWorkFitApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         title: 'Co-WorkFit',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
-        home: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            if (state is Authenticated) {
-              // 닉네임을 설정하지 않았으면 닉네임 설정 페이지로
-              if (!state.user.isNicknameSet) {
-                return SetupNicknamePage(
-                  userId: state.user.id,
-                  currentNickname: state.user.nickname,
-                );
-              }
-              // 닉네임을 설정한 사용자는 메인 화면으로
-              return const DashboardPage();
-            } else if (state is Unauthenticated) {
-              return const LoginPage();
-            } else if (state is AuthError) {
-              return const LoginPage();
+        home: BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) {
+            // 인증 완료 후 대기 중인 딥링크 처리
+            if (state is Authenticated && _pendingDeepLink != null) {
+              final pending = _pendingDeepLink!;
+              _pendingDeepLink = null;
+              // 약간의 딜레이 후 딥링크 처리 (UI 준비 대기)
+              Future.delayed(const Duration(milliseconds: 500), () {
+                _handleDeepLink(pending);
+              });
             }
-            // AuthInitial or AuthLoading
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
           },
+          child: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              if (state is Authenticated) {
+                // 닉네임을 설정하지 않았으면 닉네임 설정 페이지로
+                if (!state.user.isNicknameSet) {
+                  return SetupNicknamePage(
+                    userId: state.user.id,
+                    currentNickname: state.user.nickname,
+                  );
+                }
+                // 닉네임을 설정한 사용자는 메인 화면으로
+                return const DashboardPage();
+              } else if (state is Unauthenticated) {
+                return const LoginPage();
+              } else if (state is AuthError) {
+                return const LoginPage();
+              }
+              // AuthInitial or AuthLoading
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            },
+          ),
         ),
         routes: {
           '/dashboard': (context) => const DashboardPage(),

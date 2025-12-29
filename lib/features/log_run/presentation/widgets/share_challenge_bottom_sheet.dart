@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:co_workfit/core/services/deep_link_service.dart';
 
 /// 챌린지 초대 코드 공유 BottomSheet
 class ShareChallengeBottomSheet extends StatelessWidget {
@@ -12,15 +14,31 @@ class ShareChallengeBottomSheet extends StatelessWidget {
     required this.challengeName,
   });
 
+  String get _inviteLink => DeepLinkService.createLogRunInviteLink(inviteCode);
+
   void _copyToClipboard(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: inviteCode));
+    Clipboard.setData(ClipboardData(text: _inviteLink));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('초대 코드가 클립보드에 복사되었습니다'),
+        content: Text('초대 링크가 클립보드에 복사되었습니다'),
         backgroundColor: Colors.green,
         duration: Duration(seconds: 2),
       ),
     );
+  }
+
+  void _shareLink(BuildContext context) {
+    final message = '''
+🏃 통나무런 초대!
+
+$challengeName에 함께 참가해요!
+
+📱 앱이 설치되어 있다면:
+$_inviteLink
+
+📝 초대 코드: $inviteCode
+''';
+    Share.share(message, subject: '통나무런 초대');
   }
 
   @override
@@ -80,12 +98,12 @@ class ShareChallengeBottomSheet extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // 복사 버튼
+          // 공유 버튼 (메인)
           ElevatedButton.icon(
-            onPressed: () => _copyToClipboard(context),
-            icon: const Icon(Icons.copy),
+            onPressed: () => _shareLink(context),
+            icon: const Icon(Icons.share),
             label: const Text(
-              '코드 복사하기',
+              '초대 링크 공유하기',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -96,6 +114,22 @@ class ShareChallengeBottomSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
+
+          // 링크 복사 버튼 (서브)
+          OutlinedButton.icon(
+            onPressed: () => _copyToClipboard(context),
+            icon: const Icon(Icons.copy),
+            label: const Text(
+              '링크 복사하기',
+              style: TextStyle(
+                fontSize: 14,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // 안내 텍스트
           Container(
@@ -110,7 +144,7 @@ class ShareChallengeBottomSheet extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '이 코드를 친구에게 공유하여\n통나무런에 초대하세요',
+                    '링크를 공유하면 친구가 바로 참가할 수 있어요!\n앱이 없는 경우 초대 코드로도 참가 가능합니다.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey[700],
                         ),

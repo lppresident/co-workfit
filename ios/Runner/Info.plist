@@ -62,6 +62,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.googleusercontent.apps.89240730998-618nn4aqpg6il1vt0prphp0o40iqogob</string>
+				<string>coworkfit</string>
 			</array>
 		</dict>
 	</array>
