@@ -117,6 +117,10 @@ class FriendsListTab extends StatelessWidget {
               // 친구 목록 셀
               final friendIndex = requestCount > 0 ? index - 1 : index;
               final friend = friends[friendIndex];
+              final friendName = friend.friendName ?? '알 수 없음';
+              final friendEmail = friend.friendEmail ?? '';
+              final friendTotalScore = friend.friendTotalScore ?? 0;
+              final friendWorkoutCount = friend.friendWorkoutCount ?? 0;
               return Card(
                 margin: const EdgeInsets.symmetric(
                   horizontal: AppConstants.defaultPadding,
@@ -128,17 +132,17 @@ class FriendsListTab extends StatelessWidget {
                         ? NetworkImage(friend.friendPhotoUrl!)
                         : null,
                     child: friend.friendPhotoUrl == null
-                        ? Text(friend.friendName[0].toUpperCase())
+                        ? Text(friendName.isNotEmpty ? friendName[0].toUpperCase() : '?')
                         : null,
                   ),
-                  title: Text(friend.friendName),
+                  title: Text(friendName),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(friend.friendEmail),
+                      if (friendEmail.isNotEmpty) Text(friendEmail),
                       const SizedBox(height: 4),
                       Text(
-                        '점수: ${friend.friendTotalScore} | 운동: ${friend.friendWorkoutCount}회',
+                        '점수: $friendTotalScore | 운동: $friendWorkoutCount회',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -152,8 +156,7 @@ class FriendsListTab extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => FriendDetailPage(
-                          friendId: friend.friendId,
-                          friendName: friend.friendName,
+                          friend: friend,
                         ),
                       ),
                     );

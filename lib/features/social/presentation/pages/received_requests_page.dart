@@ -58,6 +58,7 @@ class _ReceivedRequestsPageState extends BasePageState<ReceivedRequestsPage> {
           itemCount: requests.length,
           itemBuilder: (context, index) {
             final request = requests[index];
+            final senderName = request.senderName ?? '알 수 없음';
             return Card(
               margin: const EdgeInsets.symmetric(
                 horizontal: AppConstants.defaultPadding,
@@ -69,10 +70,10 @@ class _ReceivedRequestsPageState extends BasePageState<ReceivedRequestsPage> {
                       ? NetworkImage(request.senderPhotoUrl!)
                       : null,
                   child: request.senderPhotoUrl == null
-                      ? Text(request.senderName[0].toUpperCase())
+                      ? Text(senderName.isNotEmpty ? senderName[0].toUpperCase() : '?')
                       : null,
                 ),
-                title: Text(request.senderName),
+                title: Text(senderName),
                 subtitle: Text(
                   '${_formatDate(request.createdAt)}에 요청',
                   style: const TextStyle(fontSize: 12),

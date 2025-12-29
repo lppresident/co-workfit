@@ -90,3 +90,17 @@ class SearchUsersByNicknameEvent extends SocialEvent {
 class ClearSearchResults extends SocialEvent {
   const ClearSearchResults();
 }
+
+// Friend Management Events
+class RemoveFriendEvent extends SocialEvent {
+  final String userId;
+  final String friendId;
+
+  const RemoveFriendEvent({
+    required this.userId,
+    required this.friendId,
+  });
+
+  @override
+  List<Object?> get props => [userId, friendId];
+}
