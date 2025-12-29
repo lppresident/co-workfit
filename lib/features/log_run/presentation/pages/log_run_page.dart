@@ -163,6 +163,9 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           );
           // 목록 새로고침
           refreshChallenges();
+        } else if (state is ChallengeDeleted) {
+          // 챌린지 삭제 후 목록 새로고침
+          refreshChallenges();
         }
       },
       builder: (context, state) {
