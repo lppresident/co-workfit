@@ -1,211 +1,140 @@
-# Co-WorkFit
+# Co-WorkFit 💪
 
-동료와 함께하는 운동 성취 공유 앱 - 당신의 완벽한 운동 동반자!
+**동료와 함께하는 운동 성취 공유 앱**
 
-## 🎯 핵심 기능
+[![Flutter](https://img.shields.io/badge/Flutter-3.10+-02569B?logo=flutter)](https://flutter.dev)
+[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com)
+[![License](https://img.shields.io/badge/License-Private-red)](LICENSE)
 
-### 1. 멀티 플랫폼 데이터 통합
-- **Garmin Connect**: 전문 운동 트래커 데이터
-- **Apple HealthKit**: iPhone/Apple Watch 건강 데이터
-- **Google Fit**: Android 기기 피트니스 데이터
-- **Samsung Health**: 삼성 헬스 앱 데이터
-- **수동 입력**: 직접 운동 기록 추가
+---
 
-### 2. 스마트 캘리브레이션 시스템 ⚖️
-각 플랫폼마다 다른 측정 방식을 표준화하여 공정한 비교를 가능하게 합니다:
+## ✨ 주요 기능
 
-- **플랫폼별 보정 계수**: 각 플랫폼의 측정 특성 반영
-- **다차원 분석**: 칼로리, 심박수, 시간, 거리를 종합적으로 평가
-- **운동 타입별 난이도**: 수영, 러닝, 사이클링 등 운동 강도 차이 반영
-- **표준화된 점수**: 누구나 공정하게 비교할 수 있는 workload 지수
+### 🏃 운동 데이터 통합
+- Apple HealthKit / Google Health Connect 연동
+- Garmin Connect 지원
+- 수동 운동 기록 입력
 
-### 3. 소셜 기능 🤝
-- 동료와 성취 공유
-- 리더보드 및 순위
-- 그룹 챌린지
-- 운동 기록 타임라인
+### 🏆 통나무런 (Log Run)
+- 그룹 챌린지 생성 및 참여
+- 초대 코드로 친구와 함께
+- 실시간 기여도 추적
 
-### 4. 간편한 로그인 🔐
-- **Google Sign-In**: Google 계정으로 간편 로그인
-- **Apple Sign-In**: Apple ID로 안전한 로그인 (iOS)
-- Firebase Authentication 통합
+### 👥 소셜 기능
+- 친구 추가 및 관리
+- 주간/월간 리더보드
+- 운동 기록 공유
 
-## 🏗️ 프로젝트 구조
+### ⚖️ 공정한 비교
+- 플랫폼별 보정 계수 적용
+- 운동 타입별 난이도 반영
+- 표준화된 Workload 점수
 
-```
-lib/
-├── core/                    # 공통 기능
-│   ├── constants/          # 앱 전역 상수
-│   ├── di/                 # 의존성 주입
-│   ├── error/              # 에러 정의
-│   ├── platform/           # 플랫폼별 코드
-│   ├── usecases/           # UseCase 베이스 클래스
-│   ├── utils/              # 유틸리티 (Logger 등)
-│   └── widgets/            # 공통 위젯 (Loading, Error, Empty)
-├── features/                # 기능별 모듈 (Clean Architecture)
-│   ├── auth/               # 사용자 인증
-│   ├── workout/            # 운동 데이터 관리
-│   ├── profile/            # 사용자 프로필
-│   └── social/             # 소셜 기능 (친구, 리더보드)
-└── shared/                  # 공유 리소스
-    └── theme/              # 테마 설정
-```
-
-각 feature는 Clean Architecture 원칙을 따릅니다:
-- `domain/`: 비즈니스 로직 (엔티티, Repository 인터페이스, UseCases)
-- `data/`: 데이터 접근 (모델, DataSources, Repository 구현체)
-- `presentation/`: UI 레이어 (BLoC, 페이지, 위젯)
-
-**📚 개발자 가이드**:
-- [`.claude/CLAUDE.md`](.claude/CLAUDE.md) - **AI 개발 룰 (메인)** ⭐
-- [`.claude/docs/UI_STRUCTURE.md`](.claude/docs/UI_STRUCTURE.md) - UI 구조 가이드 (BasePage, Mixins, Patterns)
-- [`.claude/docs/ARCHITECTURE.md`](.claude/docs/ARCHITECTURE.md) - 상세한 아키텍처 가이드
-- [`.claude/docs/CONTRIBUTING.md`](.claude/docs/CONTRIBUTING.md) - 기여 가이드 (AI Assistant용)
-- [`.claude/docs/AI_QUICK_REFERENCE.md`](.claude/docs/AI_QUICK_REFERENCE.md) - 빠른 참조 가이드
-- [`docs/README.md`](docs/README.md) - 전체 문서 인덱스
+---
 
 ## 🛠️ 기술 스택
 
-### 아키텍처 & 상태 관리
-- **Clean Architecture**: 계층 분리 및 의존성 역전
-- **BLoC Pattern**: 상태 관리 (flutter_bloc)
-- **Dependency Injection**: GetIt
+| 분류 | 기술 |
+|------|------|
+| **Framework** | Flutter 3.10+ |
+| **Architecture** | Clean Architecture + BLoC |
+| **State** | flutter_bloc |
+| **DI** | GetIt |
+| **Backend** | Firebase (Auth, Firestore) |
+| **Health Data** | health package |
 
-### 헬스 플랫폼 통합
-- **Health Package**: 멀티 플랫폼 헬스 데이터 통합
-- **Firebase**: 인증 및 Firestore
-
-### UI
-- **Material 3**: 최신 디자인 시스템
+---
 
 ## 🚀 시작하기
 
-### 필수 요구사항
-- Flutter SDK >= 3.10.0
-- Dart SDK >= 3.10.0
-- Firebase 프로젝트 설정
+### 요구사항
+
+- Flutter SDK 3.10+
+- Firebase 프로젝트
 
 ### 설치
 
 ```bash
+# 클론
+git clone https://github.com/lppresident/co-workfit.git
+cd co-workfit
+
 # 의존성 설치
 flutter pub get
 
 # Firebase 설정
 flutterfire configure
 
-# 앱 실행
+# 실행
 flutter run
 ```
 
-### 인증 설정 (Apple Sign-In)
-
-Apple Sign-In을 사용하려면 추가 설정이 필요합니다:
+### Android 개발 환경
 
 ```bash
-# Apple Sign-In 설정 확인 스크립트 실행
-./scripts/check_apple_signin_setup.sh
-```
-
-**필수 단계**:
-1. **Apple Developer Program 가입** ($99/년)
-2. **Apple Developer Portal** 설정
-   - App ID에 Sign in with Apple capability 활성화
-3. **Firebase Console** 설정
-   - Authentication > Sign-in method > Apple 활성화
-
-자세한 설정 방법은 [`docs/APPLE_SIGNIN_SETUP.md`](docs/APPLE_SIGNIN_SETUP.md)를 참고하세요.
-
-### Android 개발 환경 설정
-
-Android 관련 작업(SHA-1 확인, Gradle 빌드 등)을 수행하기 전에 환경 설정이 필요합니다:
-
-```bash
-# 환경 변수 설정 (매번 새 터미널 세션마다 실행)
+# Java/Android SDK 설정 (새 터미널마다)
 source scripts/setup-env.sh
 ```
 
-이 스크립트는 자동으로 Java 경로를 설정하고 Android 개발 도구를 사용할 수 있게 합니다.
+---
 
-### 개발
+## 📁 프로젝트 구조
 
-```bash
-# 코드 분석
-flutter analyze
-
-# 테스트 실행
-flutter test
-
-# 빌드
-flutter build ios
-flutter build apk
 ```
-
-### AI Assistant 개발 가이드
-
-이 프로젝트는 AI Assistant와 협업하기 위해 최적화되어 있습니다.
-
-**Claude Code를 사용하는 경우:**
-- Claude Code는 자동으로 [`.claude/CLAUDE.md`](.claude/CLAUDE.md) 파일을 읽어들입니다
-- 모든 개발 규칙과 패턴이 이 파일에 통합되어 있습니다
-
-**새 기능을 추가하거나 코드를 수정할 때 참고 문서:**
-
-1. **개발 규칙**: [`.claude/CLAUDE.md`](.claude/CLAUDE.md) - AI 개발 규칙 (메인) ⭐
-2. **UI 구조**: [`.claude/docs/UI_STRUCTURE.md`](.claude/docs/UI_STRUCTURE.md) - 페이지/위젯 패턴
-3. **빠른 템플릿**: [`.claude/docs/AI_QUICK_REFERENCE.md`](.claude/docs/AI_QUICK_REFERENCE.md) - 코드 스니펫
-4. **아키텍처**: [`.claude/docs/ARCHITECTURE.md`](.claude/docs/ARCHITECTURE.md) - Clean Architecture 패턴
-5. **기여 가이드**: [`.claude/docs/CONTRIBUTING.md`](.claude/docs/CONTRIBUTING.md) - 전체 프로세스
-6. **전체 문서**: [`docs/README.md`](docs/README.md) - 문서 인덱스
-
-**기본 워크플로우**:
+lib/
+├── core/           # 공통 기능 (DI, Utils, Widgets)
+├── features/       # 기능별 모듈
+│   ├── auth/       # 인증
+│   ├── log_run/    # 통나무런
+│   ├── profile/    # 프로필
+│   ├── social/     # 소셜
+│   └── workout/    # 운동
+└── main.dart
 ```
-1. Domain Layer  → Entity, Repository, UseCases 작성
-2. Data Layer    → Model, DataSource, Repository 구현
-3. Presentation  → Event, State, BLoC 작성
-4. UI Layer      → BasePage + Mixins 사용 (필수!)
-5. DI Setup      → injection.dart 및 main.dart 등록
-6. Quality Check → flutter analyze (0 errors)
-```
-
-## 📊 캘리브레이션 알고리즘
-
-Co-WorkFit의 핵심은 공정한 운동 평가입니다. 각 플랫폼의 데이터를 다음과 같이 처리합니다:
-
-### 1. 정규화 (0-100 스케일)
-- **칼로리**: 800kcal = 100점
-- **심박수**: 안정시(60) ~ 고강도(160) 범위
-- **운동 시간**: 90분 = 100점
-- **거리**: 운동 타입별 기준 (러닝 10km, 사이클링 30km 등)
-
-### 2. 가중치 적용
-```dart
-workload = (칼로리 × 0.35) + (심박수 × 0.30) +
-           (시간 × 0.20) + (거리 × 0.15)
-```
-
-### 3. 플랫폼 보정
-- Garmin: 0.95 (칼로리 높게 측정 경향)
-- Apple Health: 1.0 (기준)
-- Google Fit: 1.05 (보수적 측정)
-- Samsung Health: 1.0
-- 수동 입력: 0.90 (보수적 평가)
-
-### 4. 운동 타입 난이도
-- 수영: 1.2 (높은 난이도)
-- 웨이트 트레이닝: 1.1
-- 러닝: 1.0 (기준)
-- 사이클링: 0.9
-- 걷기: 0.7
-
-## 📋 개발 현황
-
-자세한 개발 진행 상황 및 로드맵은 [GitHub Issue #3](https://github.com/lppresident/co-workfit/issues/3)에서 확인하세요.
-
-## 📝 라이선스
-
-Private Project
 
 ---
 
-**Co-WorkFit** - 함께 운동하고, 함께 성장하세요! 💪
+## 📚 문서
+
+### AI 개발자 (Claude Code)
+
+| 문서 | 설명 |
+|------|------|
+| [CLAUDE.md](.claude/CLAUDE.md) | **개발 규칙 (필독)** |
+| [TEMPLATES.md](.claude/docs/TEMPLATES.md) | 코드 템플릿 |
+
+### 설정 가이드
+
+| 문서 | 설명 |
+|------|------|
+| [APPLE_SIGNIN_SETUP.md](docs/APPLE_SIGNIN_SETUP.md) | Apple 로그인 설정 |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | 배포 가이드 |
+| [FASTLANE_MATCH_SETUP.md](docs/FASTLANE_MATCH_SETUP.md) | 인증서 관리 |
+
+---
+
+## 🔄 개발 워크플로우
+
+```
+1. Issue 생성  →  [Phase X] 기능명
+2. Branch 생성 →  feature/{기능명}-{issue번호}
+3. 개발        →  CLAUDE.md 규칙 준수
+4. PR 생성    →  flutter analyze 통과
+5. Merge      →  develop → main
+```
+
+---
+
+## 📱 스크린샷
+
+> Coming soon
+
+---
+
+## 📝 라이선스
+
+Private Project - All rights reserved
+
+---
+
+**Co-WorkFit** - 함께 운동하고, 함께 성장하세요! 🏋️
