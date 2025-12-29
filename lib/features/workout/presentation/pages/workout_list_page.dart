@@ -4,6 +4,7 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart'
 import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/workout_list_item.dart';
+import 'package:co_workfit/features/workout/presentation/widgets/edit_distance_dialog.dart';
 import 'package:co_workfit/features/workout/presentation/pages/workout_detail_page.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/filter_bottom_sheet.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
@@ -365,113 +366,9 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
 
   /// 거리 수정 다이얼로그 표시
   void _showEditDistanceDialog(WorkoutEntity workout) {
-    final TextEditingController controller = TextEditingController(
-      text: (workout.effectiveDistance ?? 0.0).toStringAsFixed(2),
-    );
-
-    showDialog(
+    EditDistanceDialog.show(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('거리 수정'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (workout.source == WorkoutSource.garmin) ...[
-              const Row(
-                children: [
-                  Icon(Icons.warning_amber, color: Colors.orange, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Garmin 데이터',
-                    style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Garmin 데이터는 거리가 부정확할 수 있습니다.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-            ],
-            Text(
-              '원래 값: ${(workout.distance ?? 0.0).toStringAsFixed(2)} km',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: '정확한 거리 (km)',
-                hintText: '예: 5.63',
-                suffixText: 'km',
-                border: OutlineInputBorder(),
-              ),
-              autofocus: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final input = controller.text.trim();
-              if (input.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('거리를 입력해주세요.'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              final distance = double.tryParse(input);
-              if (distance == null || distance <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('올바른 거리를 입력해주세요. (0보다 큰 숫자)'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              if (distance > 100) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('거리가 너무 큽니다. (100km 이하로 입력해주세요)'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              // BLoC에 거리 수정 이벤트 발생
-              context.read<WorkoutBloc>().add(
-                    UpdateWorkoutDistanceEvent(
-                      workoutId: workout.id,
-                      correctedDistance: distance,
-                    ),
-                  );
-
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('거리가 수정되었습니다.'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            child: const Text('수정'),
-          ),
-        ],
-      ),
+      workout: workout,
     );
   }
 }
