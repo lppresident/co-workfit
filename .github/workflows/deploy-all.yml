@@ -229,6 +229,20 @@ jobs:
           cd ios
           gem install fastlane
 
+      - name: Setup temporary keychain
+        run: |
+          security create-keychain -p "" fastlane_tmp_keychain
+          security default-keychain -s fastlane_tmp_keychain
+          security unlock-keychain -p "" fastlane_tmp_keychain
+          security set-keychain-settings -t 3600 -u fastlane_tmp_keychain
+
+      - name: Update iOS version
+        run: |
+          VERSION_NAME="${{ steps.read_version.outputs.version_name }}"
+          BUILD_NUMBER="${{ steps.read_version.outputs.build_number }}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION_NAME" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/Runner/Info.plist
+
       - name: Install CocoaPods dependencies
         run: |
           cd ios
