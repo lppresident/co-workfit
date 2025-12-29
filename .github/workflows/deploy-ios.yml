@@ -17,11 +17,6 @@ on:
         description: '릴리스 노트'
         required: false
         default: 'New build'
-      create_github_release:
-        description: 'GitHub Release 생성 (IPA)'
-        required: true
-        default: false
-        type: boolean
 
 jobs:
   build-and-deploy:
@@ -135,28 +130,6 @@ jobs:
             skip_waiting_for_build_processing:true \
             changelog:"${{ github.event.inputs.release_notes }}"
 
-      - name: Create GitHub Release
-        if: github.event.inputs.create_github_release == 'true'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.bump_version.outputs.new_version }}-ios
-          name: CoWorkfit iOS v${{ steps.bump_version.outputs.new_version }}
-          body: |
-            ## iOS Release Notes
-            ${{ github.event.inputs.release_notes }}
-            
-            ## Version Info
-            - **Version**: ${{ steps.bump_version.outputs.version_name }}
-            - **Build**: ${{ steps.bump_version.outputs.build_number }}
-            
-            ## Installation
-            - **Recommended**: TestFlight 앱에서 설치
-            - **Direct**: IPA 파일 다운로드 후 설치
-          files: build/ios/ipa/co_workfit.ipa
-          fail_on_unmatched_files: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Commit version bump
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -173,9 +146,7 @@ jobs:
           echo "- **Version**: ${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Release Notes**: ${{ github.event.inputs.release_notes }}" >> $GITHUB_STEP_SUMMARY
           echo "- **TestFlight**: ✅ 업로드됨" >> $GITHUB_STEP_SUMMARY
-          echo "- **GitHub Release**: ${{ github.event.inputs.create_github_release == 'true' && '✅ 생성됨' || '⏭️ 스킵' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📱 설치 방법" >> $GITHUB_STEP_SUMMARY
-          echo "- **추천**: TestFlight 앱에서 설치" >> $GITHUB_STEP_SUMMARY
-          echo "- **직접**: GitHub Releases에서 IPA 다운로드" >> $GITHUB_STEP_SUMMARY
+          echo "TestFlight 앱에서 설치하세요!" >> $GITHUB_STEP_SUMMARY
 

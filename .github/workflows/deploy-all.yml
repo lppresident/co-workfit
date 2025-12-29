@@ -28,7 +28,7 @@ on:
         default: true
         type: boolean
       create_github_release:
-        description: 'GitHub Release 생성 (APK + IPA)'
+        description: 'GitHub Release 생성 (APK만)'
         required: true
         default: false
         type: boolean
@@ -242,14 +242,6 @@ jobs:
             skip_waiting_for_build_processing:true \
             changelog:"${{ github.event.inputs.release_notes }}"
 
-      - name: Upload IPA artifact
-        if: github.event.inputs.create_github_release == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-ipa
-          path: build/ios/ipa/co_workfit.ipa
-          retention-days: 1
-
   # ==================== Commit Version ====================
   commit-version:
     runs-on: ubuntu-latest
@@ -280,11 +272,11 @@ jobs:
           git commit -m "chore: Bump version to ${{ steps.read_version.outputs.new_version }}" || echo "No changes"
           git push || echo "Push failed"
 
-  # ==================== GitHub Release ====================
+  # ==================== GitHub Release (APK only) ====================
   create-release:
     runs-on: ubuntu-latest
-    needs: [build-android, build-ios]
-    if: github.event.inputs.create_github_release == 'true' && (needs.build-android.result == 'success' || needs.build-ios.result == 'success')
+    needs: [build-android]
+    if: github.event.inputs.create_github_release == 'true' && needs.build-android.result == 'success'
 
     steps:
       - name: Checkout code
@@ -297,20 +289,10 @@ jobs:
         continue-on-error: true
 
       - name: Download Android APK
-        if: needs.build-android.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: android-apk
           path: ./android-artifacts
-        continue-on-error: true
-
-      - name: Download iOS IPA
-        if: needs.build-ios.result == 'success'
-        uses: actions/download-artifact@v4
-        with:
-          name: ios-ipa
-          path: ./ios-artifacts
-        continue-on-error: true
 
       - name: Read version
         id: read_version
@@ -322,24 +304,11 @@ jobs:
           echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
 
-      - name: Get file info
-        id: file_info
+      - name: Get APK info
+        id: apk_info
         run: |
-          if [ -f "./android-artifacts/app-release.apk" ]; then
-            APK_SIZE=$(du -h ./android-artifacts/app-release.apk | cut -f1)
-            echo "apk_exists=true" >> $GITHUB_OUTPUT
-            echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
-          else
-            echo "apk_exists=false" >> $GITHUB_OUTPUT
-          fi
-          
-          if [ -f "./ios-artifacts/co_workfit.ipa" ]; then
-            IPA_SIZE=$(du -h ./ios-artifacts/co_workfit.ipa | cut -f1)
-            echo "ipa_exists=true" >> $GITHUB_OUTPUT
-            echo "ipa_size=$IPA_SIZE" >> $GITHUB_OUTPUT
-          else
-            echo "ipa_exists=false" >> $GITHUB_OUTPUT
-          fi
+          APK_SIZE=$(du -h ./android-artifacts/app-release.apk | cut -f1)
+          echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -353,17 +322,12 @@ jobs:
             ## Version Info
             - **Version**: ${{ steps.read_version.outputs.version_name }}
             - **Build**: ${{ steps.read_version.outputs.build_number }}
-            
-            ## Downloads
-            ${{ steps.file_info.outputs.apk_exists == 'true' && format('- **Android APK**: {0}', steps.file_info.outputs.apk_size) || '' }}
-            ${{ steps.file_info.outputs.ipa_exists == 'true' && format('- **iOS IPA**: {0}', steps.file_info.outputs.ipa_size) || '' }}
+            - **APK Size**: ${{ steps.apk_info.outputs.apk_size }}
             
             ## Installation
             - **Android**: Download APK and install (enable unknown sources)
-            - **iOS**: Use TestFlight for easiest installation
-          files: |
-            ./android-artifacts/app-release.apk
-            ./ios-artifacts/co_workfit.ipa
+            - **iOS**: Use TestFlight for installation
+          files: ./android-artifacts/app-release.apk
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
