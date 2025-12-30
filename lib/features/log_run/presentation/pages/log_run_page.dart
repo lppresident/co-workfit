@@ -225,8 +225,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           final challenge = challenges[index];
           return ChallengeCardWidget(
             challenge: challenge,
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              final result = await Navigator.push<bool>(
                 context,
                 MaterialPageRoute(
                   builder: (context) => ChallengeDetailPage(
@@ -234,6 +234,10 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
                   ),
                 ),
               );
+              // 상세 페이지에서 변경이 있었으면 목록 새로고침
+              if (result == true && mounted) {
+                refreshChallenges();
+              }
             },
           );
         },

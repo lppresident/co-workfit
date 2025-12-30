@@ -21,6 +21,9 @@ class ChallengeDetailPage extends BasePage {
 }
 
 class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
+  // 상세 페이지에서 변경 사항이 있었는지 추적
+  bool _hasChanges = false;
+
   @override
   void loadInitialData() {
     context.read<LogRunBloc>().add(LoadChallengeDetail(widget.challengeId));
@@ -175,6 +178,10 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
   PreferredSizeWidget buildAppBar(BuildContext context) {
     return StandardAppBar(
       title: '챌린지 상세',
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.pop(context, _hasChanges),
+      ),
       actions: [
         BlocBuilder<LogRunBloc, LogRunState>(
           builder: (context, state) {
@@ -212,9 +219,16 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
 
   @override
   Widget buildBody(BuildContext context) {
-    return BlocConsumer<LogRunBloc, LogRunState>(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pop(context, _hasChanges);
+      },
+      child: BlocConsumer<LogRunBloc, LogRunState>(
       listener: (context, state) {
         if (state is WorkoutSubmitted) {
+          _hasChanges = true; // 변경 사항 표시
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('운동 기록이 제출되었습니다!'),
@@ -222,6 +236,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
             ),
           );
         } else if (state is ContributionDeleted) {
+          _hasChanges = true; // 변경 사항 표시
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('기여 기록이 삭제되었습니다'),
@@ -237,8 +252,9 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
               backgroundColor: Colors.green,
             ),
           );
-          // 이전 페이지로 돌아가기
-          Navigator.pop(context);
+          // 이전 페이지로 돌아가기 (삭제됨을 알림)
+          Navigator.pop(context, true);
+          return;
         } else if (state is LogRunError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -298,6 +314,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
 
         return const Center(child: Text('챌린지를 불러오는 중...'));
       },
+    ),
     );
   }
 
