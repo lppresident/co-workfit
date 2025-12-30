@@ -172,7 +172,7 @@ class GarminDataSource {
       endTime: activity.endTime ?? activity.startTime!.add(
         Duration(seconds: activity.durationInSeconds ?? 0),
       ),
-      durationMinutes: activity.durationMinutes,
+      durationSeconds: activity.durationInSeconds ?? 0,
       distance: activity.distanceKm,
       calories: activity.activeKilocalories,
       averageHeartRate: activity.averageHeartRateInBeatsPerMinute,

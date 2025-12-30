@@ -29,7 +29,7 @@ class WorkoutEntity extends Equatable {
   final WorkoutType type;
   final DateTime startTime;
   final DateTime endTime;
-  final int durationMinutes;
+  final int durationSeconds; // 초 단위 (정확한 페이스 계산용)
 
   // 원본 데이터 (플랫폼별로 다를 수 있음)
   final double? distance; // km (원본 거리)
@@ -54,7 +54,7 @@ class WorkoutEntity extends Equatable {
     required this.type,
     required this.startTime,
     required this.endTime,
-    required this.durationMinutes,
+    required this.durationSeconds,
     this.distance,
     this.correctedDistance,
     this.calories,
@@ -68,6 +68,9 @@ class WorkoutEntity extends Equatable {
     this.syncedAt,
   });
 
+  /// 운동 시간 (분 단위, UI 표시용) - 반올림
+  int get durationMinutes => (durationSeconds / 60).round();
+
   @override
   List<Object?> get props => [
         id,
@@ -76,7 +79,7 @@ class WorkoutEntity extends Equatable {
         type,
         startTime,
         endTime,
-        durationMinutes,
+        durationSeconds,
         distance,
         correctedDistance,
         calories,
@@ -97,7 +100,7 @@ class WorkoutEntity extends Equatable {
     WorkoutType? type,
     DateTime? startTime,
     DateTime? endTime,
-    int? durationMinutes,
+    int? durationSeconds,
     double? distance,
     double? correctedDistance,
     bool clearCorrectedDistance = false, // true면 correctedDistance를 null로 설정
@@ -118,7 +121,7 @@ class WorkoutEntity extends Equatable {
       type: type ?? this.type,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
-      durationMinutes: durationMinutes ?? this.durationMinutes,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
       distance: distance ?? this.distance,
       correctedDistance: clearCorrectedDistance ? null : (correctedDistance ?? this.correctedDistance),
       calories: calories ?? this.calories,

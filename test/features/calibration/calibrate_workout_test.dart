@@ -19,7 +19,7 @@ void main() {
         type: WorkoutType.running,
         startTime: DateTime.now().subtract(const Duration(hours: 1)),
         endTime: DateTime.now(),
-        durationMinutes: 30,
+        durationSeconds: 30 * 60, // 30분 = 1800초
         distance: 5.0, // 5km
         calories: 400,
         averageHeartRate: 150,
@@ -49,7 +49,7 @@ void main() {
         type: WorkoutType.running,
         startTime: DateTime.now().subtract(const Duration(hours: 1)),
         endTime: DateTime.now(),
-        durationMinutes: 30,
+        durationSeconds: 30 * 60, // 30분 = 1800초
         calories: 400,
         averageHeartRate: 150,
         calibratedWorkload: 0,
@@ -79,7 +79,7 @@ void main() {
         type: WorkoutType.swimming,
         startTime: DateTime.now().subtract(const Duration(hours: 1)),
         endTime: DateTime.now(),
-        durationMinutes: 30,
+        durationSeconds: 30 * 60, // 30분 = 1800초
         calories: 400,
         averageHeartRate: 140,
         distance: 1.5,
@@ -110,7 +110,7 @@ void main() {
         type: WorkoutType.other,
         startTime: DateTime.now().subtract(const Duration(minutes: 30)),
         endTime: DateTime.now(),
-        durationMinutes: 30,
+        durationSeconds: 30 * 60, // 30분 = 1800초
         calibratedWorkload: 0,
         calibratedScore: 0,
         createdAt: DateTime.now(),

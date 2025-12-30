@@ -13,7 +13,7 @@ class WorkoutModel {
   final String typeString;
   final DateTime startTime;
   final DateTime endTime;
-  final int durationMinutes;
+  final int durationSeconds; // 초 단위로 저장 (정확한 페이스 계산용)
   final double? distance;
   final double? correctedDistance;
   final int? calories;
@@ -33,7 +33,7 @@ class WorkoutModel {
     required this.typeString,
     required this.startTime,
     required this.endTime,
-    required this.durationMinutes,
+    required this.durationSeconds,
     this.distance,
     this.correctedDistance,
     this.calories,
@@ -46,6 +46,9 @@ class WorkoutModel {
     required this.createdAt,
     this.syncedAt,
   });
+
+  /// 운동 시간 (분 단위, UI 표시용)
+  int get durationMinutes => (durationSeconds / 60).round();
 
   factory WorkoutModel.fromJson(Map<String, dynamic> json) =>
       _$WorkoutModelFromJson(json);
@@ -61,7 +64,7 @@ class WorkoutModel {
       typeString: entity.type.name,
       startTime: entity.startTime,
       endTime: entity.endTime,
-      durationMinutes: entity.durationMinutes,
+      durationSeconds: entity.durationSeconds,
       distance: entity.distance,
       correctedDistance: entity.correctedDistance,
       calories: entity.calories,
@@ -91,7 +94,7 @@ class WorkoutModel {
       ),
       startTime: startTime,
       endTime: endTime,
-      durationMinutes: durationMinutes,
+      durationSeconds: durationSeconds,
       distance: distance,
       correctedDistance: correctedDistance,
       calories: calories,
