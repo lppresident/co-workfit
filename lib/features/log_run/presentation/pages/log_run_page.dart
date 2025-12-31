@@ -241,11 +241,11 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
   Widget? buildFloatingActionButton(BuildContext context) {
     return BlocBuilder<LogRunBloc, LogRunState>(
       builder: (context, state) {
-        // 챌린지가 있을 때만 FloatingActionButton 표시
+        // 챌린지 목록이 있을 때 FloatingActionButton 표시
+        // (Empty 상태에서는 EmptyLogRunWidget에 버튼이 있음)
         final challenges = _getChallenges(state);
-        final hasActiveChallenges = challenges.any((c) => c.status == ChallengeStatus.active);
 
-        if (hasActiveChallenges) {
+        if (challenges.isNotEmpty) {
           return FloatingActionButton(
             onPressed: _showActionSelectionDialog,
             tooltip: '챌린지 생성 또는 참가',
