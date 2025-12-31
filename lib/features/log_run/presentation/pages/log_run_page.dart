@@ -14,7 +14,7 @@ import 'package:co_workfit/features/log_run/presentation/pages/challenge_detail_
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 
-/// 통나무런 메인 페이지
+/// 챌린지 메인 페이지
 class LogRunPage extends BasePage {
   const LogRunPage({super.key});
 
@@ -43,7 +43,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('통나무런'),
+        title: const Text('챌린지'),
         content: const Text('새 그룹을 만들거나\n초대 코드로 참가할 수 있습니다'),
         actions: [
           TextButton(
@@ -125,7 +125,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
   @override
   PreferredSizeWidget buildAppBar(BuildContext context) {
     return const StandardAppBar(
-      title: '통나무런',
+      title: '챌린지',
     );
   }
 

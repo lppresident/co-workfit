@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:co_workfit/core/constants/app_constants.dart';
 
-/// 통나무런 그룹이 없을 때 표시하는 빈 상태 위젯
+/// 챌린지가 없을 때 표시하는 빈 상태 위젯
 class EmptyLogRunWidget extends StatelessWidget {
   final VoidCallback onCreateOrJoin;
   final String? message;
@@ -48,7 +48,7 @@ class EmptyLogRunWidget extends StatelessWidget {
 
             // 설명
             Text(
-              '친구들과 함께 목표 거리를 달성하고\n기여도에 따라 보상을 받아보세요!',
+              '친구들과 함께 목표를 달성하고\n달리기는 🪵통나무, 헬스는 🔩쇠를 획득하세요!',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.grey[600],
                   ),
@@ -91,7 +91,7 @@ class EmptyLogRunWidget extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '통나무런이란?',
+                          '챌린지란?',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -101,23 +101,23 @@ class EmptyLogRunWidget extends StatelessWidget {
                     const SizedBox(height: 12),
                     _buildInfoItem(
                       context,
-                      Icons.groups,
-                      '팀으로 목표 달성',
-                      '여러 명이 하나의 목표 거리를 나눠서 완주',
+                      Icons.directions_run,
+                      '달리기 챌린지',
+                      '함께 목표 거리를 달성하고 🪵통나무 획득',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildInfoItem(
+                      context,
+                      Icons.fitness_center,
+                      '헬스 챌린지',
+                      '함께 목표 점수를 달성하고 🔩쇠 획득',
                     ),
                     const SizedBox(height: 8),
                     _buildInfoItem(
                       context,
                       Icons.emoji_events,
-                      '기여도 기반 보상',
-                      '각 참가자의 기여도에 따라 보상 차등 지급',
-                    ),
-                    const SizedBox(height: 8),
-                    _buildInfoItem(
-                      context,
-                      Icons.lock_outline,
-                      '프라이버시 보호',
-                      '세션 정보만 공유, 전체 운동량 노출 방지',
+                      '기여도 보상',
+                      '기여도에 따라 보상 차등 지급 + MVP 보너스',
                     ),
                   ],
                 ),

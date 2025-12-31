@@ -4,7 +4,7 @@ import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_en
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 
-/// 통나무런 Repository 인터페이스
+/// 챌린지 Repository 인터페이스
 abstract class LogRunRepository {
   /// 챌린지 생성
   Future<Either<Failure, LogRunChallengeEntity>> createChallenge({

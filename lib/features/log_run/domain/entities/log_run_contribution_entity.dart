@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
-/// 통나무런 기여 엔티티
+/// 챌린지 기여 엔티티
 ///
 /// 참가자가 챌린지에 제출한 러닝 기록
 class LogRunContributionEntity extends Equatable {

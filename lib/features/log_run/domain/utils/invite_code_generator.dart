@@ -1,6 +1,6 @@
 import 'dart:math';
 
-/// 통나무런 초대 코드 생성기
+/// 챌린지 초대 코드 생성기
 class InviteCodeGenerator {
   // 혼동하기 쉬운 문자 제외: O(오), 0(영), I(아이), 1(일), L(엘)
   static const String _chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';

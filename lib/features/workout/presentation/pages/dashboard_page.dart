@@ -10,7 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// 메인 대시보드 페이지 (네비게이션 허브)
 /// 
-/// 4탭 구조: 운동, 통나무런, 친구, 프로필
+/// 4탭 구조: 운동, 챌린지, 친구, 프로필
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -62,7 +62,7 @@ class _DashboardPageState extends State<DashboardPage> {
     // 각 페이지별 새로고침 로직
     switch (index) {
       case 1:
-        // 통나무런 페이지 새로고침
+        // 챌린지 페이지 새로고침
         LogRunPage.globalKey.currentState?.refreshChallenges();
         break;
       case 3:
@@ -99,7 +99,7 @@ class _DashboardPageState extends State<DashboardPage> {
           NavigationDestination(
             icon: Icon(Icons.forest_outlined),
             selectedIcon: Icon(Icons.forest),
-            label: '통나무런',
+            label: '챌린지',
           ),
           NavigationDestination(
             icon: Icon(Icons.people_outline),

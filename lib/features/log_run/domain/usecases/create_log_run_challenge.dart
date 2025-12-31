@@ -5,7 +5,7 @@ import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_en
 import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
 
-/// 통나무런 챌린지 생성 UseCase
+/// 챌린지 생성 UseCase
 class CreateLogRunChallenge implements UseCase<LogRunChallengeEntity, CreateChallengeParams> {
   final LogRunRepository repository;
 

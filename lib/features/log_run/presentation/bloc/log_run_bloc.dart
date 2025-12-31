@@ -17,7 +17,7 @@ import 'package:co_workfit/features/log_run/domain/usecases/delete_contribution.
 import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
-/// 통나무런 BLoC
+/// 챌린지 BLoC
 class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
   final CreateLogRunChallenge createChallengeUseCase;
   final JoinLogRunChallenge joinChallengeUseCase;

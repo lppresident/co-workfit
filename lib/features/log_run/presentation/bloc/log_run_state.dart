@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
 
-/// 통나무런 BLoC 상태
+/// 챌린지 BLoC 상태
 abstract class LogRunState extends Equatable {
   const LogRunState();
 

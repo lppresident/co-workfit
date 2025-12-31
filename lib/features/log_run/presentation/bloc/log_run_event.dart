@@ -1,7 +1,7 @@
 import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:equatable/equatable.dart';
 
-/// 통나무런 BLoC 이벤트
+/// 챌린지 BLoC 이벤트
 abstract class LogRunEvent extends Equatable {
   const LogRunEvent();
 

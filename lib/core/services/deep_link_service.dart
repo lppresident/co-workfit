@@ -5,7 +5,7 @@ import 'package:co_workfit/core/utils/logger.dart';
 /// 딥링크 처리 서비스
 /// 
 /// 지원하는 스킴:
-/// - coworkfit://logrun/join?code=XXXXXX - 통나무런 초대 링크
+/// - coworkfit://logrun/join?code=XXXXXX - 챌린지 초대 링크
 class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._internal();
   factory DeepLinkService() => _instance;
@@ -72,7 +72,7 @@ class DeepLinkService {
     }
   }
 
-  /// 통나무런 초대 링크 생성
+  /// 챌린지 초대 링크 생성
   static String createLogRunInviteLink(String inviteCode) {
     return 'coworkfit://logrun/join?code=$inviteCode';
   }

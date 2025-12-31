@@ -5,7 +5,7 @@ import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_en
 import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
 import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.dart';
 
-/// 초대 코드로 통나무런 챌린지 참가 UseCase
+/// 초대 코드로 챌린지 참가 UseCase
 ///
 /// 1. 초대 코드 검증
 /// 2. 코드로 챌린지 조회

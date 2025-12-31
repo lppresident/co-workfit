@@ -254,7 +254,9 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                     icon: const Icon(Icons.share),
                     onPressed: () => _showShareSheet(
                       challenge.inviteCode,
-                      '${challenge.targetWeight.toStringAsFixed(0)}kg 통나무런',
+                      challenge.isRunning 
+                          ? '${challenge.targetDistance.toStringAsFixed(0)}km 달리기 챌린지'
+                          : '${challenge.targetDistance.toStringAsFixed(0)}점 헬스 챌린지',
                     ),
                     tooltip: '초대 코드 공유',
                   ),

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'workout_type.dart';
 
-/// 통나무런 챌린지 엔티티
+/// 챌린지 엔티티
 ///
 /// 여러 명이 하나의 목표 거리(무게)를 함께 완주하는 팀 챌린지
 class LogRunChallengeEntity extends Equatable {

@@ -29,7 +29,7 @@ class ShareChallengeBottomSheet extends StatelessWidget {
 
   void _shareLink(BuildContext context) {
     final message = '''
-🏃 통나무런 초대!
+🎯 챌린지 초대!
 
 $challengeName에 함께 참가해요!
 
@@ -38,7 +38,7 @@ $_inviteLink
 
 📝 초대 코드: $inviteCode
 ''';
-    Share.share(message, subject: '통나무런 초대');
+    Share.share(message, subject: '챌린지 초대');
   }
 
   @override

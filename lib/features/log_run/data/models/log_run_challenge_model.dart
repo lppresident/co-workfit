@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 
-/// 통나무런 챌린지 모델
+/// 챌린지 모델
 class LogRunChallengeModel extends LogRunChallengeEntity {
   const LogRunChallengeModel({
     required super.id,

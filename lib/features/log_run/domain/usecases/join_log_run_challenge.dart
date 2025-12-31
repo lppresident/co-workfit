@@ -3,7 +3,7 @@ import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/core/usecases/usecase.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
 
-/// 통나무런 챌린지 참가 UseCase
+/// 챌린지 참가 UseCase
 class JoinLogRunChallenge implements UseCase<void, JoinChallengeParams> {
   final LogRunRepository repository;
 

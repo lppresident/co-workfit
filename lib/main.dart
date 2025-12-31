@@ -88,7 +88,7 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
       if (state is ChallengeJoined) {
         _isJoiningFromDeepLink = false;
         _showResultSnackBar(context, '챌린지에 참가했습니다! 🎉', Colors.green);
-        // 통나무런 탭으로 이동하도록 새로고침
+        // 챌린지 탭으로 이동하도록 새로고침
         context.read<LogRunBloc>().add(LoadChallenges(
           (context.read<AuthBloc>().state as Authenticated).user.id,
         ));
@@ -149,7 +149,7 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('🏃 통나무런 초대'),
+        title: const Text('🎯 챌린지 초대'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
