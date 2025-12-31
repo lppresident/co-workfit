@@ -25,14 +25,17 @@ abstract class WoodRepository {
   /// 특정 날짜의 정산 기록 조회
   Future<WoodSettlementEntity?> getSettlement(String userId, String date);
 
-  /// 정산 기록 목록 조회 (최근순)
+  /// 정산 기록 목록 조회 (최근 7일)
   Future<List<WoodSettlementEntity>> getSettlements(
     String userId, {
-    int limit = 30,
+    int limit = 7,
   });
 
   /// 미정산 날짜 목록 조회 (마지막 정산일 이후 ~ 어제)
   Future<List<String>> getPendingSettlementDates(String userId);
+
+  /// 7일 이상 지난 정산 기록 삭제
+  Future<void> deleteOldSettlements(String userId);
 
   // ========== Challenge Data ==========
 

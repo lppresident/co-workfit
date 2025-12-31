@@ -42,12 +42,6 @@ class SettlementDialog extends StatelessWidget {
               ),
             ),
 
-            // 만료된 챌린지 경고
-            if (summary.hasExpiredChallenges) ...[
-              const SizedBox(height: 16),
-              _buildExpiredWarning(),
-            ],
-
             const SizedBox(height: 24),
 
             // 확인 버튼
@@ -100,47 +94,40 @@ class SettlementDialog extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF8B4513), Color(0xFFD2691E)],
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF8B4513).withValues(alpha: 0.2),
+            const Color(0xFFD2691E).withValues(alpha: 0.2),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B4513).withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Text(
-            '총 획득',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
+            '🪵',
+            style: TextStyle(fontSize: 40),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '+${summary.totalWoodAwarded}',
+            style: const TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF8B4513),
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                '🪵',
-                style: TextStyle(fontSize: 32),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${summary.totalWoodAwarded}개',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          const SizedBox(width: 4),
+          const Text(
+            '개',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF8B4513),
+            ),
           ),
         ],
       ),
@@ -148,102 +135,39 @@ class SettlementDialog extends StatelessWidget {
   }
 
   Widget _buildSettlementCard(WoodSettlementEntity settlement) {
-    final selected = settlement.selectedChallenge;
-    if (selected == null) return const SizedBox.shrink();
+    final selectedChallenge = settlement.selectedChallenge;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 날짜 및 챌린지명
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8B4513),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  settlement.settlementDate,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  selected.challengeName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              if (selected.isSuccess)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green[100],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    '성공',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // 보상 상세
-          _buildRewardRow('개인 운동', selected.personalReward),
-          _buildRewardRow('챌린지 기여', selected.contributionReward),
-          if (selected.successBonus > 0) ...[
-            _buildRewardRow(
-              '성공 보너스${selected.isMvp ? ' (MVP!)' : ''}',
-              selected.successBonus,
-              highlight: true,
-            ),
-          ],
-
-          const Divider(height: 24),
-
-          // 총계
+          // 날짜
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                '획득',
-                style: TextStyle(
+              Text(
+                settlement.settlementDate,
+                style: const TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
                 ),
               ),
               Row(
                 children: [
-                  const Text('🪵', style: TextStyle(fontSize: 20)),
+                  const Text('🪵', style: TextStyle(fontSize: 14)),
                   const SizedBox(width: 4),
                   Text(
-                    '${selected.total}개',
+                    '+${settlement.totalWoodAwarded}',
                     style: const TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      fontSize: 18,
                       color: Color(0xFF8B4513),
                     ),
                   ),
@@ -252,14 +176,68 @@ class SettlementDialog extends StatelessWidget {
             ],
           ),
 
-          // 포기된 챌린지
+          if (selectedChallenge != null) ...[
+            const Divider(height: 16),
+
+            // 챌린지 정보
+            Row(
+              children: [
+                Icon(
+                  selectedChallenge.isSuccess
+                      ? Icons.check_circle
+                      : Icons.cancel,
+                  size: 16,
+                  color: selectedChallenge.isSuccess
+                      ? Colors.green
+                      : Colors.red,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    selectedChallenge.challengeName,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // 보상 상세
+            _buildRewardRow('개인 운동', selectedChallenge.personalReward),
+            _buildRewardRow('기여도', selectedChallenge.contributionReward),
+            if (selectedChallenge.successBonus > 0)
+              _buildRewardRow('성공 보너스', selectedChallenge.successBonus, highlight: true),
+
+            // 배지
+            if (selectedChallenge.isMvp || selectedChallenge.milestoneType != null) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  if (selectedChallenge.isMvp)
+                    _buildBadge('MVP', Colors.amber),
+                  if (selectedChallenge.milestoneType != null)
+                    _buildBadge(
+                      _getMilestoneName(selectedChallenge.milestoneType!),
+                      Colors.purple,
+                    ),
+                ],
+              ),
+            ],
+          ],
+
+          // 포기된 챌린지 수
           if (settlement.forsakenChallenges.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
-              '포기된 챌린지: ${settlement.forsakenChallenges.map((c) => '${c.challengeName} (${c.total}개)').join(', ')}',
+              '+ ${settlement.forsakenChallenges.length}개 챌린지 포기',
               style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
+                color: Colors.grey[500],
+                fontSize: 11,
               ),
             ),
           ],
@@ -268,15 +246,47 @@ class SettlementDialog extends StatelessWidget {
     );
   }
 
+  Widget _buildBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  String _getMilestoneName(String type) {
+    switch (type) {
+      case 'full':
+        return '풀마라톤';
+      case 'half':
+        return '하프마라톤';
+      case 'km10':
+        return '10km';
+      default:
+        return type;
+    }
+  }
+
   Widget _buildRewardRow(String label, int amount, {bool highlight = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
             style: TextStyle(
+              fontSize: 12,
               color: highlight ? const Color(0xFF8B4513) : Colors.grey[700],
               fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
             ),
@@ -284,6 +294,7 @@ class SettlementDialog extends StatelessWidget {
           Text(
             '+$amount개',
             style: TextStyle(
+              fontSize: 12,
               color: highlight ? const Color(0xFF8B4513) : Colors.grey[700],
               fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
             ),
@@ -292,31 +303,4 @@ class SettlementDialog extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildExpiredWarning() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.orange[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange[200]!),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orange[700], size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '${summary.expiredChallengeCount}개의 챌린지가 기한 만료로 보상을 받지 못했습니다.',
-              style: TextStyle(
-                color: Colors.orange[700],
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
-

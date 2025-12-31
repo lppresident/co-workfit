@@ -55,7 +55,7 @@ class WoodRepositoryImpl implements WoodRepository {
   @override
   Future<List<WoodSettlementEntity>> getSettlements(
     String userId, {
-    int limit = 30,
+    int limit = 7,
   }) {
     return _dataSource.getSettlements(userId, limit: limit);
   }
@@ -63,6 +63,11 @@ class WoodRepositoryImpl implements WoodRepository {
   @override
   Future<List<String>> getPendingSettlementDates(String userId) {
     return _dataSource.getPendingSettlementDates(userId);
+  }
+
+  @override
+  Future<void> deleteOldSettlements(String userId) {
+    return _dataSource.deleteOldSettlements(userId);
   }
 
   // ========== Challenge Data ==========

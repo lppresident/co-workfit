@@ -1,4 +1,3 @@
-import 'package:co_workfit/features/wood/domain/entities/wood_reward_constants.dart';
 import 'package:co_workfit/features/wood/domain/entities/wood_settlement_entity.dart';
 import 'package:co_workfit/features/wood/domain/repositories/wood_repository.dart';
 import 'package:co_workfit/features/wood/domain/usecases/calculate_challenge_reward.dart';
@@ -11,6 +10,7 @@ import 'package:co_workfit/features/wood/domain/usecases/calculate_challenge_rew
 /// 3. 가장 높은 보상 챌린지 1개 선택
 /// 4. 해당 챌린지 보상만 지급
 /// 5. 나머지 챌린지는 보상 없음
+/// 6. 0개 정산은 저장하지 않음
 class SettleDailyRewards {
   final WoodRepository _repository;
   final CalculateChallengeReward _calculateChallengeReward;
@@ -26,7 +26,9 @@ class SettleDailyRewards {
   ///
   /// [userId] 사용자 ID
   /// [settlementDate] 정산 대상 날짜 (yyyy-MM-dd 형식)
-  Future<WoodSettlementEntity> call({
+  /// 
+  /// Returns: 정산 결과 (0개 정산인 경우 null)
+  Future<WoodSettlementEntity?> call({
     required String userId,
     required String settlementDate,
   }) async {
@@ -41,49 +43,21 @@ class SettleDailyRewards {
     final challenges =
         await _repository.getChallengesEndedOn(userId, settlementDate);
 
-    // 정산할 챌린지가 없는 경우
+    // 정산할 챌린지가 없는 경우 - 저장하지 않고 null 반환
     if (challenges.isEmpty) {
-      final emptySettlement = WoodSettlementEntity.empty(settlementDate);
-      await _repository.saveSettlement(userId, emptySettlement);
-      return emptySettlement;
+      return null;
     }
 
-    // 3. 만료된 챌린지 분리 (7일 초과)
+    // 3. 유효한 챌린지만 필터링 (만료된 챌린지 제외 - 7일 이내)
     final now = DateTime.now();
-    final validChallenges = <ChallengeSettlementData>[];
-    final expiredChallenges = <ExpiredChallengeInfo>[];
-
-    for (final challenge in challenges) {
+    final validChallenges = challenges.where((challenge) {
       final daysSinceEnd = now.difference(challenge.endDate).inDays;
-      if (daysSinceEnd > WoodRewardConstants.settlementExpirationDays) {
-        // 만료된 챌린지 - 보상 계산만 하고 지급 안함
-        final reward = _calculateChallengeReward(
-          challengeData: challenge,
-          isFirstWorkoutOfDay: false, // 만료된 것이므로 상관없음
-        );
-        expiredChallenges.add(ExpiredChallengeInfo(
-          challengeId: challenge.challengeId,
-          challengeName: challenge.challengeName,
-          endDate: challenge.endDate,
-          estimatedReward: reward.total,
-        ));
-      } else {
-        validChallenges.add(challenge);
-      }
-    }
+      return daysSinceEnd <= 7;
+    }).toList();
 
-    // 유효한 챌린지가 없는 경우
+    // 유효한 챌린지가 없는 경우 - 저장하지 않고 null 반환
     if (validChallenges.isEmpty) {
-      final expiredSettlement = WoodSettlementEntity(
-        settlementDate: settlementDate,
-        settledAt: now,
-        selectedChallengeId: null,
-        totalWoodAwarded: 0,
-        challenges: const [],
-        expiredChallenges: expiredChallenges,
-      );
-      await _repository.saveSettlement(userId, expiredSettlement);
-      return expiredSettlement;
+      return null;
     }
 
     // 4. 첫 운동 여부 확인 (해당 날짜 기준)
@@ -104,6 +78,11 @@ class SettleDailyRewards {
     // 6. 가장 높은 보상 챌린지 선택
     rewardDetails.sort((a, b) => b.total.compareTo(a.total));
     final selectedReward = rewardDetails.first;
+
+    // 보상이 0인 경우 저장하지 않음
+    if (selectedReward.total <= 0) {
+      return null;
+    }
 
     // 선택된 챌린지 표시
     final finalRewards = rewardDetails.map((r) {
@@ -131,7 +110,6 @@ class SettleDailyRewards {
       selectedChallengeId: selectedReward.challengeId,
       totalWoodAwarded: selectedReward.total,
       challenges: finalRewards,
-      expiredChallenges: expiredChallenges,
     );
 
     // 8. 통나무 지급 및 정산 기록 저장
@@ -141,4 +119,3 @@ class SettleDailyRewards {
     return settlement;
   }
 }
-

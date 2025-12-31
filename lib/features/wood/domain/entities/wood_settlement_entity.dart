@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 /// 일일 정산 기록 엔티티
 ///
 /// Firestore: users/{userId}/wood_settlements/{settlementDate}
+/// 최근 7일치만 보관, 0개 정산은 저장하지 않음
 class WoodSettlementEntity extends Equatable {
   /// 정산 대상 날짜 (챌린지 종료일, yyyy-MM-dd 형식)
   final String settlementDate;
@@ -19,37 +20,24 @@ class WoodSettlementEntity extends Equatable {
   /// 챌린지별 보상 상세
   final List<ChallengeRewardDetail> challenges;
 
-  /// 만료된 챌린지 목록 (7일 초과)
-  final List<ExpiredChallengeInfo> expiredChallenges;
-
   const WoodSettlementEntity({
     required this.settlementDate,
     required this.settledAt,
     this.selectedChallengeId,
     required this.totalWoodAwarded,
     required this.challenges,
-    this.expiredChallenges = const [],
   });
-
-  /// 정산할 챌린지가 없는 경우
-  factory WoodSettlementEntity.empty(String date) {
-    return WoodSettlementEntity(
-      settlementDate: date,
-      settledAt: DateTime.now(),
-      selectedChallengeId: null,
-      totalWoodAwarded: 0,
-      challenges: const [],
-      expiredChallenges: const [],
-    );
-  }
 
   /// 선택된 챌린지 상세 정보
   ChallengeRewardDetail? get selectedChallenge {
-    if (selectedChallengeId == null) return null;
-    return challenges.firstWhere(
-      (c) => c.challengeId == selectedChallengeId,
-      orElse: () => challenges.first,
-    );
+    if (selectedChallengeId == null || challenges.isEmpty) return null;
+    try {
+      return challenges.firstWhere(
+        (c) => c.challengeId == selectedChallengeId,
+      );
+    } catch (_) {
+      return challenges.isNotEmpty ? challenges.first : null;
+    }
   }
 
   /// 포기된 챌린지 목록 (선택되지 않은 것들)
@@ -64,7 +52,6 @@ class WoodSettlementEntity extends Equatable {
         selectedChallengeId,
         totalWoodAwarded,
         challenges,
-        expiredChallenges,
       ];
 }
 
@@ -127,29 +114,3 @@ class ChallengeRewardDetail extends Equatable {
         milestoneType,
       ];
 }
-
-/// 만료된 챌린지 정보
-class ExpiredChallengeInfo extends Equatable {
-  /// 챌린지 ID
-  final String challengeId;
-
-  /// 챌린지 이름
-  final String challengeName;
-
-  /// 종료일
-  final DateTime endDate;
-
-  /// 예상 보상 (받지 못한)
-  final int estimatedReward;
-
-  const ExpiredChallengeInfo({
-    required this.challengeId,
-    required this.challengeName,
-    required this.endDate,
-    required this.estimatedReward,
-  });
-
-  @override
-  List<Object?> get props => [challengeId, challengeName, endDate, estimatedReward];
-}
-

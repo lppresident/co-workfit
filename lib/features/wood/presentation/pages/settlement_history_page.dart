@@ -5,7 +5,7 @@ import 'package:co_workfit/features/wood/presentation/bloc/wood_bloc.dart';
 import 'package:co_workfit/features/wood/presentation/bloc/wood_event.dart';
 import 'package:co_workfit/features/wood/presentation/bloc/wood_state.dart';
 
-/// 정산 내역 페이지
+/// 정산 내역 페이지 (최근 7일치만 표시)
 class SettlementHistoryPage extends StatefulWidget {
   const SettlementHistoryPage({super.key});
 
@@ -30,26 +30,17 @@ class _SettlementHistoryPageState extends State<SettlementHistoryPage> {
       ),
       body: BlocBuilder<WoodBloc, WoodState>(
         builder: (context, state) {
-          if (state.isLoading && state.settlements.isEmpty) {
+          if (state.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (state.settlements.isEmpty) {
+          final settlements = state.settlements;
+
+          if (settlements.isEmpty) {
             return _buildEmptyState();
           }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              context.read<WoodBloc>().add(const LoadSettlementHistory());
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: state.settlements.length,
-              itemBuilder: (context, index) {
-                return _buildSettlementCard(state.settlements[index]);
-              },
-            ),
-          );
+          return _buildSettlementList(settlements);
         },
       ),
     );
@@ -60,9 +51,10 @@ class _SettlementHistoryPageState extends State<SettlementHistoryPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            '🪵',
-            style: TextStyle(fontSize: 64),
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 80,
+            color: Colors.grey[300],
           ),
           const SizedBox(height: 16),
           Text(
@@ -74,10 +66,10 @@ class _SettlementHistoryPageState extends State<SettlementHistoryPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '챌린지를 완료하면 통나무를 획득할 수 있어요!',
+            '챌린지를 완료하면 통나무를 받을 수 있어요',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[500],
+              color: Colors.grey[400],
             ),
           ),
         ],
@@ -85,49 +77,44 @@ class _SettlementHistoryPageState extends State<SettlementHistoryPage> {
     );
   }
 
-  Widget _buildSettlementCard(WoodSettlementEntity settlement) {
-    final selected = settlement.selectedChallenge;
+  Widget _buildSettlementList(List<WoodSettlementEntity> settlements) {
+    // 총 획득량 계산
+    final totalEarned = settlements.fold<int>(
+      0,
+      (sum, s) => sum + s.totalWoodAwarded,
+    );
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _showSettlementDetail(settlement),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        // 요약 헤더
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF8B4513).withValues(alpha: 0.1),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // 헤더
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8B4513),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      settlement.settlementDate,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  Text(
+                    '최근 7일 획득량',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Text('🪵', style: TextStyle(fontSize: 18)),
-                      const SizedBox(width: 4),
+                      const Text('🪵', style: TextStyle(fontSize: 24)),
+                      const SizedBox(width: 8),
                       Text(
-                        '+${settlement.totalWoodAwarded}',
+                        '$totalEarned개',
                         style: const TextStyle(
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          fontSize: 18,
                           color: Color(0xFF8B4513),
                         ),
                       ),
@@ -135,87 +122,111 @@ class _SettlementHistoryPageState extends State<SettlementHistoryPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              Text(
+                '${settlements.length}건',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
 
-              // 선택된 챌린지
-              if (selected != null) ...[
+        // 정산 목록
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: settlements.length,
+            itemBuilder: (context, index) {
+              return _buildSettlementCard(settlements[index]);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSettlementCard(WoodSettlementEntity settlement) {
+    final selectedChallenge = settlement.selectedChallenge;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => _showSettlementDetail(settlement),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 날짜 및 획득량
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    settlement.settlementDate,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      const Text('🪵', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '+${settlement.totalWoodAwarded}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF8B4513),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // 선택된 챌린지 정보
+              if (selectedChallenge != null) ...[
                 Row(
                   children: [
+                    Icon(
+                      selectedChallenge.isSuccess
+                          ? Icons.check_circle
+                          : Icons.cancel,
+                      size: 16,
+                      color: selectedChallenge.isSuccess
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                    const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        selected.challengeName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                        selectedChallenge.challengeName,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (selected.isSuccess)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green[100],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (selected.isMvp) ...[
-                              const Text('👑', style: TextStyle(fontSize: 12)),
-                              const SizedBox(width: 4),
-                            ],
-                            const Text(
-                              '성공',
-                              style: TextStyle(
-                                color: Colors.green,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                   ],
-                ),
-              ] else ...[
-                Text(
-                  '정산할 챌린지 없음',
-                  style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 14,
-                  ),
                 ),
               ],
 
               // 포기된 챌린지 수
               if (settlement.forsakenChallenges.isNotEmpty) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
                   '+ ${settlement.forsakenChallenges.length}개 챌린지 포기',
                   style: TextStyle(
                     color: Colors.grey[500],
                     fontSize: 12,
                   ),
-                ),
-              ],
-
-              // 만료된 챌린지 경고
-              if (settlement.expiredChallenges.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: Colors.orange[700], size: 14),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${settlement.expiredChallenges.length}개 기한 만료',
-                      style: TextStyle(
-                        color: Colors.orange[700],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ],
@@ -298,13 +309,6 @@ class _SettlementDetailSheet extends StatelessWidget {
             _buildSectionTitle('포기된 챌린지'),
             ...settlement.forsakenChallenges
                 .map((c) => _buildChallengeDetail(c, false)),
-            const SizedBox(height: 24),
-          ],
-
-          // 만료된 챌린지
-          if (settlement.expiredChallenges.isNotEmpty) ...[
-            _buildSectionTitle('기한 만료'),
-            ...settlement.expiredChallenges.map(_buildExpiredChallenge),
           ],
         ],
       ),
@@ -325,60 +329,110 @@ class _SettlementDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildChallengeDetail(ChallengeRewardDetail detail, bool selected) {
+  Widget _buildChallengeDetail(ChallengeRewardDetail challenge, bool selected) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: selected ? Colors.green[50] : Colors.grey[100],
+        color: selected ? const Color(0xFF8B4513).withValues(alpha: 0.1) : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: selected ? Colors.green[200]! : Colors.grey[300]!,
-        ),
+        border: selected
+            ? Border.all(color: const Color(0xFF8B4513), width: 2)
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 챌린지 이름
           Row(
             children: [
+              Icon(
+                challenge.isSuccess ? Icons.check_circle : Icons.cancel,
+                size: 20,
+                color: challenge.isSuccess ? Colors.green : Colors.red,
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  detail.challengeName,
+                  challenge.challengeName,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
                     fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              if (detail.isMvp)
-                const Text('👑 MVP', style: TextStyle(fontSize: 12)),
+              if (selected)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8B4513),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    '선택됨',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
-          _buildRewardRow('개인 운동', detail.personalReward),
-          _buildRewardRow('챌린지 기여', detail.contributionReward),
-          if (detail.successBonus > 0)
-            _buildRewardRow('성공 보너스', detail.successBonus),
+
+          // 보상 상세
+          _buildRewardRow('개인 운동', challenge.personalReward),
+          _buildRewardRow('기여도', challenge.contributionReward),
+          if (challenge.successBonus > 0)
+            _buildRewardRow('성공 보너스', challenge.successBonus),
+
           const Divider(height: 16),
+
+          // 총 보상
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('총계', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                '총 보상',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               Row(
                 children: [
-                  const Text('🪵'),
+                  const Text('🪵', style: TextStyle(fontSize: 16)),
                   const SizedBox(width: 4),
                   Text(
-                    '${detail.total}개',
+                    selected ? '+${challenge.total}' : '(${challenge.total})',
                     style: TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: selected ? Colors.green[700] : Colors.grey[600],
+                      color: selected ? const Color(0xFF8B4513) : Colors.grey,
                     ),
                   ),
                 ],
               ),
             ],
           ),
+
+          // MVP/마일스톤 배지
+          if (challenge.isMvp || challenge.milestoneType != null) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                if (challenge.isMvp)
+                  _buildBadge('MVP', Colors.amber),
+                if (challenge.milestoneType != null)
+                  _buildBadge(
+                    _getMilestoneName(challenge.milestoneType!),
+                    Colors.purple,
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -397,46 +451,34 @@ class _SettlementDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildExpiredChallenge(ExpiredChallengeInfo info) {
+  Widget _buildBadge(String text, Color color) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.orange[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange[200]!),
+        color: color.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(4),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  info.challengeName,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  '종료: ${_formatDate(info.endDate)}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '~${info.estimatedReward}개',
-            style: TextStyle(
-              color: Colors.orange[700],
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
       ),
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.year}.${date.month}.${date.day}';
+  String _getMilestoneName(String type) {
+    switch (type) {
+      case 'full':
+        return '풀마라톤';
+      case 'half':
+        return '하프마라톤';
+      case 'km10':
+        return '10km';
+      default:
+        return type;
+    }
   }
 }
-

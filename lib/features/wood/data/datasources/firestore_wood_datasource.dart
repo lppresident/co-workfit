@@ -160,10 +160,10 @@ class FirestoreWoodDataSource {
     }
   }
 
-  /// 정산 기록 목록 조회
+  /// 정산 기록 목록 조회 (최근 7일치만)
   Future<List<WoodSettlementModel>> getSettlements(
     String userId, {
-    int limit = 30,
+    int limit = 7,
   }) async {
     try {
       final snapshot = await firestore
@@ -180,6 +180,36 @@ class FirestoreWoodDataSource {
     } catch (e) {
       AppLogger.error('FirestoreWoodDataSource', '정산 기록 목록 조회 실패', e);
       return [];
+    }
+  }
+
+  /// 7일 이상 지난 정산 기록 삭제
+  Future<void> deleteOldSettlements(String userId) async {
+    try {
+      final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
+      
+      final snapshot = await firestore
+          .collection(_usersCollection)
+          .doc(userId)
+          .collection(_woodSettlementsCollection)
+          .where('settledAt', isLessThan: Timestamp.fromDate(sevenDaysAgo))
+          .get();
+
+      if (snapshot.docs.isEmpty) return;
+
+      final batch = firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+
+      AppLogger.info(
+        'FirestoreWoodDataSource',
+        '오래된 정산 기록 ${snapshot.docs.length}개 삭제 (userId: $userId)',
+      );
+    } catch (e) {
+      AppLogger.error('FirestoreWoodDataSource', '오래된 정산 기록 삭제 실패', e);
+      // 삭제 실패해도 앱 동작에는 영향 없음
     }
   }
 

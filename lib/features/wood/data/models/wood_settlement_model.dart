@@ -9,7 +9,6 @@ class WoodSettlementModel extends WoodSettlementEntity {
     super.selectedChallengeId,
     required super.totalWoodAwarded,
     required super.challenges,
-    super.expiredChallenges,
   });
 
   /// Firestore 문서에서 생성
@@ -26,19 +25,12 @@ class WoodSettlementModel extends WoodSettlementEntity {
         .map((c) => ChallengeRewardDetailModel.fromMap(c as Map<String, dynamic>))
         .toList();
 
-    // 만료 챌린지 파싱
-    final expiredData = data['expiredChallenges'] as List<dynamic>? ?? [];
-    final expiredChallenges = expiredData
-        .map((e) => ExpiredChallengeInfoModel.fromMap(e as Map<String, dynamic>))
-        .toList();
-
     return WoodSettlementModel(
       settlementDate: docId,
       settledAt: (data['settledAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       selectedChallengeId: data['selectedChallengeId'] as String?,
       totalWoodAwarded: (data['totalWoodAwarded'] as num?)?.toInt() ?? 0,
       challenges: challenges,
-      expiredChallenges: expiredChallenges,
     );
   }
 
@@ -50,7 +42,6 @@ class WoodSettlementModel extends WoodSettlementEntity {
       selectedChallengeId: entity.selectedChallengeId,
       totalWoodAwarded: entity.totalWoodAwarded,
       challenges: entity.challenges,
-      expiredChallenges: entity.expiredChallenges,
     );
   }
 
@@ -62,9 +53,6 @@ class WoodSettlementModel extends WoodSettlementEntity {
       'totalWoodAwarded': totalWoodAwarded,
       'challenges': challenges
           .map((c) => ChallengeRewardDetailModel.fromDetail(c).toMap())
-          .toList(),
-      'expiredChallenges': expiredChallenges
-          .map((e) => ExpiredChallengeInfoModel.fromInfo(e).toMap())
           .toList(),
     };
   }
@@ -130,41 +118,3 @@ class ChallengeRewardDetailModel extends ChallengeRewardDetail {
     };
   }
 }
-
-/// ExpiredChallengeInfo의 데이터 모델
-class ExpiredChallengeInfoModel extends ExpiredChallengeInfo {
-  const ExpiredChallengeInfoModel({
-    required super.challengeId,
-    required super.challengeName,
-    required super.endDate,
-    required super.estimatedReward,
-  });
-
-  factory ExpiredChallengeInfoModel.fromMap(Map<String, dynamic> data) {
-    return ExpiredChallengeInfoModel(
-      challengeId: data['challengeId'] as String? ?? '',
-      challengeName: data['challengeName'] as String? ?? '',
-      endDate: (data['endDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      estimatedReward: (data['estimatedReward'] as num?)?.toInt() ?? 0,
-    );
-  }
-
-  factory ExpiredChallengeInfoModel.fromInfo(ExpiredChallengeInfo info) {
-    return ExpiredChallengeInfoModel(
-      challengeId: info.challengeId,
-      challengeName: info.challengeName,
-      endDate: info.endDate,
-      estimatedReward: info.estimatedReward,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'challengeId': challengeId,
-      'challengeName': challengeName,
-      'endDate': Timestamp.fromDate(endDate),
-      'estimatedReward': estimatedReward,
-    };
-  }
-}
-
