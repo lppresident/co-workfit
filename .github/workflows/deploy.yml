@@ -271,7 +271,7 @@ jobs:
     needs: prepare
     if: needs.prepare.outputs.deploy_ios == 'true' && github.event.inputs.runner_type != 'github-hosted'
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 40
     continue-on-error: ${{ github.event.inputs.runner_type == 'self-hosted-first' }}
 
     outputs:
