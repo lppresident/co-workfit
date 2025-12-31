@@ -65,11 +65,16 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
       emit(const LogRunLoading());
     }
 
-    // 이전 완료 챌린지 상태 저장
+    // 이전 완료/만료 챌린지 상태 저장
     final previousCompletedChallenges = state is ChallengesLoaded
         ? (state as ChallengesLoaded).completedChallenges
         : (state is ChallengeDetailLoaded
             ? (state as ChallengeDetailLoaded).completedChallenges
+            : <LogRunChallengeEntity>[]);
+    final previousExpiredChallenges = state is ChallengesLoaded
+        ? (state as ChallengesLoaded).expiredChallenges
+        : (state is ChallengeDetailLoaded
+            ? (state as ChallengeDetailLoaded).expiredChallenges
             : <LogRunChallengeEntity>[]);
 
     final result = await getActiveChallengesUseCase(event.userId);
@@ -77,12 +82,13 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     result.fold(
       (failure) => emit(LogRunError(failure.toString())),
       (challenges) {
-        if (challenges.isEmpty && previousCompletedChallenges.isEmpty) {
+        if (challenges.isEmpty && previousCompletedChallenges.isEmpty && previousExpiredChallenges.isEmpty) {
           emit(const LogRunEmpty());
         } else {
           emit(ChallengesLoaded(
             activeChallenges: challenges,
             completedChallenges: previousCompletedChallenges,
+            expiredChallenges: previousExpiredChallenges,
           ));
         }
       },
@@ -93,16 +99,27 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
     LoadCompletedChallenges event,
     Emitter<LogRunState> emit,
   ) async {
-    final result = await repository.getCompletedChallenges(event.userId);
+    // 완료된 챌린지와 만료된 챌린지 모두 조회
+    final completedResult = await repository.getCompletedChallenges(event.userId);
+    final expiredResult = await repository.getExpiredChallenges(event.userId);
 
-    result.fold(
+    completedResult.fold(
       (failure) => AppLogger.error('LogRunBloc', 'Error loading completed challenges: $failure'),
-      (challenges) {
+      (completedChallenges) {
+        final expiredChallenges = expiredResult.fold(
+          (failure) {
+            AppLogger.error('LogRunBloc', 'Error loading expired challenges: $failure');
+            return <LogRunChallengeEntity>[];
+          },
+          (challenges) => challenges,
+        );
+
         if (state is ChallengesLoaded) {
           final currentState = state as ChallengesLoaded;
           emit(ChallengesLoaded(
             activeChallenges: currentState.activeChallenges,
-            completedChallenges: challenges,
+            completedChallenges: completedChallenges,
+            expiredChallenges: expiredChallenges,
           ));
         } else if (state is ChallengeDetailLoaded) {
           final currentState = state as ChallengeDetailLoaded;
@@ -110,13 +127,15 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
             challenge: currentState.challenge,
             contributions: currentState.contributions,
             activeChallenges: currentState.activeChallenges,
-            completedChallenges: challenges,
+            completedChallenges: completedChallenges,
+            expiredChallenges: expiredChallenges,
           ));
         } else {
-          // 아직 활성 챌린지가 로드되지 않은 경우, 완료 챌린지만 먼저 로드
+          // 아직 활성 챌린지가 로드되지 않은 경우, 완료/만료 챌린지만 먼저 로드
           emit(ChallengesLoaded(
             activeChallenges: const [],
-            completedChallenges: challenges,
+            completedChallenges: completedChallenges,
+            expiredChallenges: expiredChallenges,
           ));
         }
       },

@@ -145,6 +145,7 @@ class ChallengeCardWidget extends StatelessWidget {
     Color backgroundColor;
     Color textColor;
     String label;
+    IconData? icon;
 
     switch (challenge.status) {
       case ChallengeStatus.active:
@@ -155,12 +156,14 @@ class ChallengeCardWidget extends StatelessWidget {
       case ChallengeStatus.completed:
         backgroundColor = Colors.blue.shade50;
         textColor = Colors.blue.shade700;
-        label = '완료';
+        label = '성공';
+        icon = Icons.check_circle;
         break;
       case ChallengeStatus.expired:
-        backgroundColor = Colors.grey.shade200;
-        textColor = Colors.grey.shade700;
-        label = '만료';
+        backgroundColor = Colors.red.shade50;
+        textColor = Colors.red.shade700;
+        label = '실패';
+        icon = Icons.cancel;
         break;
     }
 
@@ -170,13 +173,22 @@ class ChallengeCardWidget extends StatelessWidget {
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: textColor,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: textColor),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+        ],
       ),
     );
   }

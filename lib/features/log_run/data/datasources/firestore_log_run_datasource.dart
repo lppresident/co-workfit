@@ -246,6 +246,7 @@ class FirestoreLogRunDataSource {
   }
 
   /// 활성 챌린지 목록 조회
+  /// 만료된 챌린지는 자동으로 expired 상태로 업데이트
   Future<List<LogRunChallengeModel>> getActiveChallenges(String userId) async {
     final query = await firestore
         .collection(_challengesCollection)
@@ -253,7 +254,48 @@ class FirestoreLogRunDataSource {
         .where('status', isEqualTo: 'active')
         .orderBy('createdAt', descending: true)
         .get();
+    
+    final challenges = <LogRunChallengeModel>[];
+    
+    for (final doc in query.docs) {
+      final challenge = LogRunChallengeModel.fromFirestore(doc);
+      
+      // 만료된 챌린지는 상태 업데이트
+      if (challenge.isExpired) {
+        await _markChallengeAsExpired(challenge.id);
+        // 만료된 챌린지는 활성 목록에서 제외
+        continue;
+      }
+      
+      challenges.add(challenge);
+    }
+    
+    return challenges;
+  }
+  
+  /// 만료된 챌린지 목록 조회 (실패한 챌린지)
+  Future<List<LogRunChallengeModel>> getExpiredChallenges(String userId) async {
+    final query = await firestore
+        .collection(_challengesCollection)
+        .where('participants', arrayContains: userId)
+        .where('status', isEqualTo: 'expired')
+        .orderBy('endDate', descending: true)
+        .limit(20) // 최근 20개만
+        .get();
+    
     return query.docs.map((doc) => LogRunChallengeModel.fromFirestore(doc)).toList();
+  }
+  
+  /// 챌린지를 만료 상태로 변경
+  Future<void> _markChallengeAsExpired(String challengeId) async {
+    try {
+      await firestore.collection(_challengesCollection).doc(challengeId).update({
+        'status': ChallengeStatus.expired.toFirestore(),
+      });
+      AppLogger.info('FirestoreLogRunDataSource', '챌린지 만료 처리: $challengeId');
+    } catch (e) {
+      AppLogger.error('FirestoreLogRunDataSource', '챌린지 만료 처리 실패', e);
+    }
   }
 
   /// 완료 챌린지 목록 조회 (expireAt이 아직 지나지 않은 것만)

@@ -189,9 +189,12 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           final completedChallenges = state is ChallengesLoaded
               ? state.completedChallenges
               : (state as ChallengeDetailLoaded).completedChallenges;
+          final expiredChallenges = state is ChallengesLoaded
+              ? state.expiredChallenges
+              : (state as ChallengeDetailLoaded).expiredChallenges;
 
-          // 진행 중 챌린지를 먼저, 완료된 챌린지를 뒤에 표시
-          final allChallenges = [...activeChallenges, ...completedChallenges];
+          // 진행 중 → 완료 → 실패 순으로 표시
+          final allChallenges = [...activeChallenges, ...completedChallenges, ...expiredChallenges];
 
           if (allChallenges.isEmpty) {
             return EmptyLogRunWidget(

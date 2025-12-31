@@ -48,6 +48,11 @@ abstract class LogRunRepository {
     String userId,
   );
 
+  /// 만료된(실패한) 챌린지 목록 조회
+  Future<Either<Failure, List<LogRunChallengeEntity>>> getExpiredChallenges(
+    String userId,
+  );
+
   /// 챌린지 상세 조회
   Future<Either<Failure, LogRunChallengeEntity>> getChallengeById(
     String challengeId,

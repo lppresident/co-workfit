@@ -76,6 +76,14 @@ class LogRunRepositoryImpl implements LogRunRepository {
   }
 
   @override
+  Future<Either<Failure, List<LogRunChallengeEntity>>> getExpiredChallenges(String userId) async {
+    try {
+      final challenges = await dataSource.getExpiredChallenges(userId);
+      return Right(challenges);
+    } catch (e) { return Left(ServerFailure(e.toString())); }
+  }
+
+  @override
   Future<Either<Failure, LogRunChallengeEntity>> getChallengeById(String challengeId) async {
     try {
       final challenge = await dataSource.getChallengeById(challengeId);

@@ -186,9 +186,9 @@ extension ChallengeStatusExtension on ChallengeStatus {
       case ChallengeStatus.active:
         return '진행 중';
       case ChallengeStatus.completed:
-        return '완료';
+        return '성공';
       case ChallengeStatus.expired:
-        return '만료';
+        return '실패';
     }
   }
 }
