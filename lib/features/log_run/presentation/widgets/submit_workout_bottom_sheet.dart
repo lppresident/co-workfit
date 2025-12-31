@@ -5,6 +5,8 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart'
 import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
+import 'package:co_workfit/features/iron/domain/entities/iron_reward_constants.dart';
 import 'package:intl/intl.dart';
 
 /// 운동 기록 제출 Bottom Sheet
@@ -12,6 +14,7 @@ class SubmitWorkoutBottomSheet extends StatefulWidget {
   final String challengeId;
   final DateTime startDate;
   final DateTime endDate;
+  final ChallengeType challengeType;
   final Function(String workoutId, double distance, String workoutType, DateTime workoutDate) onSubmit;
 
   const SubmitWorkoutBottomSheet({
@@ -19,6 +22,7 @@ class SubmitWorkoutBottomSheet extends StatefulWidget {
     required this.challengeId,
     required this.startDate,
     required this.endDate,
+    this.challengeType = ChallengeType.running,
     required this.onSubmit,
   });
 
@@ -107,15 +111,27 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                         59,
                       );
 
-                      // 러닝/걷기 + 챌린지 기간 내 운동만 필터링
+                      // 챌린지 타입에 따라 운동 타입 필터링
+                      final isRunningChallenge = widget.challengeType == ChallengeType.running;
                       final validWorkouts = state.workouts
-                          .where((workout) =>
-                              (workout.type == WorkoutType.running ||
-                                  workout.type == WorkoutType.walking) &&
-                              workout.startTime.isAfter(
-                                  startOfStartDate.subtract(const Duration(seconds: 1))) &&
-                              workout.startTime.isBefore(
-                                  endOfEndDate.add(const Duration(seconds: 1))))
+                          .where((workout) {
+                            // 기간 체크
+                            final inPeriod = workout.startTime.isAfter(
+                                    startOfStartDate.subtract(const Duration(seconds: 1))) &&
+                                workout.startTime.isBefore(
+                                    endOfEndDate.add(const Duration(seconds: 1)));
+                            if (!inPeriod) return false;
+
+                            // 운동 타입 체크
+                            if (isRunningChallenge) {
+                              // 달리기 챌린지: 러닝/걷기
+                              return workout.type == WorkoutType.running ||
+                                  workout.type == WorkoutType.walking;
+                            } else {
+                              // 헬스 챌린지: 웨이트 트레이닝
+                              return workout.type == WorkoutType.weightTraining;
+                            }
+                          })
                           .toList();
 
                       if (validWorkouts.isEmpty) {
@@ -145,7 +161,9 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '이 기간 내의 러닝/걷기 기록만 제출 가능합니다',
+                                  isRunningChallenge
+                                      ? '이 기간 내의 러닝/걷기 기록만 제출 가능합니다'
+                                      : '이 기간 내의 웨이트 트레이닝 기록만 제출 가능합니다',
                                   style: TextStyle(
                                     color: Colors.grey[500],
                                     fontSize: 12,
@@ -166,6 +184,20 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
 
                           // Garmin 데이터인지 확인
                           final isGarminData = workout.source == WorkoutSource.garmin;
+                          
+                          // 헬스 운동인 경우 점수 계산
+                          final isStrengthWorkout = workout.type == WorkoutType.weightTraining;
+                          String valueDisplay;
+                          if (isStrengthWorkout) {
+                            final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
+                              durationMinutes: workout.durationMinutes,
+                              avgHeartRate: workout.averageHeartRate,
+                            );
+                            final intensity = WorkoutIntensityExtension.fromHeartRate(workout.averageHeartRate);
+                            valueDisplay = '${strengthScore.toStringAsFixed(1)}점 (${intensity.displayName})';
+                          } else {
+                            valueDisplay = '${(workout.effectiveDistance ?? 0.0).toStringAsFixed(2)} km';
+                          }
 
                           return ListTile(
                             leading: Icon(
@@ -181,7 +213,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                                     color: isSelected ? Theme.of(context).colorScheme.primary : null,
                                   ),
                                 ),
-                                if (isGarminData) ...[
+                                if (isGarminData && !isStrengthWorkout) ...[
                                   const SizedBox(width: 8),
                                   Tooltip(
                                     message: '거리 데이터가 부정확할 수 있습니다.\n제출 시 확인해주세요.',
@@ -211,12 +243,18 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                             subtitle: Row(
                               children: [
                                 Text(
-                                  '${DateFormat('yyyy.MM.dd HH:mm').format(workout.startTime)} • '
-                                  '${(workout.effectiveDistance ?? 0.0).toStringAsFixed(2)} km',
+                                  '${DateFormat('yyyy.MM.dd HH:mm').format(workout.startTime)} • $valueDisplay',
                                 ),
-                                if (workout.hasDistanceCorrection) ...[
+                                if (!isStrengthWorkout && workout.hasDistanceCorrection) ...[
                                   const SizedBox(width: 4),
                                   const Icon(Icons.edit, size: 12, color: Colors.blue),
+                                ],
+                                if (isStrengthWorkout) ...[
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '• ${workout.durationMinutes}분',
+                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                  ),
                                 ],
                               ],
                             ),
@@ -227,7 +265,15 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                             onTap: () {
                               setState(() {
                                 _selectedWorkout = workout;
-                                _distanceController.text = (workout.distance ?? 0.0).toStringAsFixed(2);
+                                if (isStrengthWorkout) {
+                                  final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
+                                    durationMinutes: workout.durationMinutes,
+                                    avgHeartRate: workout.averageHeartRate,
+                                  );
+                                  _distanceController.text = strengthScore.toStringAsFixed(2);
+                                } else {
+                                  _distanceController.text = (workout.distance ?? 0.0).toStringAsFixed(2);
+                                }
                               });
                             },
                           );
@@ -323,7 +369,19 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     if (_selectedWorkout == null) return;
 
     final workout = _selectedWorkout!;
+    final isStrengthWorkout = workout.type == WorkoutType.weightTraining;
 
+    // 헬스 운동의 경우 점수로 바로 제출
+    if (isStrengthWorkout) {
+      final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
+        durationMinutes: workout.durationMinutes,
+        avgHeartRate: workout.averageHeartRate,
+      );
+      _submitWorkout(strengthScore);
+      return;
+    }
+
+    // 달리기 운동의 경우 기존 로직
     // 이미 수정된 거리가 있으면 바로 제출
     if (workout.hasDistanceCorrection) {
       _submitWorkout(workout.effectiveDistance ?? 0.0);

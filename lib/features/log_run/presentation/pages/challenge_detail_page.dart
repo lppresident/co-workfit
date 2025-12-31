@@ -86,7 +86,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     }).toList();
   }
 
-  void _showSubmitWorkoutSheet(DateTime startDate, DateTime endDate) {
+  void _showSubmitWorkoutSheet(DateTime startDate, DateTime endDate, ChallengeType challengeType) {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) return;
 
@@ -98,6 +98,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
         challengeId: widget.challengeId,
         startDate: startDate,
         endDate: endDate,
+        challengeType: challengeType,
         onSubmit: (workoutId, distance, workoutType, workoutDate) {
           context.read<LogRunBloc>().add(
                 SubmitWorkout(
@@ -448,9 +449,11 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
             onPressed: () => _showSubmitWorkoutSheet(
               challenge.startDate,
               challenge.endDate,
+              challenge.challengeType,
             ),
-            icon: const Icon(Icons.add),
-            label: const Text('운동 기록 제출'),
+            icon: Icon(challenge.isRunning ? Icons.directions_run : Icons.fitness_center),
+            label: Text(challenge.isRunning ? '운동 기록 제출' : '헬스 기록 제출'),
+            backgroundColor: challenge.isRunning ? Colors.brown : Colors.blueGrey,
           );
         }
         return const SizedBox.shrink();
