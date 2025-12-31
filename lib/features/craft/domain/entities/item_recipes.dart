@@ -37,7 +37,7 @@ class ItemRecipes {
           clothingSlot: ClothingSlot.head,
           woodCost: 80,
           rarity: 2,
-          iconEmoji: '🎩',
+          iconEmoji: '🧢',
           estimatedDays: 5,
         ),
         const ItemEntity(
@@ -48,7 +48,7 @@ class ItemRecipes {
           clothingSlot: ClothingSlot.head,
           woodCost: 300,
           rarity: 3,
-          iconEmoji: '👑',
+          iconEmoji: '🎩',
           estimatedDays: 20,
         ),
         const ItemEntity(
@@ -59,7 +59,7 @@ class ItemRecipes {
           clothingSlot: ClothingSlot.head,
           woodCost: 1200,
           rarity: 4,
-          iconEmoji: '🏆',
+          iconEmoji: '👑',
           estimatedDays: 60,
         ),
       ];
