@@ -3,6 +3,10 @@
 
 default_platform(:ios)
 
+# CI 환경용 임시 키체인 설정
+KEYCHAIN_NAME = "fastlane_tmp_keychain"
+KEYCHAIN_PASSWORD = "fastlane_tmp_password"
+
 # Helper: App Store Connect API Key 생성 및 반환
 def get_api_key
   key_id = ENV["APP_STORE_CONNECT_API_KEY_ID"]
@@ -26,19 +30,43 @@ def get_api_key
   )
 end
 
+# Helper: CI용 임시 키체인 생성
+def setup_ci_keychain
+  # CI 환경인지 확인 (GitHub Actions, 등)
+  if ENV["CI"] || ENV["GITHUB_ACTIONS"]
+    UI.message("CI environment detected, creating temporary keychain...")
+    
+    # 기존 키체인 삭제 (있으면)
+    delete_keychain(name: KEYCHAIN_NAME) if File.exist?(File.expand_path("~/Library/Keychains/#{KEYCHAIN_NAME}-db"))
+    
+    # 새 키체인 생성
+    create_keychain(
+      name: KEYCHAIN_NAME,
+      password: KEYCHAIN_PASSWORD,
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false
+    )
+  end
+end
+
 platform :ios do
   desc "Sync certificates and profiles using Match"
   lane :setup_match do |options|
     type = options[:type] || "appstore"
     api_key = get_api_key
+    
+    # CI 환경에서 키체인 생성
+    setup_ci_keychain
 
     match(
       api_key: api_key,
       type: type,
-      readonly: false,
+      readonly: true,  # CI에서는 readonly로 사용
       app_identifier: "com.hansol.coworkfit",
-      keychain_name: "fastlane_tmp_keychain",
-      keychain_password: ""
+      keychain_name: KEYCHAIN_NAME,
+      keychain_password: KEYCHAIN_PASSWORD
     )
   end
 
