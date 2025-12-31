@@ -11,6 +11,8 @@ class WoodSettlementModel extends WoodSettlementEntity {
     required super.totalWoodAwarded,
     super.totalIronAwarded,
     required super.challenges,
+    super.hasSoloWoodReward,
+    super.hasSoloIronReward,
   });
 
   /// Firestore 문서에서 생성
@@ -35,6 +37,8 @@ class WoodSettlementModel extends WoodSettlementEntity {
       totalWoodAwarded: (data['totalWoodAwarded'] as num?)?.toInt() ?? 0,
       totalIronAwarded: (data['totalIronAwarded'] as num?)?.toInt() ?? 0,
       challenges: challenges,
+      hasSoloWoodReward: data['hasSoloWoodReward'] as bool? ?? false,
+      hasSoloIronReward: data['hasSoloIronReward'] as bool? ?? false,
     );
   }
 
@@ -48,6 +52,8 @@ class WoodSettlementModel extends WoodSettlementEntity {
       totalWoodAwarded: entity.totalWoodAwarded,
       totalIronAwarded: entity.totalIronAwarded,
       challenges: entity.challenges,
+      hasSoloWoodReward: entity.hasSoloWoodReward,
+      hasSoloIronReward: entity.hasSoloIronReward,
     );
   }
 
@@ -62,6 +68,8 @@ class WoodSettlementModel extends WoodSettlementEntity {
       'challenges': challenges
           .map((c) => ChallengeRewardDetailModel.fromDetail(c).toMap())
           .toList(),
+      'hasSoloWoodReward': hasSoloWoodReward,
+      'hasSoloIronReward': hasSoloIronReward,
     };
   }
 }
@@ -80,6 +88,7 @@ class ChallengeRewardDetailModel extends ChallengeRewardDetail {
     required super.selected,
     super.isMvp,
     super.milestoneType,
+    super.isSoloWorkout,
   });
 
   factory ChallengeRewardDetailModel.fromMap(Map<String, dynamic> data) {
@@ -101,6 +110,7 @@ class ChallengeRewardDetailModel extends ChallengeRewardDetail {
       selected: data['selected'] as bool? ?? false,
       isMvp: data['isMvp'] as bool? ?? false,
       milestoneType: data['milestoneType'] as String?,
+      isSoloWorkout: data['isSoloWorkout'] as bool? ?? false,
     );
   }
 
@@ -117,6 +127,7 @@ class ChallengeRewardDetailModel extends ChallengeRewardDetail {
       selected: detail.selected,
       isMvp: detail.isMvp,
       milestoneType: detail.milestoneType,
+      isSoloWorkout: detail.isSoloWorkout,
     );
   }
 
@@ -133,6 +144,7 @@ class ChallengeRewardDetailModel extends ChallengeRewardDetail {
       'selected': selected,
       'isMvp': isMvp,
       'milestoneType': milestoneType,
+      'isSoloWorkout': isSoloWorkout,
     };
   }
 }

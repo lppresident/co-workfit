@@ -278,6 +278,12 @@ class SettlementDialog extends StatelessWidget {
   Widget _buildChallengeInfo(ChallengeRewardDetail challenge, {required bool isIron}) {
     final accentColor = isIron ? const Color(0xFF455A64) : const Color(0xFF8B4513);
     final icon = isIron ? '🔩' : '🪵';
+    
+    // 개인 운동인 경우 다른 스타일로 표시
+    if (challenge.isSoloWorkout) {
+      return _buildSoloWorkoutInfo(challenge, accentColor: accentColor, icon: icon);
+    }
+    
     final typeLabel = isIron ? '헬스' : '달리기';
     
     return Column(
@@ -335,6 +341,70 @@ class SettlementDialog extends StatelessWidget {
             ],
           ),
         ],
+      ],
+    );
+  }
+  
+  /// 개인 운동 보상 정보 표시
+  Widget _buildSoloWorkoutInfo(ChallengeRewardDetail challenge, {required Color accentColor, required String icon}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 개인 운동 정보
+        Row(
+          children: [
+            const Icon(Icons.person, size: 16, color: Colors.blue),
+            const SizedBox(width: 4),
+            Text(icon, style: const TextStyle(fontSize: 12)),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                '개인 운동',
+                style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                challenge.challengeName,
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        
+        // 설명
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.blue.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, size: 14, color: Colors.blue),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '챌린지 없이 운동한 기록에 대한 기본 보상입니다.\n챌린지에 참여하면 더 많은 보상을 받을 수 있어요!',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        
+        // 보상
+        _buildRewardRow('기본 보상', challenge.total, highlight: true, accentColor: accentColor),
       ],
     );
   }

@@ -31,6 +31,12 @@ class WoodSettlementEntity extends Equatable {
 
   /// 챌린지별 보상 상세
   final List<ChallengeRewardDetail> challenges;
+  
+  /// 개인 달리기 운동 보상 포함 여부
+  final bool hasSoloWoodReward;
+  
+  /// 개인 헬스 운동 보상 포함 여부
+  final bool hasSoloIronReward;
 
   const WoodSettlementEntity({
     required this.settlementDate,
@@ -40,6 +46,8 @@ class WoodSettlementEntity extends Equatable {
     required this.totalWoodAwarded,
     this.totalIronAwarded = 0,
     required this.challenges,
+    this.hasSoloWoodReward = false,
+    this.hasSoloIronReward = false,
   });
 
   /// 선택된 달리기 챌린지 상세 정보
@@ -83,6 +91,8 @@ class WoodSettlementEntity extends Equatable {
         totalWoodAwarded,
         totalIronAwarded,
         challenges,
+        hasSoloWoodReward,
+        hasSoloIronReward,
       ];
 }
 
@@ -120,6 +130,9 @@ class ChallengeRewardDetail extends Equatable {
 
   /// 마일스톤 타입 (null, 'half', 'full')
   final String? milestoneType;
+  
+  /// 개인 운동 보상 여부 (챌린지 없이 운동만 한 경우)
+  final bool isSoloWorkout;
 
   const ChallengeRewardDetail({
     required this.challengeId,
@@ -133,6 +146,7 @@ class ChallengeRewardDetail extends Equatable {
     required this.selected,
     this.isMvp = false,
     this.milestoneType,
+    this.isSoloWorkout = false,
   });
   
   /// 통나무 보상인지 확인
@@ -154,5 +168,6 @@ class ChallengeRewardDetail extends Equatable {
         selected,
         isMvp,
         milestoneType,
+        isSoloWorkout,
       ];
 }

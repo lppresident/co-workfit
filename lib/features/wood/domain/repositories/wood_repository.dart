@@ -65,6 +65,39 @@ abstract class WoodRepository {
 
   /// 해당 챌린지에서 사용자의 첫 기여인지 확인
   Future<bool> isFirstContribution(String userId, String challengeId);
+
+  // ========== Solo Workout Data ==========
+
+  /// 특정 날짜의 개인 운동 기록 조회 (달리기/걷기)
+  Future<SoloWorkoutData?> getRunningWorkoutsOnDate(String userId, String date);
+
+  /// 특정 날짜의 개인 운동 기록 조회 (헬스)
+  Future<SoloWorkoutData?> getStrengthWorkoutsOnDate(String userId, String date);
+}
+
+/// 개인 운동 데이터 (챌린지 없이 운동한 기록)
+class SoloWorkoutData {
+  /// 총 거리 (km) - 달리기용
+  final double totalDistance;
+
+  /// 총 점수 - 헬스용
+  final double totalScore;
+
+  /// 운동 횟수
+  final int workoutCount;
+
+  /// 운동 날짜
+  final String date;
+
+  const SoloWorkoutData({
+    this.totalDistance = 0,
+    this.totalScore = 0,
+    required this.workoutCount,
+    required this.date,
+  });
+
+  bool get hasRunningData => totalDistance > 0;
+  bool get hasStrengthData => totalScore > 0;
 }
 
 /// 정산용 챌린지 데이터

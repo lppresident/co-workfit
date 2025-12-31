@@ -1,3 +1,6 @@
+import 'dart:math';
+import 'package:co_workfit/features/iron/domain/entities/iron_reward_constants.dart';
+import 'package:co_workfit/features/wood/domain/entities/wood_reward_constants.dart';
 import 'package:co_workfit/features/wood/domain/entities/wood_settlement_entity.dart';
 import 'package:co_workfit/features/wood/domain/repositories/wood_repository.dart';
 import 'package:co_workfit/features/wood/domain/usecases/calculate_challenge_reward.dart';
@@ -8,8 +11,9 @@ import 'package:co_workfit/features/wood/domain/usecases/calculate_challenge_rew
 /// 1. 해당 날짜(D)에 종료된 모든 챌린지 조회
 /// 2. 챌린지를 타입별로 분리 (달리기/헬스)
 /// 3. 각 타입별로 가장 높은 보상 챌린지 1개씩 선택
-/// 4. 달리기 챌린지 → 통나무 지급, 헬스 챌린지 → 쇠 지급
-/// 5. 0개 정산은 저장하지 않음
+/// 4. 챌린지 보상이 없는 타입의 경우 개인 운동 기록 확인 → 기본 보상 지급
+/// 5. 달리기 → 통나무, 헬스 → 쇠
+/// 6. 0개 정산은 저장하지 않음
 class SettleDailyRewards {
   final WoodRepository _repository;
   final CalculateChallengeReward _calculateChallengeReward;
@@ -38,26 +42,17 @@ class SettleDailyRewards {
       return existingSettlement;
     }
 
+    final now = DateTime.now();
+    
     // 2. 해당 날짜에 종료된 챌린지 조회
     final challenges =
         await _repository.getChallengesEndedOn(userId, settlementDate);
 
-    // 정산할 챌린지가 없는 경우 - 저장하지 않고 null 반환
-    if (challenges.isEmpty) {
-      return null;
-    }
-
     // 3. 유효한 챌린지만 필터링 (만료된 챌린지 제외 - 7일 이내)
-    final now = DateTime.now();
     final validChallenges = challenges.where((challenge) {
       final daysSinceEnd = now.difference(challenge.endDate).inDays;
       return daysSinceEnd <= 7;
     }).toList();
-
-    // 유효한 챌린지가 없는 경우 - 저장하지 않고 null 반환
-    if (validChallenges.isEmpty) {
-      return null;
-    }
 
     // 4. 첫 운동 여부 확인 (해당 날짜 기준)
     final settlementDateTime = DateTime.parse(settlementDate);
@@ -72,6 +67,12 @@ class SettleDailyRewards {
     final List<ChallengeRewardDetail> allRewardDetails = [];
     ChallengeRewardDetail? selectedWoodReward;
     ChallengeRewardDetail? selectedIronReward;
+    
+    // 개인 운동 보상 추적
+    int soloWoodReward = 0;
+    int soloIronReward = 0;
+    SoloWorkoutData? soloRunningData;
+    SoloWorkoutData? soloStrengthData;
 
     // 달리기 챌린지 처리
     if (runningChallenges.isNotEmpty) {
@@ -109,14 +110,33 @@ class SettleDailyRewards {
       allRewardDetails.addAll(ironRewards);
     }
 
-    // 총 보상이 0인 경우 저장하지 않음
-    final totalWood = selectedWoodReward?.total ?? 0;
-    final totalIron = selectedIronReward?.total ?? 0;
+    // 7. 챌린지 보상이 없는 경우 개인 운동 기록 확인
+    // 달리기 챌린지 보상이 없으면 → 개인 달리기 운동 확인
+    if (selectedWoodReward == null) {
+      soloRunningData = await _repository.getRunningWorkoutsOnDate(userId, settlementDate);
+      if (soloRunningData != null && soloRunningData.hasRunningData) {
+        soloWoodReward = _calculateSoloRunningReward(soloRunningData.totalDistance);
+      }
+    }
+
+    // 헬스 챌린지 보상이 없으면 → 개인 헬스 운동 확인
+    if (selectedIronReward == null) {
+      soloStrengthData = await _repository.getStrengthWorkoutsOnDate(userId, settlementDate);
+      if (soloStrengthData != null && soloStrengthData.hasStrengthData) {
+        soloIronReward = _calculateSoloStrengthReward(soloStrengthData.totalScore);
+      }
+    }
+
+    // 총 보상 계산
+    final totalWood = (selectedWoodReward?.total ?? 0) + soloWoodReward;
+    final totalIron = (selectedIronReward?.total ?? 0) + soloIronReward;
+    
+    // 보상이 0인 경우 저장하지 않음
     if (totalWood <= 0 && totalIron <= 0) {
       return null;
     }
 
-    // 7. 선택된 챌린지 표시
+    // 8. 선택된 챌린지 표시
     final finalRewards = allRewardDetails.map((r) {
       final isSelectedWood = selectedWoodReward != null && 
           r.challengeId == selectedWoodReward.challengeId;
@@ -141,7 +161,38 @@ class SettleDailyRewards {
       return r;
     }).toList();
 
-    // 8. 정산 기록 생성
+    // 9. 개인 운동 보상 추가 (챌린지가 아닌 개인 운동)
+    if (soloWoodReward > 0 && soloRunningData != null) {
+      finalRewards.add(ChallengeRewardDetail(
+        challengeId: 'solo_running_$settlementDate',
+        challengeName: '개인 달리기 (${soloRunningData.totalDistance.toStringAsFixed(1)}km)',
+        currencyType: RewardCurrencyType.wood,
+        isSuccess: true,
+        personalReward: soloWoodReward,
+        contributionReward: 0,
+        successBonus: 0,
+        total: soloWoodReward,
+        selected: true,
+        isSoloWorkout: true,
+      ));
+    }
+
+    if (soloIronReward > 0 && soloStrengthData != null) {
+      finalRewards.add(ChallengeRewardDetail(
+        challengeId: 'solo_strength_$settlementDate',
+        challengeName: '개인 헬스 (${soloStrengthData.totalScore.toStringAsFixed(0)}점)',
+        currencyType: RewardCurrencyType.iron,
+        isSuccess: true,
+        personalReward: soloIronReward,
+        contributionReward: 0,
+        successBonus: 0,
+        total: soloIronReward,
+        selected: true,
+        isSoloWorkout: true,
+      ));
+    }
+
+    // 10. 정산 기록 생성
     final settlement = WoodSettlementEntity(
       settlementDate: settlementDate,
       settledAt: now,
@@ -150,9 +201,11 @@ class SettleDailyRewards {
       totalWoodAwarded: totalWood,
       totalIronAwarded: totalIron,
       challenges: finalRewards,
+      hasSoloWoodReward: soloWoodReward > 0,
+      hasSoloIronReward: soloIronReward > 0,
     );
 
-    // 9. 재화 지급 및 정산 기록 저장
+    // 11. 재화 지급 및 정산 기록 저장
     if (totalWood > 0) {
       await _repository.addWood(userId, totalWood, settlementDate);
     }
@@ -162,5 +215,21 @@ class SettleDailyRewards {
     await _repository.saveSettlement(userId, settlement);
 
     return settlement;
+  }
+
+  /// 개인 달리기 운동 보상 계산
+  int _calculateSoloRunningReward(double distanceKm) {
+    final baseReward = WoodRewardConstants.soloWorkoutBase;
+    final distanceReward = (distanceKm * WoodRewardConstants.soloWorkoutPerKm).round();
+    final total = baseReward + distanceReward;
+    return min(total, WoodRewardConstants.soloWorkoutMaxReward);
+  }
+
+  /// 개인 헬스 운동 보상 계산
+  int _calculateSoloStrengthReward(double score) {
+    final baseReward = IronRewardConstants.soloWorkoutBase;
+    final scoreReward = (score * IronRewardConstants.soloWorkoutScoreToIron).round();
+    final total = baseReward + scoreReward;
+    return min(total, IronRewardConstants.soloWorkoutMaxReward);
   }
 }

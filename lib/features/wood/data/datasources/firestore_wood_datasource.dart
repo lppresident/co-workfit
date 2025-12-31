@@ -486,4 +486,112 @@ class FirestoreWoodDataSource {
       return false;
     }
   }
+
+  // ========== Solo Workout Data ==========
+
+  /// 특정 날짜의 달리기/걷기 운동 기록 조회
+  Future<SoloWorkoutData?> getRunningWorkoutsOnDate(String userId, String date) async {
+    try {
+      final targetDate = DateFormat('yyyy-MM-dd').parse(date);
+      final dayStart = DateTime(targetDate.year, targetDate.month, targetDate.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
+
+      final snapshot = await firestore
+          .collection(_workoutsCollection)
+          .where('userId', isEqualTo: userId)
+          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(dayStart))
+          .where('startTime', isLessThan: Timestamp.fromDate(dayEnd))
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+
+      double totalDistance = 0;
+      int workoutCount = 0;
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final type = data['type'] as String?;
+        
+        // 달리기/걷기 운동만 필터링
+        if (type == 'running' || type == 'walking') {
+          final distance = (data['distance'] as num?)?.toDouble() ?? 0;
+          final correctedDistance = (data['correctedDistance'] as num?)?.toDouble();
+          
+          totalDistance += correctedDistance ?? distance;
+          workoutCount++;
+        }
+      }
+
+      if (workoutCount == 0) return null;
+
+      return SoloWorkoutData(
+        totalDistance: totalDistance,
+        workoutCount: workoutCount,
+        date: date,
+      );
+    } catch (e) {
+      AppLogger.error('FirestoreWoodDataSource', '달리기 운동 기록 조회 실패', e);
+      return null;
+    }
+  }
+
+  /// 특정 날짜의 헬스 운동 기록 조회
+  Future<SoloWorkoutData?> getStrengthWorkoutsOnDate(String userId, String date) async {
+    try {
+      final targetDate = DateFormat('yyyy-MM-dd').parse(date);
+      final dayStart = DateTime(targetDate.year, targetDate.month, targetDate.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
+
+      final snapshot = await firestore
+          .collection(_workoutsCollection)
+          .where('userId', isEqualTo: userId)
+          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(dayStart))
+          .where('startTime', isLessThan: Timestamp.fromDate(dayEnd))
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+
+      double totalScore = 0;
+      int workoutCount = 0;
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final type = data['type'] as String?;
+        
+        // 웨이트 트레이닝만 필터링
+        if (type == 'weightTraining') {
+          final durationSeconds = (data['durationSeconds'] as num?)?.toInt() ?? 0;
+          final avgHeartRate = (data['averageHeartRate'] as num?)?.toInt();
+          
+          // 점수 계산: 시간(분) × 강도계수
+          final durationMinutes = (durationSeconds / 60).round();
+          double intensityCoefficient = 0.5; // 기본값 (저강도)
+          
+          if (avgHeartRate != null) {
+            if (avgHeartRate >= 150) {
+              intensityCoefficient = 1.3;
+            } else if (avgHeartRate >= 130) {
+              intensityCoefficient = 1.0;
+            } else if (avgHeartRate >= 100) {
+              intensityCoefficient = 0.83;
+            }
+          }
+          
+          totalScore += durationMinutes * intensityCoefficient;
+          workoutCount++;
+        }
+      }
+
+      if (workoutCount == 0) return null;
+
+      return SoloWorkoutData(
+        totalScore: totalScore,
+        workoutCount: workoutCount,
+        date: date,
+      );
+    } catch (e) {
+      AppLogger.error('FirestoreWoodDataSource', '헬스 운동 기록 조회 실패', e);
+      return null;
+    }
+  }
 }

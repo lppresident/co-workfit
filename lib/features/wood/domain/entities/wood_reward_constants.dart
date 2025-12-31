@@ -50,6 +50,18 @@ abstract class WoodRewardConstants {
 
   /// 보상 수령 가능 기간 (일)
   static const int settlementExpirationDays = 7;
+
+  // ========== 개인 운동 기본 보상 (챌린지 없을 때) ==========
+
+  /// 개인 운동 기본 보상 (챌린지 보상 없을 때만 지급)
+  /// 챌린지 참여 없이 운동한 사용자에게 최소 보상 제공
+  static const int soloWorkoutBase = 3;
+
+  /// 개인 운동 거리당 보상 (km당)
+  static const double soloWorkoutPerKm = 1.0;
+
+  /// 개인 운동 최대 보상 (하루)
+  static const int soloWorkoutMaxReward = 20;
 }
 
 /// 마일스톤 타입

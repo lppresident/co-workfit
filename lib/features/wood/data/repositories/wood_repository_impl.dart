@@ -109,5 +109,17 @@ class WoodRepositoryImpl implements WoodRepository {
   Future<bool> isFirstContribution(String userId, String challengeId) {
     return _dataSource.isFirstContribution(userId, challengeId);
   }
+
+  // ========== Solo Workout Data ==========
+
+  @override
+  Future<SoloWorkoutData?> getRunningWorkoutsOnDate(String userId, String date) {
+    return _dataSource.getRunningWorkoutsOnDate(userId, date);
+  }
+
+  @override
+  Future<SoloWorkoutData?> getStrengthWorkoutsOnDate(String userId, String date) {
+    return _dataSource.getStrengthWorkoutsOnDate(userId, date);
+  }
 }
 
