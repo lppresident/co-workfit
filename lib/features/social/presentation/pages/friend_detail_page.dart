@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:co_workfit/core/presentation/base_page.dart';
 import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
 import 'package:co_workfit/core/constants/app_constants.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
+import 'package:co_workfit/features/craft/domain/entities/item_category.dart';
+import 'package:co_workfit/features/craft/domain/entities/item_entity.dart';
+import 'package:co_workfit/features/craft/domain/entities/item_recipes.dart';
 import 'package:co_workfit/features/social/domain/entities/friendship_entity.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
@@ -26,9 +31,45 @@ class FriendDetailPage extends BasePage {
 }
 
 class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
+  EquippedItemsEntity? _friendEquippedItems;
+  bool _isLoadingEquipped = true;
+
   @override
   void loadInitialData() {
     AppLogger.info('FriendDetailPage', 'Loading friend detail: ${widget.friend.friendId}');
+    _loadFriendEquippedItems();
+  }
+
+  Future<void> _loadFriendEquippedItems() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.friend.friendId)
+          .get();
+
+      if (doc.exists && doc.data()?['equippedItems'] != null) {
+        final data = doc.data()!['equippedItems'] as Map<String, dynamic>;
+        setState(() {
+          _friendEquippedItems = EquippedItemsEntity(
+            headItemId: data['headItemId'] as String?,
+            bodyItemId: data['bodyItemId'] as String?,
+            legsItemId: data['legsItemId'] as String?,
+          );
+          _isLoadingEquipped = false;
+        });
+      } else {
+        setState(() {
+          _friendEquippedItems = const EquippedItemsEntity();
+          _isLoadingEquipped = false;
+        });
+      }
+    } catch (e) {
+      AppLogger.error('FriendDetailPage', '친구 장착 아이템 조회 실패', e);
+      setState(() {
+        _friendEquippedItems = const EquippedItemsEntity();
+        _isLoadingEquipped = false;
+      });
+    }
   }
 
   void _showDeleteConfirmDialog() {
@@ -116,6 +157,8 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
                   children: [
                     _buildProfileCard(),
                     const SizedBox(height: 24),
+                    _buildCharacterSection(),
+                    const SizedBox(height: 24),
                     _buildFriendshipInfoSection(),
                     const SizedBox(height: 24),
                     _buildDeleteButton(),
@@ -175,6 +218,237 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCharacterSection() {
+    final friendNickname = widget.friend.friendNickname ?? widget.friend.friendName ?? '친구';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$friendNickname의 캐릭터',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: EdgeInsets.all(AppConstants.defaultPadding),
+            child: _isLoadingEquipped
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                : _buildCharacterView(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCharacterView() {
+    if (_friendEquippedItems == null) {
+      return const Center(
+        child: Text('캐릭터 정보를 불러올 수 없습니다'),
+      );
+    }
+
+    final equipped = _friendEquippedItems!;
+    final headItem = equipped.headItemId != null
+        ? ItemRecipes.getItemById(equipped.headItemId!)
+        : null;
+    final bodyItem = equipped.bodyItemId != null
+        ? ItemRecipes.getItemById(equipped.bodyItemId!)
+        : null;
+    final legsItem = equipped.legsItemId != null
+        ? ItemRecipes.getItemById(equipped.legsItemId!)
+        : null;
+
+    return Column(
+      children: [
+        // 캐릭터 (이모지 기반)
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.green[50]!,
+                Colors.brown[50]!,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              // 캐릭터
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Text(
+                    '🧍',
+                    style: TextStyle(fontSize: 80),
+                  ),
+                  if (headItem != null)
+                    Positioned(
+                      top: 0,
+                      child: Text(
+                        headItem.iconEmoji,
+                        style: const TextStyle(fontSize: 28),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // 장착 아이템 표시
+              if (equipped.equippedCount > 0)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    if (headItem != null) _buildEquippedBadge(headItem),
+                    if (bodyItem != null) _buildEquippedBadge(bodyItem),
+                    if (legsItem != null) _buildEquippedBadge(legsItem),
+                  ],
+                )
+              else
+                Text(
+                  '장착된 아이템이 없습니다',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // 장착 슬롯 목록
+        _buildEquipmentSlotRow(ClothingSlot.head, headItem),
+        const Divider(height: 1),
+        _buildEquipmentSlotRow(ClothingSlot.body, bodyItem),
+        const Divider(height: 1),
+        _buildEquipmentSlotRow(ClothingSlot.legs, legsItem),
+      ],
+    );
+  }
+
+  Widget _buildEquippedBadge(ItemEntity item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Color(item.rarityColorValue).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Color(item.rarityColorValue)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(item.iconEmoji, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 4),
+          Text(
+            item.name,
+            style: TextStyle(
+              fontSize: 11,
+              color: Color(item.rarityColorValue),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEquipmentSlotRow(ClothingSlot slot, ItemEntity? item) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          // 슬롯 아이콘
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                slot.emoji,
+                style: const TextStyle(fontSize: 18),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // 슬롯 이름 & 아이템
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  slot.displayName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                if (item != null)
+                  Row(
+                    children: [
+                      Text(
+                        item.iconEmoji,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Color(item.rarityColorValue),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          item.rarityName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    '비어있음',
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
