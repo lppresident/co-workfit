@@ -27,6 +27,11 @@ on:
         required: true
         default: false
         type: boolean
+      deploy_ios:
+        description: 'iOS: TestFlight에 배포'
+        required: true
+        default: true
+        type: boolean
       runner_type:
         description: 'Runner 선택'
         required: true
@@ -249,7 +254,7 @@ jobs:
   # ==================== iOS: Self-hosted ====================
   ios-self-hosted:
     needs: prepare
-    if: github.event.inputs.runner_type != 'github-hosted'
+    if: github.event.inputs.deploy_ios == 'true' && github.event.inputs.runner_type != 'github-hosted'
     runs-on: self-hosted
     timeout-minutes: 20
     continue-on-error: ${{ github.event.inputs.runner_type == 'self-hosted-first' }}
@@ -350,7 +355,7 @@ jobs:
   ios-github-hosted:
     needs: [prepare, ios-self-hosted]
     if: |
-      always() && (
+      always() && github.event.inputs.deploy_ios == 'true' && (
         github.event.inputs.runner_type == 'github-hosted' ||
         (github.event.inputs.runner_type == 'self-hosted-first' && needs.ios-self-hosted.outputs.success != 'true')
       )
@@ -528,4 +533,4 @@ jobs:
           echo "### 📱 배포 대상" >> $GITHUB_STEP_SUMMARY
           echo "- **Firebase App Distribution**: ${{ github.event.inputs.deploy_android_firebase == 'true' && '✅' || '⏭️' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **GitHub Release**: ${{ github.event.inputs.deploy_android_github == 'true' && '✅' || '⏭️' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **TestFlight**: ✅ (자동)" >> $GITHUB_STEP_SUMMARY
+          echo "- **TestFlight**: ${{ github.event.inputs.deploy_ios == 'true' && '✅' || '⏭️' }}" >> $GITHUB_STEP_SUMMARY
