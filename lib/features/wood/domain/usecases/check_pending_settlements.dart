@@ -51,6 +51,9 @@ class SettlementSummary {
 
   /// 총 획득 통나무
   final int totalWoodAwarded;
+  
+  /// 총 획득 쇠
+  final int totalIronAwarded;
 
   /// 정산 상세 목록
   final List<WoodSettlementEntity> settlements;
@@ -58,6 +61,7 @@ class SettlementSummary {
   const SettlementSummary({
     required this.settledDays,
     required this.totalWoodAwarded,
+    this.totalIronAwarded = 0,
     required this.settlements,
   });
 
@@ -65,12 +69,19 @@ class SettlementSummary {
     return SettlementSummary(
       settledDays: settlements.length,
       totalWoodAwarded: settlements.fold(0, (sum, s) => sum + s.totalWoodAwarded),
+      totalIronAwarded: settlements.fold(0, (sum, s) => sum + s.totalIronAwarded),
       settlements: settlements,
     );
   }
 
   /// 정산할 내용이 있는지
   bool get hasSettlements => settlements.isNotEmpty;
+  
+  /// 통나무 보상이 있는지
+  bool get hasWoodRewards => totalWoodAwarded > 0;
+  
+  /// 쇠 보상이 있는지
+  bool get hasIronRewards => totalIronAwarded > 0;
 
   /// 보상을 받은 정산이 있는지
   bool get hasRewards => totalWoodAwarded > 0;

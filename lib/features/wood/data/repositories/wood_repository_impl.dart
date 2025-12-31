@@ -37,6 +37,18 @@ class WoodRepositoryImpl implements WoodRepository {
     return _dataSource.useWood(userId, amount);
   }
 
+  // ========== Iron (쇠) ==========
+
+  @override
+  Future<void> addIron(String userId, int amount, String settlementDate) {
+    return _dataSource.addIron(userId, amount, settlementDate);
+  }
+
+  @override
+  Future<void> useIron(String userId, int amount) {
+    return _dataSource.useIron(userId, amount);
+  }
+
   // ========== Settlement ==========
 
   @override

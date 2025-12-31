@@ -6,11 +6,10 @@ import 'package:co_workfit/features/wood/domain/usecases/calculate_challenge_rew
 ///
 /// 정산 로직:
 /// 1. 해당 날짜(D)에 종료된 모든 챌린지 조회
-/// 2. 각 챌린지별 총 보상 계산 = 개인 운동 보상 + 기여 보상 + 성공 보너스
-/// 3. 가장 높은 보상 챌린지 1개 선택
-/// 4. 해당 챌린지 보상만 지급
-/// 5. 나머지 챌린지는 보상 없음
-/// 6. 0개 정산은 저장하지 않음
+/// 2. 챌린지를 타입별로 분리 (달리기/헬스)
+/// 3. 각 타입별로 가장 높은 보상 챌린지 1개씩 선택
+/// 4. 달리기 챌린지 → 통나무 지급, 헬스 챌린지 → 쇠 지급
+/// 5. 0개 정산은 저장하지 않음
 class SettleDailyRewards {
   final WoodRepository _repository;
   final CalculateChallengeReward _calculateChallengeReward;
@@ -65,31 +64,70 @@ class SettleDailyRewards {
     final isFirstWorkoutOfDay =
         await _repository.isFirstWorkoutOfDay(userId, settlementDateTime);
 
-    // 5. 각 챌린지별 보상 계산
-    final rewardDetails = <ChallengeRewardDetail>[];
-    for (final challenge in validChallenges) {
-      final reward = _calculateChallengeReward(
-        challengeData: challenge,
-        isFirstWorkoutOfDay: isFirstWorkoutOfDay,
-      );
-      rewardDetails.add(reward);
+    // 5. 챌린지를 타입별로 분리
+    final runningChallenges = validChallenges.where((c) => c.isRunning).toList();
+    final strengthChallenges = validChallenges.where((c) => c.isStrengthTraining).toList();
+
+    // 6. 각 타입별 보상 계산 및 최고 보상 선택
+    final List<ChallengeRewardDetail> allRewardDetails = [];
+    ChallengeRewardDetail? selectedWoodReward;
+    ChallengeRewardDetail? selectedIronReward;
+
+    // 달리기 챌린지 처리
+    if (runningChallenges.isNotEmpty) {
+      final woodRewards = <ChallengeRewardDetail>[];
+      for (final challenge in runningChallenges) {
+        final reward = _calculateChallengeReward(
+          challengeData: challenge,
+          isFirstWorkoutOfDay: isFirstWorkoutOfDay,
+          currencyType: RewardCurrencyType.wood,
+        );
+        woodRewards.add(reward);
+      }
+      woodRewards.sort((a, b) => b.total.compareTo(a.total));
+      if (woodRewards.isNotEmpty && woodRewards.first.total > 0) {
+        selectedWoodReward = woodRewards.first;
+      }
+      allRewardDetails.addAll(woodRewards);
     }
 
-    // 6. 가장 높은 보상 챌린지 선택
-    rewardDetails.sort((a, b) => b.total.compareTo(a.total));
-    final selectedReward = rewardDetails.first;
+    // 헬스 챌린지 처리
+    if (strengthChallenges.isNotEmpty) {
+      final ironRewards = <ChallengeRewardDetail>[];
+      for (final challenge in strengthChallenges) {
+        final reward = _calculateChallengeReward(
+          challengeData: challenge,
+          isFirstWorkoutOfDay: isFirstWorkoutOfDay,
+          currencyType: RewardCurrencyType.iron,
+        );
+        ironRewards.add(reward);
+      }
+      ironRewards.sort((a, b) => b.total.compareTo(a.total));
+      if (ironRewards.isNotEmpty && ironRewards.first.total > 0) {
+        selectedIronReward = ironRewards.first;
+      }
+      allRewardDetails.addAll(ironRewards);
+    }
 
-    // 보상이 0인 경우 저장하지 않음
-    if (selectedReward.total <= 0) {
+    // 총 보상이 0인 경우 저장하지 않음
+    final totalWood = selectedWoodReward?.total ?? 0;
+    final totalIron = selectedIronReward?.total ?? 0;
+    if (totalWood <= 0 && totalIron <= 0) {
       return null;
     }
 
-    // 선택된 챌린지 표시
-    final finalRewards = rewardDetails.map((r) {
-      if (r.challengeId == selectedReward.challengeId) {
+    // 7. 선택된 챌린지 표시
+    final finalRewards = allRewardDetails.map((r) {
+      final isSelectedWood = selectedWoodReward != null && 
+          r.challengeId == selectedWoodReward.challengeId;
+      final isSelectedIron = selectedIronReward != null && 
+          r.challengeId == selectedIronReward.challengeId;
+      
+      if (isSelectedWood || isSelectedIron) {
         return ChallengeRewardDetail(
           challengeId: r.challengeId,
           challengeName: r.challengeName,
+          currencyType: r.currencyType,
           isSuccess: r.isSuccess,
           personalReward: r.personalReward,
           contributionReward: r.contributionReward,
@@ -103,17 +141,24 @@ class SettleDailyRewards {
       return r;
     }).toList();
 
-    // 7. 정산 기록 생성
+    // 8. 정산 기록 생성
     final settlement = WoodSettlementEntity(
       settlementDate: settlementDate,
       settledAt: now,
-      selectedChallengeId: selectedReward.challengeId,
-      totalWoodAwarded: selectedReward.total,
+      selectedChallengeId: selectedWoodReward?.challengeId,
+      selectedIronChallengeId: selectedIronReward?.challengeId,
+      totalWoodAwarded: totalWood,
+      totalIronAwarded: totalIron,
       challenges: finalRewards,
     );
 
-    // 8. 통나무 지급 및 정산 기록 저장
-    await _repository.addWood(userId, selectedReward.total, settlementDate);
+    // 9. 재화 지급 및 정산 기록 저장
+    if (totalWood > 0) {
+      await _repository.addWood(userId, totalWood, settlementDate);
+    }
+    if (totalIron > 0) {
+      await _repository.addIron(userId, totalIron, settlementDate);
+    }
     await _repository.saveSettlement(userId, settlement);
 
     return settlement;

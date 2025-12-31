@@ -7,7 +7,9 @@ class WoodSettlementModel extends WoodSettlementEntity {
     required super.settlementDate,
     required super.settledAt,
     super.selectedChallengeId,
+    super.selectedIronChallengeId,
     required super.totalWoodAwarded,
+    super.totalIronAwarded,
     required super.challenges,
   });
 
@@ -29,7 +31,9 @@ class WoodSettlementModel extends WoodSettlementEntity {
       settlementDate: docId,
       settledAt: (data['settledAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       selectedChallengeId: data['selectedChallengeId'] as String?,
+      selectedIronChallengeId: data['selectedIronChallengeId'] as String?,
       totalWoodAwarded: (data['totalWoodAwarded'] as num?)?.toInt() ?? 0,
+      totalIronAwarded: (data['totalIronAwarded'] as num?)?.toInt() ?? 0,
       challenges: challenges,
     );
   }
@@ -40,7 +44,9 @@ class WoodSettlementModel extends WoodSettlementEntity {
       settlementDate: entity.settlementDate,
       settledAt: entity.settledAt,
       selectedChallengeId: entity.selectedChallengeId,
+      selectedIronChallengeId: entity.selectedIronChallengeId,
       totalWoodAwarded: entity.totalWoodAwarded,
+      totalIronAwarded: entity.totalIronAwarded,
       challenges: entity.challenges,
     );
   }
@@ -50,7 +56,9 @@ class WoodSettlementModel extends WoodSettlementEntity {
     return {
       'settledAt': Timestamp.fromDate(settledAt),
       'selectedChallengeId': selectedChallengeId,
+      'selectedIronChallengeId': selectedIronChallengeId,
       'totalWoodAwarded': totalWoodAwarded,
+      'totalIronAwarded': totalIronAwarded,
       'challenges': challenges
           .map((c) => ChallengeRewardDetailModel.fromDetail(c).toMap())
           .toList(),
@@ -63,6 +71,7 @@ class ChallengeRewardDetailModel extends ChallengeRewardDetail {
   const ChallengeRewardDetailModel({
     required super.challengeId,
     required super.challengeName,
+    super.currencyType,
     required super.isSuccess,
     required super.personalReward,
     required super.contributionReward,
@@ -74,9 +83,16 @@ class ChallengeRewardDetailModel extends ChallengeRewardDetail {
   });
 
   factory ChallengeRewardDetailModel.fromMap(Map<String, dynamic> data) {
+    // currencyType 파싱
+    final currencyTypeStr = data['currencyType'] as String? ?? 'wood';
+    final currencyType = currencyTypeStr == 'iron' 
+        ? RewardCurrencyType.iron 
+        : RewardCurrencyType.wood;
+    
     return ChallengeRewardDetailModel(
       challengeId: data['challengeId'] as String? ?? '',
       challengeName: data['challengeName'] as String? ?? '',
+      currencyType: currencyType,
       isSuccess: data['isSuccess'] as bool? ?? false,
       personalReward: (data['personalReward'] as num?)?.toInt() ?? 0,
       contributionReward: (data['contributionReward'] as num?)?.toInt() ?? 0,
@@ -92,6 +108,7 @@ class ChallengeRewardDetailModel extends ChallengeRewardDetail {
     return ChallengeRewardDetailModel(
       challengeId: detail.challengeId,
       challengeName: detail.challengeName,
+      currencyType: detail.currencyType,
       isSuccess: detail.isSuccess,
       personalReward: detail.personalReward,
       contributionReward: detail.contributionReward,
@@ -107,6 +124,7 @@ class ChallengeRewardDetailModel extends ChallengeRewardDetail {
     return {
       'challengeId': challengeId,
       'challengeName': challengeName,
+      'currencyType': currencyType.name,
       'isSuccess': isSuccess,
       'personalReward': personalReward,
       'contributionReward': contributionReward,

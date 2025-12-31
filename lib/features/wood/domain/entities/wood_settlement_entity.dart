@@ -1,5 +1,11 @@
 import 'package:equatable/equatable.dart';
 
+/// 보상 재화 타입
+enum RewardCurrencyType {
+  wood,   // 통나무 (달리기 챌린지)
+  iron,   // 쇠 (헬스 챌린지)
+}
+
 /// 일일 정산 기록 엔티티
 ///
 /// Firestore: users/{userId}/wood_settlements/{settlementDate}
@@ -11,11 +17,17 @@ class WoodSettlementEntity extends Equatable {
   /// 정산 실행 시각
   final DateTime settledAt;
 
-  /// 선택된 챌린지 ID (가장 높은 보상)
+  /// 선택된 챌린지 ID (가장 높은 보상, 달리기)
   final String? selectedChallengeId;
+  
+  /// 선택된 헬스 챌린지 ID (가장 높은 보상, 헬스)
+  final String? selectedIronChallengeId;
 
   /// 총 획득 통나무 개수
   final int totalWoodAwarded;
+  
+  /// 총 획득 쇠 개수
+  final int totalIronAwarded;
 
   /// 챌린지별 보상 상세
   final List<ChallengeRewardDetail> challenges;
@@ -24,11 +36,13 @@ class WoodSettlementEntity extends Equatable {
     required this.settlementDate,
     required this.settledAt,
     this.selectedChallengeId,
+    this.selectedIronChallengeId,
     required this.totalWoodAwarded,
+    this.totalIronAwarded = 0,
     required this.challenges,
   });
 
-  /// 선택된 챌린지 상세 정보
+  /// 선택된 달리기 챌린지 상세 정보
   ChallengeRewardDetail? get selectedChallenge {
     if (selectedChallengeId == null || challenges.isEmpty) return null;
     try {
@@ -39,6 +53,21 @@ class WoodSettlementEntity extends Equatable {
       return challenges.isNotEmpty ? challenges.first : null;
     }
   }
+  
+  /// 선택된 헬스 챌린지 상세 정보
+  ChallengeRewardDetail? get selectedIronChallenge {
+    if (selectedIronChallengeId == null || challenges.isEmpty) return null;
+    try {
+      return challenges.firstWhere(
+        (c) => c.challengeId == selectedIronChallengeId,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+  
+  /// 총 획득 재화 (통나무 + 쇠)
+  int get totalRewardsAwarded => totalWoodAwarded + totalIronAwarded;
 
   /// 포기된 챌린지 목록 (선택되지 않은 것들)
   List<ChallengeRewardDetail> get forsakenChallenges {
@@ -50,7 +79,9 @@ class WoodSettlementEntity extends Equatable {
         settlementDate,
         settledAt,
         selectedChallengeId,
+        selectedIronChallengeId,
         totalWoodAwarded,
+        totalIronAwarded,
         challenges,
       ];
 }
@@ -60,8 +91,11 @@ class ChallengeRewardDetail extends Equatable {
   /// 챌린지 ID
   final String challengeId;
 
-  /// 챌린지 이름 (목표 거리 기반)
+  /// 챌린지 이름 (목표 거리/점수 기반)
   final String challengeName;
+  
+  /// 보상 재화 타입
+  final RewardCurrencyType currencyType;
 
   /// 챌린지 성공 여부
   final bool isSuccess;
@@ -90,6 +124,7 @@ class ChallengeRewardDetail extends Equatable {
   const ChallengeRewardDetail({
     required this.challengeId,
     required this.challengeName,
+    this.currencyType = RewardCurrencyType.wood,
     required this.isSuccess,
     required this.personalReward,
     required this.contributionReward,
@@ -99,11 +134,18 @@ class ChallengeRewardDetail extends Equatable {
     this.isMvp = false,
     this.milestoneType,
   });
+  
+  /// 통나무 보상인지 확인
+  bool get isWoodReward => currencyType == RewardCurrencyType.wood;
+  
+  /// 쇠 보상인지 확인
+  bool get isIronReward => currencyType == RewardCurrencyType.iron;
 
   @override
   List<Object?> get props => [
         challengeId,
         challengeName,
+        currencyType,
         isSuccess,
         personalReward,
         contributionReward,

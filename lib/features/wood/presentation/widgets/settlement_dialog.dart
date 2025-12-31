@@ -91,51 +91,106 @@ class SettlementDialog extends StatelessWidget {
   }
 
   Widget _buildTotalReward() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF8B4513).withValues(alpha: 0.2),
-            const Color(0xFFD2691E).withValues(alpha: 0.2),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            '🪵',
-            style: TextStyle(fontSize: 40),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            '+${summary.totalWoodAwarded}',
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF8B4513),
+    final hasWood = summary.hasWoodRewards;
+    final hasIron = summary.hasIronRewards;
+    
+    return Column(
+      children: [
+        // 통나무 보상
+        if (hasWood)
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: EdgeInsets.only(bottom: hasIron ? 8 : 0),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF8B4513).withValues(alpha: 0.2),
+                  const Color(0xFFD2691E).withValues(alpha: 0.2),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  '🪵',
+                  style: TextStyle(fontSize: 36),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '+${summary.totalWoodAwarded}',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF8B4513),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Text(
+                  '개',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF8B4513),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 4),
-          const Text(
-            '개',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF8B4513),
+        
+        // 쇠 보상
+        if (hasIron)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF607D8B).withValues(alpha: 0.2),
+                  const Color(0xFF455A64).withValues(alpha: 0.2),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  '🔩',
+                  style: TextStyle(fontSize: 36),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '+${summary.totalIronAwarded}',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF455A64),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Text(
+                  '개',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF455A64),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
   Widget _buildSettlementCard(WoodSettlementEntity settlement) {
-    final selectedChallenge = settlement.selectedChallenge;
+    final selectedWoodChallenge = settlement.selectedChallenge;
+    final selectedIronChallenge = settlement.selectedIronChallenge;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -161,73 +216,47 @@ class SettlementDialog extends StatelessWidget {
               ),
               Row(
                 children: [
-                  const Text('🪵', style: TextStyle(fontSize: 14)),
-                  const SizedBox(width: 4),
-                  Text(
-                    '+${settlement.totalWoodAwarded}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF8B4513),
+                  if (settlement.totalWoodAwarded > 0) ...[
+                    const Text('🪵', style: TextStyle(fontSize: 14)),
+                    const SizedBox(width: 2),
+                    Text(
+                      '+${settlement.totalWoodAwarded}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF8B4513),
+                      ),
                     ),
-                  ),
+                  ],
+                  if (settlement.totalWoodAwarded > 0 && settlement.totalIronAwarded > 0)
+                    const SizedBox(width: 8),
+                  if (settlement.totalIronAwarded > 0) ...[
+                    const Text('🔩', style: TextStyle(fontSize: 14)),
+                    const SizedBox(width: 2),
+                    Text(
+                      '+${settlement.totalIronAwarded}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF455A64),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],
           ),
 
-          if (selectedChallenge != null) ...[
+          // 통나무 챌린지 정보
+          if (selectedWoodChallenge != null) ...[
             const Divider(height: 16),
-
-            // 챌린지 정보
-            Row(
-              children: [
-                Icon(
-                  selectedChallenge.isSuccess
-                      ? Icons.check_circle
-                      : Icons.cancel,
-                  size: 16,
-                  color: selectedChallenge.isSuccess
-                      ? Colors.green
-                      : Colors.red,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    selectedChallenge.challengeName,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[700],
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // 보상 상세
-            _buildRewardRow('개인 운동', selectedChallenge.personalReward),
-            _buildRewardRow('기여도', selectedChallenge.contributionReward),
-            if (selectedChallenge.successBonus > 0)
-              _buildRewardRow('성공 보너스', selectedChallenge.successBonus, highlight: true),
-
-            // 배지
-            if (selectedChallenge.isMvp || selectedChallenge.milestoneType != null) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  if (selectedChallenge.isMvp)
-                    _buildBadge('MVP', Colors.amber),
-                  if (selectedChallenge.milestoneType != null)
-                    _buildBadge(
-                      _getMilestoneName(selectedChallenge.milestoneType!),
-                      Colors.purple,
-                    ),
-                ],
-              ),
-            ],
+            _buildChallengeInfo(selectedWoodChallenge, isIron: false),
+          ],
+          
+          // 쇠 챌린지 정보
+          if (selectedIronChallenge != null) ...[
+            const Divider(height: 16),
+            _buildChallengeInfo(selectedIronChallenge, isIron: true),
           ],
 
           // 포기된 챌린지 수
@@ -243,6 +272,70 @@ class SettlementDialog extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+  
+  Widget _buildChallengeInfo(ChallengeRewardDetail challenge, {required bool isIron}) {
+    final accentColor = isIron ? const Color(0xFF455A64) : const Color(0xFF8B4513);
+    final icon = isIron ? '🔩' : '🪵';
+    final typeLabel = isIron ? '헬스' : '달리기';
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 챌린지 정보
+        Row(
+          children: [
+            Icon(
+              challenge.isSuccess ? Icons.check_circle : Icons.cancel,
+              size: 16,
+              color: challenge.isSuccess ? Colors.green : Colors.red,
+            ),
+            const SizedBox(width: 4),
+            Text(icon, style: const TextStyle(fontSize: 12)),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                typeLabel,
+                style: TextStyle(fontSize: 10, color: accentColor, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                challenge.challengeName,
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        
+        // 보상 상세
+        _buildRewardRow('개인 운동', challenge.personalReward, accentColor: accentColor),
+        _buildRewardRow('기여도', challenge.contributionReward, accentColor: accentColor),
+        if (challenge.successBonus > 0)
+          _buildRewardRow('성공 보너스', challenge.successBonus, highlight: true, accentColor: accentColor),
+
+        // 배지
+        if (challenge.isMvp || challenge.milestoneType != null) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              if (challenge.isMvp) _buildBadge('MVP', Colors.amber),
+              if (challenge.milestoneType != null)
+                _buildBadge(_getMilestoneName(challenge.milestoneType!), Colors.purple),
+            ],
+          ),
+        ],
+      ],
     );
   }
 
@@ -277,7 +370,8 @@ class SettlementDialog extends StatelessWidget {
     }
   }
 
-  Widget _buildRewardRow(String label, int amount, {bool highlight = false}) {
+  Widget _buildRewardRow(String label, int amount, {bool highlight = false, Color? accentColor}) {
+    final color = accentColor ?? const Color(0xFF8B4513);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),
       child: Row(
@@ -287,7 +381,7 @@ class SettlementDialog extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: highlight ? const Color(0xFF8B4513) : Colors.grey[700],
+              color: highlight ? color : Colors.grey[700],
               fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -295,7 +389,7 @@ class SettlementDialog extends StatelessWidget {
             '+$amount개',
             style: TextStyle(
               fontSize: 12,
-              color: highlight ? const Color(0xFF8B4513) : Colors.grey[700],
+              color: highlight ? color : Colors.grey[700],
               fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
             ),
           ),

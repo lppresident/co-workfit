@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:co_workfit/core/utils/logger.dart';
+import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/wood/data/models/wood_settlement_model.dart';
 import 'package:co_workfit/features/wood/data/models/wood_summary_model.dart';
 import 'package:co_workfit/features/wood/domain/repositories/wood_repository.dart';
@@ -110,6 +111,61 @@ class FirestoreWoodDataSource {
       );
     } catch (e) {
       AppLogger.error('FirestoreWoodDataSource', '통나무 사용 실패', e);
+      rethrow;
+    }
+  }
+
+  // ========== Iron (쇠) ==========
+
+  /// 쇠 추가 (정산 시)
+  Future<void> addIron(String userId, int amount, String settlementDate) async {
+    try {
+      final userRef = firestore.collection(_usersCollection).doc(userId);
+      
+      await userRef.update({
+        'ironAmount': FieldValue.increment(amount),
+        'ironLifetimeEarned': FieldValue.increment(amount),
+        'lastIronSettlementDate': settlementDate,
+      });
+
+      AppLogger.info(
+        'FirestoreWoodDataSource',
+        '쇠 $amount개 추가 (userId: $userId, date: $settlementDate)',
+      );
+    } catch (e) {
+      AppLogger.error('FirestoreWoodDataSource', '쇠 추가 실패', e);
+      rethrow;
+    }
+  }
+
+  /// 쇠 사용 (제작 시)
+  Future<void> useIron(String userId, int amount) async {
+    try {
+      await firestore.runTransaction((transaction) async {
+        final userRef = firestore.collection(_usersCollection).doc(userId);
+        final userDoc = await transaction.get(userRef);
+        
+        if (!userDoc.exists) {
+          throw Exception('사용자 정보가 없습니다');
+        }
+
+        final currentAmount = (userDoc.data()?['ironAmount'] as num?)?.toInt() ?? 0;
+        if (currentAmount < amount) {
+          throw Exception(
+              '쇠가 부족합니다. 보유: $currentAmount, 필요: $amount');
+        }
+
+        transaction.update(userRef, {
+          'ironAmount': FieldValue.increment(-amount),
+        });
+      });
+
+      AppLogger.info(
+        'FirestoreWoodDataSource',
+        '쇠 $amount개 사용 (userId: $userId)',
+      );
+    } catch (e) {
+      AppLogger.error('FirestoreWoodDataSource', '쇠 사용 실패', e);
       rethrow;
     }
   }
@@ -323,10 +379,22 @@ class FirestoreWoodDataSource {
         final targetDistance = (data['targetDistance'] as num).toDouble();
         final achievedDistance = (data['currentDistance'] as num).toDouble();
         final participantIds = data['participantIds'] as List<dynamic>;
+        
+        // 챌린지 타입 가져오기 (기본값: running)
+        final challengeTypeStr = data['challengeType'] as String? ?? 'running';
+        final challengeType = challengeTypeStr == 'strengthTraining' 
+            ? ChallengeType.strengthTraining 
+            : ChallengeType.running;
+        
+        // 챌린지 타입에 따른 기본 이름 생성
+        final defaultName = challengeType == ChallengeType.running
+            ? '${targetDistance.toStringAsFixed(1)}km 챌린지'
+            : '${targetDistance.toStringAsFixed(0)}점 챌린지';
 
         result.add(ChallengeSettlementData(
           challengeId: challengeId,
-          challengeName: data['title'] as String? ?? '${targetDistance.toStringAsFixed(1)}km 챌린지',
+          challengeName: data['title'] as String? ?? defaultName,
+          challengeType: challengeType,
           targetDistance: targetDistance,
           achievedDistance: achievedDistance,
           isSuccess: achievedDistance >= targetDistance,

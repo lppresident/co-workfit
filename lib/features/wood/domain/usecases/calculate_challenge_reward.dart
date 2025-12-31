@@ -27,9 +27,11 @@ class CalculateChallengeReward {
   ///
   /// [challengeData] 정산용 챌린지 데이터
   /// [isFirstWorkoutOfDay] 해당 날짜의 첫 운동인지 여부
+  /// [currencyType] 보상 재화 타입 (wood/iron)
   ChallengeRewardDetail call({
     required ChallengeSettlementData challengeData,
     required bool isFirstWorkoutOfDay,
+    RewardCurrencyType currencyType = RewardCurrencyType.wood,
   }) {
     // 1. 개인 운동 보상
     final personalResult = _calculatePersonalReward(
@@ -58,6 +60,7 @@ class CalculateChallengeReward {
     return ChallengeRewardDetail(
       challengeId: challengeData.challengeId,
       challengeName: challengeData.challengeName,
+      currencyType: currencyType,
       isSuccess: challengeData.isSuccess,
       personalReward: personalResult.total,
       contributionReward: contributionResult.total,

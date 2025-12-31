@@ -1,3 +1,4 @@
+import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/wood/domain/entities/wood_settlement_entity.dart';
 import 'package:co_workfit/features/wood/domain/entities/wood_summary_entity.dart';
 
@@ -16,6 +17,14 @@ abstract class WoodRepository {
 
   /// 통나무 사용 (제작 시)
   Future<void> useWood(String userId, int amount);
+
+  // ========== Iron (쇠) ==========
+
+  /// 쇠 추가 (정산 시)
+  Future<void> addIron(String userId, int amount, String settlementDate);
+
+  /// 쇠 사용 (제작 시)
+  Future<void> useIron(String userId, int amount);
 
   // ========== Settlement ==========
 
@@ -63,13 +72,16 @@ class ChallengeSettlementData {
   /// 챌린지 ID
   final String challengeId;
 
-  /// 챌린지 이름 (목표 거리 기반)
+  /// 챌린지 이름 (목표 거리/점수 기반)
   final String challengeName;
 
-  /// 목표 거리 (km)
+  /// 챌린지 운동 타입
+  final ChallengeType challengeType;
+
+  /// 목표 거리 (km) 또는 목표 점수
   final double targetDistance;
 
-  /// 달성 거리 (km)
+  /// 달성 거리 (km) 또는 달성 점수
   final double achievedDistance;
 
   /// 성공 여부
@@ -81,24 +93,31 @@ class ChallengeSettlementData {
   /// 참가자 수
   final int participantCount;
 
-  /// 참가자별 기여 거리
+  /// 참가자별 기여 거리/점수
   final Map<String, double> participantContributions;
 
-  /// 사용자의 기여 거리
+  /// 사용자의 기여 거리/점수
   final double userContribution;
 
   /// 사용자가 MVP인지 (기여도 1위)
   final bool isUserMvp;
 
-  /// 사용자의 운동 거리 합계 (개인 운동 보상용)
+  /// 사용자의 운동 거리/점수 합계 (개인 운동 보상용)
   final double userTotalWorkoutDistance;
 
   /// 사용자의 첫 기여 여부
   final bool isFirstContribution;
 
+  /// 달리기 챌린지인지 확인
+  bool get isRunning => challengeType == ChallengeType.running;
+
+  /// 헬스 챌린지인지 확인
+  bool get isStrengthTraining => challengeType == ChallengeType.strengthTraining;
+
   const ChallengeSettlementData({
     required this.challengeId,
     required this.challengeName,
+    this.challengeType = ChallengeType.running,
     required this.targetDistance,
     required this.achievedDistance,
     required this.isSuccess,
