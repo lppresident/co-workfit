@@ -50,8 +50,8 @@ class CharacterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 픽셀 크기 계산 (캐릭터는 16x24 픽셀)
-    final pixelSize = size / 28; // 약간의 여백 포함
+    // 픽셀 크기 계산 (캐릭터는 32x48 픽셀)
+    final pixelSize = size / 52; // 약간의 여백 포함
 
     final sprite = CharacterSprite(
       skinColor: skinColor ?? const Color(0xFFFFDBAC),
