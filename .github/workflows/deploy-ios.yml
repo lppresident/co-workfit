@@ -81,6 +81,22 @@ jobs:
           echo "version_name=$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
 
+      - name: Setup Ruby and Bundler
+        run: |
+          # Ruby가 설치되어 있는지 확인
+          ruby --version
+          gem --version
+          
+          # Bundler 설치 (없으면)
+          if ! command -v bundle &> /dev/null; then
+            gem install bundler
+          fi
+
+      - name: Install Fastlane dependencies
+        run: |
+          cd ios
+          bundle install --path vendor/bundle
+
       - name: Setup Fastlane Match
         env:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
@@ -88,7 +104,6 @@ jobs:
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
         run: |
           cd ios
-          bundle install
           bundle exec fastlane match appstore --readonly
 
       - name: Build iOS
@@ -199,6 +214,13 @@ jobs:
           echo "version_name=$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios
+
       - name: Setup Fastlane Match
         env:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
@@ -206,7 +228,6 @@ jobs:
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
         run: |
           cd ios
-          bundle install
           bundle exec fastlane match appstore --readonly
 
       - name: Build iOS

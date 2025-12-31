@@ -132,18 +132,30 @@ jobs:
           flutter clean
           flutter build apk --release
 
-      - name: Deploy to Firebase
+      # macOS self-hosted에서는 Docker 기반 액션 사용 불가 → Firebase CLI 직접 사용
+      - name: Deploy to Firebase (via CLI)
         if: github.event.inputs.deploy_android_firebase == 'true'
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
-        with:
-          appId: ${{ secrets.FIREBASE_APP_ID }}
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          groups: testers
-          file: build/app/outputs/flutter-apk/app-release.apk
-          releaseNotes: |
-            ${{ github.event.inputs.release_notes }}
-            Version: ${{ needs.prepare.outputs.new_version }}
-            Commit: ${{ github.sha }}
+        run: |
+          # Firebase CLI 설치 (없으면)
+          if ! command -v firebase &> /dev/null; then
+            echo "Installing Firebase CLI..."
+            curl -sL https://firebase.tools | bash
+          fi
+          
+          # 서비스 계정 키 저장
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
+          export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/firebase-service-account.json"
+          
+          # Firebase App Distribution에 배포
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+            --app "${{ secrets.FIREBASE_APP_ID }}" \
+            --groups "testers" \
+            --release-notes "${{ github.event.inputs.release_notes }}
+          Version: ${{ needs.prepare.outputs.new_version }}
+          Commit: ${{ github.sha }}"
+          
+          # 키 파일 삭제
+          rm -f firebase-service-account.json
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -208,6 +220,7 @@ jobs:
           flutter clean
           flutter build apk --release
 
+      # Linux에서는 Docker 기반 액션 사용 가능
       - name: Deploy to Firebase
         if: github.event.inputs.deploy_android_firebase == 'true'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
@@ -263,6 +276,22 @@ jobs:
           NEW_VERSION="${{ needs.prepare.outputs.new_version }}"
           sed -i '' "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
 
+      - name: Setup Ruby and Bundler
+        run: |
+          # Ruby가 설치되어 있는지 확인
+          ruby --version
+          gem --version
+          
+          # Bundler 설치 (없으면)
+          if ! command -v bundle &> /dev/null; then
+            gem install bundler
+          fi
+
+      - name: Install Fastlane dependencies
+        run: |
+          cd ios
+          bundle install --path vendor/bundle
+
       - name: Setup Fastlane Match
         env:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
@@ -270,7 +299,6 @@ jobs:
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
         run: |
           cd ios
-          bundle install
           bundle exec fastlane match appstore --readonly
 
       - name: Build iOS
@@ -351,6 +379,13 @@ jobs:
           NEW_VERSION="${{ needs.prepare.outputs.new_version }}"
           sed -i '' "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios
+
       - name: Setup Fastlane Match
         env:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
@@ -358,7 +393,6 @@ jobs:
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
         run: |
           cd ios
-          bundle install
           bundle exec fastlane match appstore --readonly
 
       - name: Build iOS
