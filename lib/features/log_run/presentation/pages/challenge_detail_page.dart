@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:co_workfit/core/presentation/base_page.dart';
 import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
@@ -8,9 +9,12 @@ import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart
 import 'package:co_workfit/features/log_run/presentation/widgets/contribution_feed_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/submit_workout_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/share_challenge_bottom_sheet.dart';
+import 'package:co_workfit/features/log_run/presentation/widgets/podium_widget.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
+import 'package:co_workfit/features/craft/domain/usecases/get_equipped_items.dart';
 
 class ChallengeDetailPage extends BasePage {
   final String challengeId;
@@ -23,12 +27,62 @@ class ChallengeDetailPage extends BasePage {
 class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
   // 상세 페이지에서 변경 사항이 있었는지 추적
   bool _hasChanges = false;
+  
+  // 참가자별 장착 아이템 캐시
+  final Map<String, EquippedItemsEntity> _equippedItemsCache = {};
 
   @override
   void loadInitialData() {
     context.read<LogRunBloc>().add(LoadChallengeDetail(widget.challengeId));
     context.read<LogRunBloc>().add(WatchChallenge(widget.challengeId));
     context.read<LogRunBloc>().add(WatchContributions(widget.challengeId));
+  }
+
+  /// 참가자들의 장착 아이템 로드
+  Future<void> _loadParticipantsEquippedItems(List<String> participantIds) async {
+    final getEquippedItems = GetIt.instance<GetEquippedItems>();
+    
+    for (final odium in participantIds) {
+      if (!_equippedItemsCache.containsKey(odium)) {
+        try {
+          final equipped = await getEquippedItems(odium);
+          if (mounted) {
+            setState(() {
+              _equippedItemsCache[odium] = equipped;
+            });
+          }
+        } catch (e) {
+          // 장착 아이템 로드 실패 시 무시
+        }
+      }
+    }
+  }
+
+  /// 참가자별 총 거리 계산 및 순위 생성
+  List<ParticipantRank> _calculateRankings(List<LogRunContributionEntity> contributions) {
+    // 사용자별 총 거리 집계
+    final Map<String, double> userDistances = {};
+    final Map<String, String> userNicknames = {};
+
+    for (final contribution in contributions) {
+      userDistances[contribution.userId] = 
+          (userDistances[contribution.userId] ?? 0) + contribution.distance;
+      userNicknames[contribution.userId] = contribution.userNickname;
+    }
+
+    // 거리 순으로 정렬
+    final sortedUsers = userDistances.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    // ParticipantRank 리스트 생성
+    return sortedUsers.map((entry) {
+      return ParticipantRank(
+        odium: entry.key,
+        nickname: userNicknames[entry.key] ?? '알 수 없음',
+        totalDistance: entry.value,
+        equippedItems: _equippedItemsCache[entry.key],
+      );
+    }).toList();
   }
 
   void _showSubmitWorkoutSheet(DateTime startDate, DateTime endDate) {
@@ -277,6 +331,15 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
 
           if (challenge == null) return const Center(child: Text('챌린지 정보를 불러올 수 없습니다'));
 
+          // 참가자들의 장착 아이템 로드
+          if (contributions.isNotEmpty) {
+            final participantIds = contributions.map((c) => c.userId).toSet().toList();
+            _loadParticipantsEquippedItems(participantIds);
+          }
+
+          // 순위 계산
+          final rankings = _calculateRankings(contributions);
+
           return Column(
             children: [
               Container(
@@ -301,6 +364,9 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                   ],
                 ),
               ),
+              // 시상대 (참가자가 있을 때만 표시)
+              if (rankings.isNotEmpty)
+                PodiumWidget(rankings: rankings),
               // 완료된 챌린지면 점수 표시
               if (challenge.isCompleted && challenge.awardedScores.isNotEmpty)
                 _buildScoreSection(context, challenge.awardedScores, contributions),
