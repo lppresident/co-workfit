@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 
 /// 챌린지 카드 위젯
 class ChallengeCardWidget extends StatelessWidget {
@@ -12,10 +13,15 @@ class ChallengeCardWidget extends StatelessWidget {
     this.onTap,
   });
 
+  Color get _themeColor {
+    return challenge.isRunning ? Colors.brown : Colors.blueGrey;
+  }
+
   @override
   Widget build(BuildContext context) {
     final progress = challenge.progress;
     final remainingWeight = challenge.remainingWeight;
+    final unitName = challenge.challengeType.unitName;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -27,22 +33,24 @@ class ChallengeCardWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 헤더: 방장 이름 & 상태
+              // 헤더: 운동 타입 & 상태
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
+                      _buildChallengeTypeChip(context),
+                      const SizedBox(width: 8),
                       Icon(
                         Icons.person,
-                        size: 16,
-                        color: Colors.grey[600],
+                        size: 14,
+                        color: Colors.grey[500],
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 2),
                       Text(
-                        '방장', // TODO: createdBy userId로 사용자 정보 조회
+                        '${challenge.participants.length}명',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[600],
+                              color: Colors.grey[500],
                             ),
                       ),
                     ],
@@ -52,37 +60,36 @@ class ChallengeCardWidget extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // 통나무 무게 정보
+              // 목표 정보
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Icon(
-                    Icons.workspaces,
-                    size: 32,
-                    color: Theme.of(context).colorScheme.primary,
+                  Text(
+                    challenge.challengeType.emoji,
+                    style: const TextStyle(fontSize: 28),
                   ),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '남은 무게',
+                        challenge.isRunning ? '남은 거리' : '남은 점수',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.grey[600],
                             ),
                       ),
                       Text(
-                        '${remainingWeight.toStringAsFixed(1)} kg',
+                        '${remainingWeight.toStringAsFixed(1)} $unitName',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: _themeColor,
                             ),
                       ),
                     ],
                   ),
                   const Spacer(),
                   Text(
-                    '${challenge.currentDistance.toStringAsFixed(1)} / ${challenge.targetDistance.toStringAsFixed(1)} km',
+                    '${challenge.currentDistance.toStringAsFixed(1)} / ${challenge.targetDistance.toStringAsFixed(1)} $unitName',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.grey[700],
                         ),
@@ -105,7 +112,7 @@ class ChallengeCardWidget extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
-              // 진행률 퍼센트 & 참가자 수
+              // 진행률 퍼센트 & 보상 타입
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -118,14 +125,13 @@ class ChallengeCardWidget extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      Icon(
-                        Icons.group,
-                        size: 16,
-                        color: Colors.grey[600],
+                      Text(
+                        challenge.challengeType.currencyEmoji,
+                        style: const TextStyle(fontSize: 14),
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${challenge.participants.length}명 참여',
+                        challenge.challengeType.currencyName,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.grey[600],
                             ),
@@ -137,6 +143,35 @@ class ChallengeCardWidget extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildChallengeTypeChip(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: _themeColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _themeColor.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            challenge.challengeType.emoji,
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            challenge.challengeType.displayName,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _themeColor,
+            ),
+          ),
+        ],
       ),
     );
   }

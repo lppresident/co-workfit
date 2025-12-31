@@ -11,6 +11,7 @@ import 'package:co_workfit/features/log_run/presentation/widgets/submit_workout_
 import 'package:co_workfit/features/log_run/presentation/widgets/share_challenge_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/podium_widget.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
@@ -340,25 +341,69 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           // 순위 계산
           final rankings = _calculateRankings(contributions);
 
+          final themeColor = challenge.isRunning ? Colors.brown : Colors.blueGrey;
+          final unitName = challenge.challengeType.unitName;
+
           return Column(
             children: [
               Container(
                 padding: const EdgeInsets.all(24),
-                color: Theme.of(context).colorScheme.primaryContainer,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      themeColor.withValues(alpha: 0.2),
+                      themeColor.withValues(alpha: 0.1),
+                    ],
+                  ),
+                ),
                 child: Column(
                   children: [
+                    // 챌린지 타입 표시
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          challenge.challengeType.emoji,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${challenge.challengeType.displayName} 챌린지',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: themeColor,
+                              ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     if (challenge.isCompleted) ...[
                       const Icon(Icons.emoji_events, size: 48, color: Colors.amber),
                       const SizedBox(height: 8),
                       Text('챌린지 완료!', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                     ] else ...[
-                      Text('남은 무게', style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        challenge.isRunning ? '남은 거리' : '남은 점수',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 8),
-                      Text('${challenge.remainingWeight.toStringAsFixed(1)} kg',
-                          style: Theme.of(context).textTheme.displayMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(
+                        '${challenge.remainingWeight.toStringAsFixed(1)} $unitName',
+                        style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: themeColor,
+                            ),
+                      ),
                     ],
                     const SizedBox(height: 16),
-                    LinearProgressIndicator(value: challenge.progress.clamp(0.0, 1.0), minHeight: 12),
+                    LinearProgressIndicator(
+                      value: challenge.progress.clamp(0.0, 1.0),
+                      minHeight: 12,
+                      backgroundColor: themeColor.withValues(alpha: 0.2),
+                      valueColor: AlwaysStoppedAnimation<Color>(themeColor),
+                    ),
                     const SizedBox(height: 8),
                     Text('${(challenge.progress * 100).clamp(0, 100).toStringAsFixed(0)}% 완료'),
                   ],
