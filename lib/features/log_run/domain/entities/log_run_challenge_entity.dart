@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'workout_type.dart';
 
 /// 통나무런 챌린지 엔티티
 ///
@@ -10,16 +11,19 @@ class LogRunChallengeEntity extends Equatable {
   /// 생성자 ID (userId)
   final String createdBy;
 
-  /// 목표 통나무 무게 (kg)
+  /// 운동 타입 (달리기 or 헬스)
+  final WorkoutType workoutType;
+
+  /// 목표 통나무 무게 (kg) / 헬스 목표 점수
   final double targetWeight;
 
-  /// 목표 거리 (km) - targetWeight와 동일 (1kg = 1km)
+  /// 목표 거리 (km) / 헬스 목표 점수 - targetWeight와 동일
   final double targetDistance;
 
-  /// 현재까지 완주한 거리 (km)
+  /// 현재까지 완주한 거리 (km) / 현재 점수
   final double currentDistance;
 
-  /// 남은 무게 (kg)
+  /// 남은 무게 (kg) / 남은 점수
   final double remainingWeight;
 
   /// 참가자 ID 목록 (userId 배열)
@@ -58,6 +62,7 @@ class LogRunChallengeEntity extends Equatable {
   const LogRunChallengeEntity({
     required this.id,
     required this.createdBy,
+    this.workoutType = WorkoutType.running,
     required this.targetWeight,
     required this.targetDistance,
     required this.currentDistance,
@@ -121,10 +126,23 @@ class LogRunChallengeEntity extends Equatable {
     return participants.length >= maxParticipants!;
   }
 
+  /// 달리기 챌린지인지 확인
+  bool get isRunning => workoutType == WorkoutType.running;
+
+  /// 헬스 챌린지인지 확인
+  bool get isStrengthTraining => workoutType == WorkoutType.strengthTraining;
+
+  /// 목표 단위 표시 (km or 점)
+  String get targetUnitDisplay => '${targetWeight.toStringAsFixed(0)}${workoutType.unitName}';
+
+  /// 현재 진행 단위 표시
+  String get currentUnitDisplay => '${currentDistance.toStringAsFixed(1)}${workoutType.unitName}';
+
   @override
   List<Object?> get props => [
         id,
         createdBy,
+        workoutType,
         targetWeight,
         targetDistance,
         currentDistance,

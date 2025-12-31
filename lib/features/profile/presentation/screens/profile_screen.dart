@@ -9,8 +9,6 @@ import 'package:co_workfit/features/craft/presentation/widgets/character_widget.
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_state.dart';
-import 'package:co_workfit/features/wood/presentation/bloc/wood_bloc.dart';
-import 'package:co_workfit/features/wood/presentation/bloc/wood_state.dart';
 import 'package:co_workfit/features/wood/presentation/pages/settlement_history_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -343,129 +341,148 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildResourcesSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SettlementHistoryPage()),
-          );
-        },
-        child: BlocBuilder<WoodBloc, WoodState>(
-          builder: (context, state) {
-            return Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.amber[700]!,
-                    Colors.brown[600]!,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.brown.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        if (authState is! Authenticated) {
+          return const SizedBox.shrink();
+        }
+        final user = authState.user;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              // 재화 카드 Row
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      // 통나무 아이콘
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Text('🪵', style: TextStyle(fontSize: 32)),
-                      ),
-                      const SizedBox(width: 16),
-                      // 보유량
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '내 통나무',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.8),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_formatNumber(state.totalWood)} 개',
-                              style: const TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // 화살표
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // 누적 획득량
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
+                  // 통나무 카드
+                  Expanded(
+                    child: _buildResourceCard(
+                      context: context,
+                      emoji: '🪵',
+                      name: '통나무',
+                      amount: user.woodAmount,
+                      lifetimeEarned: user.woodLifetimeEarned,
+                      gradientColors: [Colors.amber[700]!, Colors.brown[600]!],
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SettlementHistoryPage()),
+                        );
+                      },
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.trending_up,
-                          size: 16,
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '누적 획득: ${_formatNumber(state.lifetimeEarned)} 개',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                  const SizedBox(width: 12),
+                  // 쇠 카드
+                  Expanded(
+                    child: _buildResourceCard(
+                      context: context,
+                      emoji: '🔩',
+                      name: '쇠',
+                      amount: user.ironAmount,
+                      lifetimeEarned: user.ironLifetimeEarned,
+                      gradientColors: [Colors.blueGrey[600]!, Colors.grey[800]!],
+                      onTap: () {
+                        // TODO: 쇠 정산 내역 페이지로 이동
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('헬스 챌린지에서 쇠를 획득할 수 있습니다!'),
                           ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '정산 내역 보기',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 ],
               ),
-            );
-          },
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildResourceCard({
+    required BuildContext context,
+    required String emoji,
+    required String name,
+    required int amount,
+    required int lifetimeEarned,
+    required List<Color> gradientColors,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradientColors,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: gradientColors[1].withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 아이콘 & 이름
+            Row(
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 28)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: Colors.white.withValues(alpha: 0.6),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // 보유량
+            Text(
+              _formatNumber(amount),
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // 누적 획득량
+            Row(
+              children: [
+                Icon(
+                  Icons.trending_up,
+                  size: 12,
+                  color: Colors.white.withValues(alpha: 0.7),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '누적 ${_formatNumber(lifetimeEarned)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

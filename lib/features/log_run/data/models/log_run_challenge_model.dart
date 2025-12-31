@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 
 /// 통나무런 챌린지 모델
 class LogRunChallengeModel extends LogRunChallengeEntity {
   const LogRunChallengeModel({
     required super.id,
     required super.createdBy,
+    super.workoutType,
     required super.targetWeight,
     required super.targetDistance,
     required super.currentDistance,
@@ -31,6 +33,7 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
     return LogRunChallengeModel(
       id: doc.id,
       createdBy: data['createdBy'] as String,
+      workoutType: WorkoutTypeExtension.fromFirestore(data['workoutType'] as String?),
       targetWeight: (data['targetWeight'] as num).toDouble(),
       targetDistance: (data['targetDistance'] as num).toDouble(),
       currentDistance: (data['currentDistance'] as num?)?.toDouble() ?? 0.0,
@@ -67,6 +70,7 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
   Map<String, dynamic> toFirestore() {
     return {
       'createdBy': createdBy,
+      'workoutType': workoutType.toFirestore(),
       'targetWeight': targetWeight,
       'targetDistance': targetDistance,
       'currentDistance': currentDistance,
@@ -90,6 +94,7 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
     return LogRunChallengeModel(
       id: entity.id,
       createdBy: entity.createdBy,
+      workoutType: entity.workoutType,
       targetWeight: entity.targetWeight,
       targetDistance: entity.targetDistance,
       currentDistance: entity.currentDistance,
@@ -112,6 +117,7 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
   LogRunChallengeModel copyWith({
     String? id,
     String? createdBy,
+    WorkoutType? workoutType,
     double? targetWeight,
     double? targetDistance,
     double? currentDistance,
@@ -131,6 +137,7 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
     return LogRunChallengeModel(
       id: id ?? this.id,
       createdBy: createdBy ?? this.createdBy,
+      workoutType: workoutType ?? this.workoutType,
       targetWeight: targetWeight ?? this.targetWeight,
       targetDistance: targetDistance ?? this.targetDistance,
       currentDistance: currentDistance ?? this.currentDistance,
