@@ -16,6 +16,9 @@ class UserModel extends UserEntity {
     super.photoUrl,
     required super.createdAt,
     super.lastActiveAt,
+    super.woodAmount,
+    super.woodLifetimeEarned,
+    super.lastWoodSettlementDate,
   });
 
   /// JSON으로부터 UserModel 생성
@@ -46,6 +49,9 @@ class UserModel extends UserEntity {
       lastActiveAt: data['lastActiveAt'] != null
           ? (data['lastActiveAt'] as Timestamp).toDate()
           : null,
+      woodAmount: (data['woodAmount'] as num?)?.toInt() ?? 0,
+      woodLifetimeEarned: (data['woodLifetimeEarned'] as num?)?.toInt() ?? 0,
+      lastWoodSettlementDate: data['lastWoodSettlementDate'] as String?,
     );
   }
 
@@ -60,6 +66,9 @@ class UserModel extends UserEntity {
       'createdAt': Timestamp.fromDate(createdAt),
       'lastActiveAt':
           lastActiveAt != null ? Timestamp.fromDate(lastActiveAt!) : null,
+      'woodAmount': woodAmount,
+      'woodLifetimeEarned': woodLifetimeEarned,
+      'lastWoodSettlementDate': lastWoodSettlementDate,
     };
   }
 
@@ -74,6 +83,9 @@ class UserModel extends UserEntity {
       photoUrl: entity.photoUrl,
       createdAt: entity.createdAt,
       lastActiveAt: entity.lastActiveAt,
+      woodAmount: entity.woodAmount,
+      woodLifetimeEarned: entity.woodLifetimeEarned,
+      lastWoodSettlementDate: entity.lastWoodSettlementDate,
     );
   }
 
@@ -95,6 +107,9 @@ class UserModel extends UserEntity {
       photoUrl: photoUrl,
       createdAt: DateTime.now(),
       lastActiveAt: DateTime.now(),
+      woodAmount: 0,
+      woodLifetimeEarned: 0,
+      lastWoodSettlementDate: null,
     );
   }
 
@@ -108,6 +123,9 @@ class UserModel extends UserEntity {
     String? photoUrl,
     DateTime? createdAt,
     DateTime? lastActiveAt,
+    int? woodAmount,
+    int? woodLifetimeEarned,
+    String? lastWoodSettlementDate,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -118,6 +136,9 @@ class UserModel extends UserEntity {
       photoUrl: photoUrl ?? this.photoUrl,
       createdAt: createdAt ?? this.createdAt,
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
+      woodAmount: woodAmount ?? this.woodAmount,
+      woodLifetimeEarned: woodLifetimeEarned ?? this.woodLifetimeEarned,
+      lastWoodSettlementDate: lastWoodSettlementDate ?? this.lastWoodSettlementDate,
     );
   }
 }

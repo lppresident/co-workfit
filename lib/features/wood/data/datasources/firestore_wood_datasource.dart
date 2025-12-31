@@ -3,6 +3,7 @@ import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/features/wood/data/models/wood_settlement_model.dart';
 import 'package:co_workfit/features/wood/data/models/wood_summary_model.dart';
 import 'package:co_workfit/features/wood/domain/entities/wood_reward_constants.dart';
+import 'package:co_workfit/features/wood/domain/entities/wood_settlement_entity.dart';
 import 'package:co_workfit/features/wood/domain/repositories/wood_repository.dart';
 import 'package:intl/intl.dart';
 
@@ -12,7 +13,6 @@ class FirestoreWoodDataSource {
 
   // Collection 경로
   static const String _usersCollection = 'users';
-  static const String _woodSummaryDoc = 'wood_summary';
   static const String _woodSettlementsCollection = 'wood_settlements';
   static const String _challengesCollection = 'log_run_challenges';
   static const String _contributionsSubcollection = 'contributions';
@@ -22,64 +22,56 @@ class FirestoreWoodDataSource {
 
   // ========== Wood Summary ==========
 
-  /// 통나무 보유 현황 조회
+  /// 통나무 보유 현황 조회 (사용자 문서에서 직접 조회)
   Future<WoodSummaryModel> getWoodSummary(String userId) async {
     try {
       final doc = await firestore
           .collection(_usersCollection)
           .doc(userId)
-          .collection('data')
-          .doc(_woodSummaryDoc)
           .get();
 
       if (!doc.exists) {
         return WoodSummaryModel.initial();
       }
 
-      return WoodSummaryModel.fromFirestore(doc);
+      final data = doc.data()!;
+      return WoodSummaryModel(
+        totalWood: (data['woodAmount'] as num?)?.toInt() ?? 0,
+        lifetimeEarned: (data['woodLifetimeEarned'] as num?)?.toInt() ?? 0,
+        lastSettlementDate: data['lastWoodSettlementDate'] as String?,
+      );
     } catch (e) {
       AppLogger.error('FirestoreWoodDataSource', '통나무 현황 조회 실패', e);
       return WoodSummaryModel.initial();
     }
   }
 
-  /// 통나무 보유 현황 업데이트
+  /// 통나무 보유 현황 업데이트 (사용자 문서에 직접 저장)
   Future<void> updateWoodSummary(String userId, WoodSummaryModel summary) async {
     try {
       await firestore
           .collection(_usersCollection)
           .doc(userId)
-          .collection('data')
-          .doc(_woodSummaryDoc)
-          .set(summary.toFirestore(), SetOptions(merge: true));
+          .update({
+            'woodAmount': summary.totalWood,
+            'woodLifetimeEarned': summary.lifetimeEarned,
+            'lastWoodSettlementDate': summary.lastSettlementDate,
+          });
     } catch (e) {
       AppLogger.error('FirestoreWoodDataSource', '통나무 현황 업데이트 실패', e);
       rethrow;
     }
   }
 
-  /// 통나무 추가 (정산 시)
+  /// 통나무 추가 (정산 시) - 사용자 문서에 직접 저장
   Future<void> addWood(String userId, int amount, String settlementDate) async {
     try {
-      await firestore.runTransaction((transaction) async {
-        final summaryRef = firestore
-            .collection(_usersCollection)
-            .doc(userId)
-            .collection('data')
-            .doc(_woodSummaryDoc);
-
-        final summaryDoc = await transaction.get(summaryRef);
-        final currentSummary = summaryDoc.exists
-            ? WoodSummaryModel.fromFirestore(summaryDoc)
-            : WoodSummaryModel.initial();
-
-        final updatedSummary = WoodSummaryModel(
-          totalWood: currentSummary.totalWood + amount,
-          lifetimeEarned: currentSummary.lifetimeEarned + amount,
-          lastSettlementDate: settlementDate,
-        );
-
-        transaction.set(summaryRef, updatedSummary.toFirestore());
+      final userRef = firestore.collection(_usersCollection).doc(userId);
+      
+      await userRef.update({
+        'woodAmount': FieldValue.increment(amount),
+        'woodLifetimeEarned': FieldValue.increment(amount),
+        'lastWoodSettlementDate': settlementDate,
       });
 
       AppLogger.info(
@@ -96,25 +88,21 @@ class FirestoreWoodDataSource {
   Future<void> useWood(String userId, int amount) async {
     try {
       await firestore.runTransaction((transaction) async {
-        final summaryRef = firestore
-            .collection(_usersCollection)
-            .doc(userId)
-            .collection('data')
-            .doc(_woodSummaryDoc);
-
-        final summaryDoc = await transaction.get(summaryRef);
-        if (!summaryDoc.exists) {
-          throw Exception('통나무 현황 정보가 없습니다');
+        final userRef = firestore.collection(_usersCollection).doc(userId);
+        final userDoc = await transaction.get(userRef);
+        
+        if (!userDoc.exists) {
+          throw Exception('사용자 정보가 없습니다');
         }
 
-        final currentSummary = WoodSummaryModel.fromFirestore(summaryDoc);
-        if (currentSummary.totalWood < amount) {
+        final currentAmount = (userDoc.data()?['woodAmount'] as num?)?.toInt() ?? 0;
+        if (currentAmount < amount) {
           throw Exception(
-              '통나무가 부족합니다. 보유: ${currentSummary.totalWood}, 필요: $amount');
+              '통나무가 부족합니다. 보유: $currentAmount, 필요: $amount');
         }
 
-        transaction.update(summaryRef, {
-          'totalWood': FieldValue.increment(-amount),
+        transaction.update(userRef, {
+          'woodAmount': FieldValue.increment(-amount),
         });
       });
 
@@ -172,13 +160,13 @@ class FirestoreWoodDataSource {
     }
   }
 
-  /// 정산 기록 목록 조회 (최근순)
+  /// 정산 기록 목록 조회
   Future<List<WoodSettlementModel>> getSettlements(
     String userId, {
     int limit = 30,
   }) async {
     try {
-      final query = await firestore
+      final snapshot = await firestore
           .collection(_usersCollection)
           .doc(userId)
           .collection(_woodSettlementsCollection)
@@ -186,44 +174,55 @@ class FirestoreWoodDataSource {
           .limit(limit)
           .get();
 
-      return query.docs
+      return snapshot.docs
           .map((doc) => WoodSettlementModel.fromFirestore(doc))
           .toList();
     } catch (e) {
-      AppLogger.error('FirestoreWoodDataSource', '정산 목록 조회 실패', e);
+      AppLogger.error('FirestoreWoodDataSource', '정산 기록 목록 조회 실패', e);
       return [];
     }
   }
 
+  // ========== Pending Settlement Dates ==========
+
   /// 미정산 날짜 목록 조회
   Future<List<String>> getPendingSettlementDates(String userId) async {
     try {
-      // 1. 마지막 정산일 조회
       final summary = await getWoodSummary(userId);
-      final lastSettlementDate = summary.lastSettlementDate;
+      final today = DateTime.now();
+      final yesterday = DateTime(today.year, today.month, today.day - 1);
 
-      // 2. 시작일 결정 (마지막 정산일 다음날 또는 7일 전)
-      final now = DateTime.now();
-      final yesterday = DateTime(now.year, now.month, now.day - 1);
-      
-      DateTime startDate;
-      if (lastSettlementDate != null) {
-        final lastDate = DateTime.parse(lastSettlementDate);
-        startDate = lastDate.add(const Duration(days: 1));
-      } else {
-        // 최초 정산: 7일 전부터
-        startDate = yesterday
-            .subtract(Duration(days: WoodRewardConstants.settlementExpirationDays));
+      // 마지막 정산일 파싱
+      DateTime? lastSettlementDate;
+      if (summary.lastSettlementDate != null) {
+        try {
+          lastSettlementDate = DateFormat('yyyy-MM-dd').parse(summary.lastSettlementDate!);
+        } catch (e) {
+          AppLogger.warning('FirestoreWoodDataSource', '마지막 정산일 파싱 실패: ${summary.lastSettlementDate}');
+        }
       }
 
-      // 3. 미정산 날짜 목록 생성
-      final pendingDates = <String>[];
-      final dateFormat = DateFormat('yyyy-MM-dd');
-      
-      var currentDate = startDate;
-      while (!currentDate.isAfter(yesterday)) {
-        pendingDates.add(dateFormat.format(currentDate));
-        currentDate = currentDate.add(const Duration(days: 1));
+      // 정산 시작일 결정
+      DateTime startDate;
+      if (lastSettlementDate == null) {
+        // 첫 정산: 30일 전부터 확인
+        startDate = yesterday.subtract(const Duration(days: 30));
+      } else {
+        // 마지막 정산일 다음 날부터
+        startDate = lastSettlementDate.add(const Duration(days: 1));
+      }
+
+      // 정산할 날짜가 없으면 빈 리스트 반환
+      if (startDate.isAfter(yesterday)) {
+        return [];
+      }
+
+      // 날짜 목록 생성
+      final List<String> pendingDates = [];
+      for (DateTime date = startDate;
+          !date.isAfter(yesterday);
+          date = date.add(const Duration(days: 1))) {
+        pendingDates.add(DateFormat('yyyy-MM-dd').format(date));
       }
 
       return pendingDates;
@@ -241,91 +240,81 @@ class FirestoreWoodDataSource {
     String date,
   ) async {
     try {
-      // 날짜 파싱
-      final targetDate = DateTime.parse(date);
-      final startOfDay = DateTime(targetDate.year, targetDate.month, targetDate.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
+      final targetDate = DateFormat('yyyy-MM-dd').parse(date);
+      final dayStart = DateTime(targetDate.year, targetDate.month, targetDate.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
 
-      // 해당 날짜에 종료된 챌린지 조회
-      final query = await firestore
+      // 해당 날짜에 완료된 챌린지들 조회 (사용자가 참여한 것만)
+      final challengesSnapshot = await firestore
           .collection(_challengesCollection)
-          .where('participants', arrayContains: userId)
-          .where('endDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('endDate', isLessThan: Timestamp.fromDate(endOfDay))
+          .where('participantIds', arrayContains: userId)
+          .where('status', isEqualTo: 'completed')
+          .where('completedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(dayStart))
+          .where('completedAt', isLessThan: Timestamp.fromDate(dayEnd))
           .get();
 
-      final challenges = <ChallengeSettlementData>[];
+      final List<ChallengeSettlementData> result = [];
 
-      for (final doc in query.docs) {
-        final data = doc.data();
-        final challengeId = doc.id;
+      for (final challengeDoc in challengesSnapshot.docs) {
+        final data = challengeDoc.data();
+        final challengeId = challengeDoc.id;
 
-        // 기여 내역 조회
-        final contributionsQuery = await firestore
+        // 참가자별 기여 거리 조회
+        final contributionsSnapshot = await firestore
             .collection(_challengesCollection)
             .doc(challengeId)
             .collection(_contributionsSubcollection)
             .get();
 
-        // 참가자별 기여 거리 계산
-        final participantContributions = <String, double>{};
+        final Map<String, double> participantContributions = {};
         double userContribution = 0;
-        double userTotalWorkoutDistance = 0;
-        bool isFirstContribution = true;
+        int userContributionCount = 0;
 
-        for (final contribDoc in contributionsQuery.docs) {
-          final contribData = contribDoc.data();
+        for (final contrib in contributionsSnapshot.docs) {
+          final contribData = contrib.data();
           final oderId = contribData['userId'] as String;
           final distance = (contribData['distance'] as num).toDouble();
-
-          participantContributions[oderId] =
+          
+          participantContributions[oderId] = 
               (participantContributions[oderId] ?? 0) + distance;
-
+          
           if (oderId == userId) {
             userContribution += distance;
-            userTotalWorkoutDistance += distance;
-            if (isFirstContribution) {
-              isFirstContribution = false;
-            }
+            userContributionCount++;
           }
         }
 
-        // MVP 결정 (기여도 1위)
-        String? mvpUserId;
-        double maxContribution = 0;
-        for (final entry in participantContributions.entries) {
-          if (entry.value > maxContribution) {
-            maxContribution = entry.value;
-            mvpUserId = entry.key;
-          }
-        }
+        if (userContribution <= 0) continue;
+
+        // MVP 확인 (기여도 1위)
+        final sortedContributions = participantContributions.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        final isUserMvp = sortedContributions.isNotEmpty && 
+            sortedContributions.first.key == userId;
 
         final targetDistance = (data['targetDistance'] as num).toDouble();
-        final currentDistance = (data['currentDistance'] as num).toDouble();
-        final status = data['status'] as String;
-        final isSuccess = status == 'completed';
-        final endDate = (data['endDate'] as Timestamp).toDate();
-        final participants = List<String>.from(data['participants'] ?? []);
+        final achievedDistance = (data['currentDistance'] as num).toDouble();
+        final participantIds = data['participantIds'] as List<dynamic>;
 
-        challenges.add(ChallengeSettlementData(
+        result.add(ChallengeSettlementData(
           challengeId: challengeId,
-          challengeName: '${targetDistance.toStringAsFixed(0)}km 챌린지',
+          challengeName: data['title'] as String? ?? '${targetDistance.toStringAsFixed(1)}km 챌린지',
           targetDistance: targetDistance,
-          achievedDistance: currentDistance,
-          isSuccess: isSuccess,
-          endDate: endDate,
-          participantCount: participants.length,
+          achievedDistance: achievedDistance,
+          isSuccess: achievedDistance >= targetDistance,
+          endDate: (data['completedAt'] as Timestamp).toDate(),
+          participantCount: participantIds.length,
           participantContributions: participantContributions,
           userContribution: userContribution,
-          isUserMvp: mvpUserId == userId,
-          userTotalWorkoutDistance: userTotalWorkoutDistance,
-          isFirstContribution: !isFirstContribution, // 기여가 있으면 첫 기여 아님
+          isUserMvp: isUserMvp,
+          userTotalWorkoutDistance: userContribution,
+          isFirstContribution: userContributionCount == 1,
         ));
       }
 
-      return challenges;
+      return result;
     } catch (e) {
-      AppLogger.error('FirestoreWoodDataSource', '챌린지 조회 실패', e);
+      AppLogger.error('FirestoreWoodDataSource', '챌린지 데이터 조회 실패', e);
       return [];
     }
   }
@@ -336,7 +325,7 @@ class FirestoreWoodDataSource {
     String challengeId,
   ) async {
     try {
-      final query = await firestore
+      final contributionsSnapshot = await firestore
           .collection(_challengesCollection)
           .doc(challengeId)
           .collection(_contributionsSubcollection)
@@ -344,21 +333,21 @@ class FirestoreWoodDataSource {
           .get();
 
       double totalDistance = 0;
-      for (final doc in query.docs) {
+      for (final doc in contributionsSnapshot.docs) {
         totalDistance += (doc.data()['distance'] as num).toDouble();
       }
 
       return UserChallengeContribution(
         totalDistance: totalDistance,
-        contributionCount: query.docs.length,
-        isFirst: query.docs.isEmpty,
+        contributionCount: contributionsSnapshot.docs.length,
+        isFirst: contributionsSnapshot.docs.length == 1,
       );
     } catch (e) {
       AppLogger.error('FirestoreWoodDataSource', '기여 정보 조회 실패', e);
       return const UserChallengeContribution(
         totalDistance: 0,
         contributionCount: 0,
-        isFirst: true,
+        isFirst: false,
       );
     }
   }
@@ -366,21 +355,18 @@ class FirestoreWoodDataSource {
   /// 해당 날짜가 사용자의 첫 운동인지 확인
   Future<bool> isFirstWorkoutOfDay(String userId, DateTime date) async {
     try {
-      final startOfDay = DateTime(date.year, date.month, date.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
+      final dayStart = DateTime(date.year, date.month, date.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
 
-      // 해당 날짜의 운동 기록 조회
-      final query = await firestore
-          .collection(_usersCollection)
-          .doc(userId)
+      final snapshot = await firestore
           .collection(_workoutsCollection)
-          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('startTime', isLessThan: Timestamp.fromDate(endOfDay))
+          .where('userId', isEqualTo: userId)
+          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(dayStart))
+          .where('startTime', isLessThan: Timestamp.fromDate(dayEnd))
           .limit(2)
           .get();
 
-      // 운동이 1개만 있으면 첫 운동
-      return query.docs.length <= 1;
+      return snapshot.docs.length == 1;
     } catch (e) {
       AppLogger.error('FirestoreWoodDataSource', '첫 운동 확인 실패', e);
       return false;
@@ -390,19 +376,18 @@ class FirestoreWoodDataSource {
   /// 해당 챌린지에서 사용자의 첫 기여인지 확인
   Future<bool> isFirstContribution(String userId, String challengeId) async {
     try {
-      final query = await firestore
+      final snapshot = await firestore
           .collection(_challengesCollection)
           .doc(challengeId)
           .collection(_contributionsSubcollection)
           .where('userId', isEqualTo: userId)
-          .limit(1)
+          .limit(2)
           .get();
 
-      return query.docs.isEmpty;
+      return snapshot.docs.length == 1;
     } catch (e) {
       AppLogger.error('FirestoreWoodDataSource', '첫 기여 확인 실패', e);
-      return true;
+      return false;
     }
   }
 }
-

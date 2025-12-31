@@ -17,6 +17,9 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
       lastActiveAt: json['lastActiveAt'] == null
           ? null
           : DateTime.parse(json['lastActiveAt'] as String),
+      woodAmount: (json['woodAmount'] as num?)?.toInt() ?? 0,
+      woodLifetimeEarned: (json['woodLifetimeEarned'] as num?)?.toInt() ?? 0,
+      lastWoodSettlementDate: json['lastWoodSettlementDate'] as String?,
     );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
@@ -28,4 +31,7 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
       'photoUrl': instance.photoUrl,
       'createdAt': instance.createdAt.toIso8601String(),
       'lastActiveAt': instance.lastActiveAt?.toIso8601String(),
+      'woodAmount': instance.woodAmount,
+      'woodLifetimeEarned': instance.woodLifetimeEarned,
+      'lastWoodSettlementDate': instance.lastWoodSettlementDate,
     };

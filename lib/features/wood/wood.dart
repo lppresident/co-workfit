@@ -11,7 +11,6 @@
 /// 정산 규칙:
 /// - 하루에 여러 챌린지 종료 시 가장 높은 보상 1개만 선택
 /// - 7일 이내 미수령 시 보상 소멸
-library wood;
 
 // Domain - Entities
 export 'domain/entities/wood_summary_entity.dart';
