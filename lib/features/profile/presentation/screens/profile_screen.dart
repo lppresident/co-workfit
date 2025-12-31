@@ -161,11 +161,6 @@ class ProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 24),
 
-                    // 통계 섹션
-                    _buildStatsSection(context, user),
-
-                    const SizedBox(height: 24),
-
                     // 메뉴 섹션
                     _buildMenuSection(context, user),
 
@@ -491,111 +486,6 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStatsSection(BuildContext context, dynamic user) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 12),
-            child: Text(
-              '활동 통계',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem(
-                  icon: Icons.star,
-                  iconColor: Colors.amber,
-                  value: _formatNumber(user.totalScore),
-                  label: '총 점수',
-                ),
-                Container(
-                  width: 1,
-                  height: 50,
-                  color: Colors.grey[200],
-                ),
-                _buildStatItem(
-                  icon: Icons.fitness_center,
-                  iconColor: Colors.blue,
-                  value: _formatNumber(user.workoutCount),
-                  label: '운동 횟수',
-                ),
-                Container(
-                  width: 1,
-                  height: 50,
-                  color: Colors.grey[200],
-                ),
-                _buildStatItem(
-                  icon: Icons.emoji_events,
-                  iconColor: Colors.orange,
-                  value: '-',
-                  label: '챌린지',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem({
-    required IconData icon,
-    required Color iconColor,
-    required String value,
-    required String label,
-  }) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: iconColor, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
     );
   }
 

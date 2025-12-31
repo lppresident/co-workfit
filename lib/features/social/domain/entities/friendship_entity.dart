@@ -12,10 +12,9 @@ class FriendshipEntity extends Equatable {
 
   // 친구의 정보 (UI 표시용)
   final String? friendName;
+  final String? friendNickname;
   final String? friendEmail;
   final String? friendPhotoUrl;
-  final int? friendTotalScore;
-  final int? friendWorkoutCount;
 
   const FriendshipEntity({
     required this.id,
@@ -23,10 +22,9 @@ class FriendshipEntity extends Equatable {
     required this.friendId,
     required this.createdAt,
     this.friendName,
+    this.friendNickname,
     this.friendEmail,
     this.friendPhotoUrl,
-    this.friendTotalScore,
-    this.friendWorkoutCount,
   });
 
   @override
@@ -36,10 +34,9 @@ class FriendshipEntity extends Equatable {
         friendId,
         createdAt,
         friendName,
+        friendNickname,
         friendEmail,
         friendPhotoUrl,
-        friendTotalScore,
-        friendWorkoutCount,
       ];
 
   FriendshipEntity copyWith({
@@ -48,10 +45,9 @@ class FriendshipEntity extends Equatable {
     String? friendId,
     DateTime? createdAt,
     String? friendName,
+    String? friendNickname,
     String? friendEmail,
     String? friendPhotoUrl,
-    int? friendTotalScore,
-    int? friendWorkoutCount,
   }) {
     return FriendshipEntity(
       id: id ?? this.id,
@@ -59,10 +55,9 @@ class FriendshipEntity extends Equatable {
       friendId: friendId ?? this.friendId,
       createdAt: createdAt ?? this.createdAt,
       friendName: friendName ?? this.friendName,
+      friendNickname: friendNickname ?? this.friendNickname,
       friendEmail: friendEmail ?? this.friendEmail,
       friendPhotoUrl: friendPhotoUrl ?? this.friendPhotoUrl,
-      friendTotalScore: friendTotalScore ?? this.friendTotalScore,
-      friendWorkoutCount: friendWorkoutCount ?? this.friendWorkoutCount,
     );
   }
 }

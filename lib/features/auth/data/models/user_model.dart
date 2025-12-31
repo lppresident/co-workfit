@@ -14,8 +14,6 @@ class UserModel extends UserEntity {
     required super.nickname,
     super.isNicknameSet,
     super.photoUrl,
-    super.totalScore,
-    super.workoutCount,
     required super.createdAt,
     super.lastActiveAt,
   });
@@ -44,8 +42,6 @@ class UserModel extends UserEntity {
       nickname: nickname,
       isNicknameSet: isNicknameSet,
       photoUrl: data['photoUrl'] as String?,
-      totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
-      workoutCount: (data['workoutCount'] as num?)?.toInt() ?? 0,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       lastActiveAt: data['lastActiveAt'] != null
           ? (data['lastActiveAt'] as Timestamp).toDate()
@@ -61,8 +57,6 @@ class UserModel extends UserEntity {
       'nickname': nickname,
       'isNicknameSet': isNicknameSet,
       'photoUrl': photoUrl,
-      'totalScore': totalScore,
-      'workoutCount': workoutCount,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastActiveAt':
           lastActiveAt != null ? Timestamp.fromDate(lastActiveAt!) : null,
@@ -78,8 +72,6 @@ class UserModel extends UserEntity {
       nickname: entity.nickname,
       isNicknameSet: entity.isNicknameSet,
       photoUrl: entity.photoUrl,
-      totalScore: entity.totalScore,
-      workoutCount: entity.workoutCount,
       createdAt: entity.createdAt,
       lastActiveAt: entity.lastActiveAt,
     );
@@ -101,8 +93,6 @@ class UserModel extends UserEntity {
       nickname: nickname,
       isNicknameSet: isNicknameSet,
       photoUrl: photoUrl,
-      totalScore: 0,
-      workoutCount: 0,
       createdAt: DateTime.now(),
       lastActiveAt: DateTime.now(),
     );
@@ -116,8 +106,6 @@ class UserModel extends UserEntity {
     String? nickname,
     bool? isNicknameSet,
     String? photoUrl,
-    int? totalScore,
-    int? workoutCount,
     DateTime? createdAt,
     DateTime? lastActiveAt,
   }) {
@@ -128,8 +116,6 @@ class UserModel extends UserEntity {
       nickname: nickname ?? this.nickname,
       isNicknameSet: isNicknameSet ?? this.isNicknameSet,
       photoUrl: photoUrl ?? this.photoUrl,
-      totalScore: totalScore ?? this.totalScore,
-      workoutCount: workoutCount ?? this.workoutCount,
       createdAt: createdAt ?? this.createdAt,
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
     );

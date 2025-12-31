@@ -13,8 +13,6 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
       nickname: json['nickname'] as String,
       isNicknameSet: json['isNicknameSet'] as bool? ?? false,
       photoUrl: json['photoUrl'] as String?,
-      totalScore: (json['totalScore'] as num?)?.toInt() ?? 0,
-      workoutCount: (json['workoutCount'] as num?)?.toInt() ?? 0,
       createdAt: DateTime.parse(json['createdAt'] as String),
       lastActiveAt: json['lastActiveAt'] == null
           ? null
@@ -28,8 +26,6 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
       'nickname': instance.nickname,
       'isNicknameSet': instance.isNicknameSet,
       'photoUrl': instance.photoUrl,
-      'totalScore': instance.totalScore,
-      'workoutCount': instance.workoutCount,
       'createdAt': instance.createdAt.toIso8601String(),
       'lastActiveAt': instance.lastActiveAt?.toIso8601String(),
     };
