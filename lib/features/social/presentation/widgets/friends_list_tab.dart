@@ -118,7 +118,6 @@ class FriendsListTab extends StatelessWidget {
               final friendIndex = requestCount > 0 ? index - 1 : index;
               final friend = friends[friendIndex];
               final friendNickname = friend.friendNickname ?? friend.friendName ?? '알 수 없음';
-              final friendEmail = friend.friendEmail ?? '';
               return Card(
                 margin: const EdgeInsets.symmetric(
                   horizontal: AppConstants.defaultPadding,
@@ -134,7 +133,6 @@ class FriendsListTab extends StatelessWidget {
                         : null,
                   ),
                   title: Text(friendNickname),
-                  subtitle: friendEmail.isNotEmpty ? Text(friendEmail) : null,
                   onTap: () {
                     Navigator.push(
                       context,

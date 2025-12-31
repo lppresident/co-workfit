@@ -78,13 +78,6 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
   PreferredSizeWidget buildAppBar(BuildContext context) {
     return StandardAppBar(
       title: widget.friend.friendNickname ?? widget.friend.friendName ?? '친구 상세',
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.delete_outline),
-          tooltip: '친구 삭제',
-          onPressed: _showDeleteConfirmDialog,
-        ),
-      ],
     );
   }
 
@@ -145,7 +138,6 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
 
   Widget _buildProfileCard() {
     final friendNickname = widget.friend.friendNickname ?? widget.friend.friendName ?? '알 수 없음';
-    final friendEmail = widget.friend.friendEmail ?? '';
 
     return Card(
       child: Padding(
@@ -174,25 +166,11 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
 
             // 친구 정보
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    friendNickname,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  if (friendEmail.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      friendEmail,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+              child: Text(
+                friendNickname,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ],
               ),
             ),
           ],
