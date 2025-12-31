@@ -337,9 +337,9 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Color(item.rarityColorValue).withValues(alpha: 0.1),
+        color: Color(item.themeColorValue).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(item.rarityColorValue)),
+        border: Border.all(color: Color(item.themeColorValue)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -350,7 +350,7 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
             item.name,
             style: TextStyle(
               fontSize: 11,
-              color: Color(item.rarityColorValue),
+              color: Color(item.themeColorValue),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -405,25 +405,6 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
                         item.name,
                         style: const TextStyle(
                           fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Color(item.rarityColorValue),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          item.rarityName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
                         ),
                       ),
                     ],
