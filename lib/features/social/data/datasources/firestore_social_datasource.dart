@@ -300,10 +300,9 @@ class FirestoreSocialDataSource {
           friendId: friendId,
           createdAt: (data['createdAt'] as Timestamp).toDate(),
           friendName: friendData?['displayName'] as String?,
+          friendNickname: friendData?['nickname'] as String?,
           friendEmail: friendData?['email'] as String?,
           friendPhotoUrl: friendData?['photoUrl'] as String?,
-          friendTotalScore: (friendData?['totalScore'] as num?)?.toInt(),
-          friendWorkoutCount: (friendData?['workoutCount'] as num?)?.toInt(),
         );
       }).toList();
 
@@ -376,10 +375,9 @@ class FirestoreSocialDataSource {
           friendId: friendId,
           createdAt: (data['createdAt'] as Timestamp).toDate(),
           friendName: friendData?['displayName'] as String?,
+          friendNickname: friendData?['nickname'] as String?,
           friendEmail: friendData?['email'] as String?,
           friendPhotoUrl: friendData?['photoUrl'] as String?,
-          friendTotalScore: (friendData?['totalScore'] as num?)?.toInt(),
-          friendWorkoutCount: (friendData?['workoutCount'] as num?)?.toInt(),
         );
       }).toList();
 

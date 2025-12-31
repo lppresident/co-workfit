@@ -19,6 +19,10 @@ import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderb
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
+import 'package:co_workfit/features/wood/presentation/bloc/wood_bloc.dart';
+import 'package:co_workfit/features/wood/presentation/bloc/wood_event.dart';
+import 'package:co_workfit/features/wood/presentation/bloc/wood_state.dart';
+import 'package:co_workfit/features/wood/presentation/widgets/settlement_dialog.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/core/services/deep_link_service.dart';
 
@@ -207,6 +211,9 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
         BlocProvider<LogRunBloc>(
           create: (_) => di.sl<LogRunBloc>(),
         ),
+        BlocProvider<WoodBloc>(
+          create: (_) => di.sl<WoodBloc>(),
+        ),
       ],
       child: MaterialApp(
         navigatorKey: _navigatorKey,
@@ -214,18 +221,49 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
-        home: BlocListener<AuthBloc, AuthState>(
-          listener: (context, state) {
-            // 인증 완료 후 대기 중인 딥링크 처리
-            if (state is Authenticated && _pendingDeepLink != null) {
-              final pending = _pendingDeepLink!;
-              _pendingDeepLink = null;
-              // 약간의 딜레이 후 딥링크 처리 (UI 준비 대기)
-              Future.delayed(const Duration(milliseconds: 500), () {
-                _handleDeepLink(pending);
-              });
-            }
-          },
+        home: MultiBlocListener(
+          listeners: [
+            BlocListener<AuthBloc, AuthState>(
+              listener: (context, state) {
+                // 인증 완료 후 대기 중인 딥링크 처리
+                if (state is Authenticated && _pendingDeepLink != null) {
+                  final pending = _pendingDeepLink!;
+                  _pendingDeepLink = null;
+                  // 약간의 딜레이 후 딥링크 처리 (UI 준비 대기)
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    _handleDeepLink(pending);
+                  });
+                }
+
+                // 인증 완료 시 WoodBloc 초기화 및 정산 체크
+                if (state is Authenticated) {
+                  final woodBloc = context.read<WoodBloc>();
+                  woodBloc.setUserId(state.user.id);
+                  woodBloc.add(const LoadWoodSummary());
+                  woodBloc.add(const CheckPendingSettlementsEvent());
+                }
+              },
+            ),
+            BlocListener<WoodBloc, WoodState>(
+              listener: (context, state) {
+                // 정산 결과가 있으면 다이얼로그 표시
+                if (state.shouldShowSettlementDialog &&
+                    state.pendingSettlementResult != null) {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) => SettlementDialog(
+                      summary: state.pendingSettlementResult!,
+                      onDismiss: () {
+                        Navigator.of(context).pop();
+                        context.read<WoodBloc>().add(const DismissSettlementDialog());
+                      },
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
           child: BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
               if (state is Authenticated) {

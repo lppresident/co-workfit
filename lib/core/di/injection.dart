@@ -73,6 +73,9 @@ import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contri
 import 'package:co_workfit/features/log_run/domain/usecases/delete_contribution.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
 
+// Wood (통나무 재화 시스템)
+import 'package:co_workfit/features/wood/wood.dart';
+
 final sl = GetIt.instance;
 
 Future<void> initializeDependencies() async {
@@ -292,6 +295,45 @@ Future<void> initializeDependencies() async {
       getAllChallengesUseCase: sl(),
       getChallengeContributionsUseCase: sl(),
       deleteContributionUseCase: sl(),
+      repository: sl(),
+    ),
+  );
+
+  // ========== Wood Feature (통나무 재화 시스템) ==========
+
+  // Data Sources
+  sl.registerLazySingleton<FirestoreWoodDataSource>(
+    () => FirestoreWoodDataSource(firestore: sl()),
+  );
+
+  // Repository
+  sl.registerLazySingleton<WoodRepository>(
+    () => WoodRepositoryImpl(dataSource: sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => GetWoodSummary(sl()));
+  sl.registerLazySingleton(() => GetSettlementHistory(sl()));
+  sl.registerLazySingleton(() => CalculateChallengeReward());
+  sl.registerLazySingleton(
+    () => SettleDailyRewards(
+      repository: sl(),
+      calculateChallengeReward: sl(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => CheckPendingSettlements(
+      repository: sl(),
+      settleDailyRewards: sl(),
+    ),
+  );
+
+  // BLoC
+  sl.registerFactory(
+    () => WoodBloc(
+      getWoodSummary: sl(),
+      checkPendingSettlements: sl(),
+      getSettlementHistory: sl(),
       repository: sl(),
     ),
   );

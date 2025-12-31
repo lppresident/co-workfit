@@ -77,14 +77,7 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
   @override
   PreferredSizeWidget buildAppBar(BuildContext context) {
     return StandardAppBar(
-      title: widget.friend.friendName ?? '친구 상세',
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.delete_outline),
-          tooltip: '친구 삭제',
-          onPressed: _showDeleteConfirmDialog,
-        ),
-      ],
+      title: widget.friend.friendNickname ?? widget.friend.friendName ?? '친구 상세',
     );
   }
 
@@ -123,8 +116,6 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
                   children: [
                     _buildProfileCard(),
                     const SizedBox(height: 24),
-                    _buildStatsSection(),
-                    const SizedBox(height: 24),
                     _buildFriendshipInfoSection(),
                     const SizedBox(height: 24),
                     _buildDeleteButton(),
@@ -146,8 +137,7 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
   }
 
   Widget _buildProfileCard() {
-    final friendName = widget.friend.friendName ?? '알 수 없음';
-    final friendEmail = widget.friend.friendEmail ?? '';
+    final friendNickname = widget.friend.friendNickname ?? widget.friend.friendName ?? '알 수 없음';
 
     return Card(
       child: Padding(
@@ -163,7 +153,7 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               child: widget.friend.friendPhotoUrl == null
                   ? Text(
-                      friendName.isNotEmpty ? friendName[0].toUpperCase() : '?',
+                      friendNickname.isNotEmpty ? friendNickname[0].toUpperCase() : '?',
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -176,97 +166,12 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
 
             // 친구 정보
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    friendName,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  if (friendEmail.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      friendEmail,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+              child: Text(
+                friendNickname,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsSection() {
-    final totalScore = widget.friend.friendTotalScore ?? 0;
-    final workoutCount = widget.friend.friendWorkoutCount ?? 0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '운동 통계',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.emoji_events,
-                label: '총 점수',
-                value: totalScore.toString(),
-                color: Colors.amber,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.directions_run,
-                label: '운동 횟수',
-                value: '$workoutCount회',
-                color: Colors.blue,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(AppConstants.defaultPadding),
-        child: Column(
-          children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
             ),
           ],
         ),

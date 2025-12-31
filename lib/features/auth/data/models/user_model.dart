@@ -14,10 +14,11 @@ class UserModel extends UserEntity {
     required super.nickname,
     super.isNicknameSet,
     super.photoUrl,
-    super.totalScore,
-    super.workoutCount,
     required super.createdAt,
     super.lastActiveAt,
+    super.woodAmount,
+    super.woodLifetimeEarned,
+    super.lastWoodSettlementDate,
   });
 
   /// JSON으로부터 UserModel 생성
@@ -44,12 +45,13 @@ class UserModel extends UserEntity {
       nickname: nickname,
       isNicknameSet: isNicknameSet,
       photoUrl: data['photoUrl'] as String?,
-      totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
-      workoutCount: (data['workoutCount'] as num?)?.toInt() ?? 0,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       lastActiveAt: data['lastActiveAt'] != null
           ? (data['lastActiveAt'] as Timestamp).toDate()
           : null,
+      woodAmount: (data['woodAmount'] as num?)?.toInt() ?? 0,
+      woodLifetimeEarned: (data['woodLifetimeEarned'] as num?)?.toInt() ?? 0,
+      lastWoodSettlementDate: data['lastWoodSettlementDate'] as String?,
     );
   }
 
@@ -61,11 +63,12 @@ class UserModel extends UserEntity {
       'nickname': nickname,
       'isNicknameSet': isNicknameSet,
       'photoUrl': photoUrl,
-      'totalScore': totalScore,
-      'workoutCount': workoutCount,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastActiveAt':
           lastActiveAt != null ? Timestamp.fromDate(lastActiveAt!) : null,
+      'woodAmount': woodAmount,
+      'woodLifetimeEarned': woodLifetimeEarned,
+      'lastWoodSettlementDate': lastWoodSettlementDate,
     };
   }
 
@@ -78,10 +81,11 @@ class UserModel extends UserEntity {
       nickname: entity.nickname,
       isNicknameSet: entity.isNicknameSet,
       photoUrl: entity.photoUrl,
-      totalScore: entity.totalScore,
-      workoutCount: entity.workoutCount,
       createdAt: entity.createdAt,
       lastActiveAt: entity.lastActiveAt,
+      woodAmount: entity.woodAmount,
+      woodLifetimeEarned: entity.woodLifetimeEarned,
+      lastWoodSettlementDate: entity.lastWoodSettlementDate,
     );
   }
 
@@ -101,10 +105,11 @@ class UserModel extends UserEntity {
       nickname: nickname,
       isNicknameSet: isNicknameSet,
       photoUrl: photoUrl,
-      totalScore: 0,
-      workoutCount: 0,
       createdAt: DateTime.now(),
       lastActiveAt: DateTime.now(),
+      woodAmount: 0,
+      woodLifetimeEarned: 0,
+      lastWoodSettlementDate: null,
     );
   }
 
@@ -116,10 +121,11 @@ class UserModel extends UserEntity {
     String? nickname,
     bool? isNicknameSet,
     String? photoUrl,
-    int? totalScore,
-    int? workoutCount,
     DateTime? createdAt,
     DateTime? lastActiveAt,
+    int? woodAmount,
+    int? woodLifetimeEarned,
+    String? lastWoodSettlementDate,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -128,10 +134,11 @@ class UserModel extends UserEntity {
       nickname: nickname ?? this.nickname,
       isNicknameSet: isNicknameSet ?? this.isNicknameSet,
       photoUrl: photoUrl ?? this.photoUrl,
-      totalScore: totalScore ?? this.totalScore,
-      workoutCount: workoutCount ?? this.workoutCount,
       createdAt: createdAt ?? this.createdAt,
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
+      woodAmount: woodAmount ?? this.woodAmount,
+      woodLifetimeEarned: woodLifetimeEarned ?? this.woodLifetimeEarned,
+      lastWoodSettlementDate: lastWoodSettlementDate ?? this.lastWoodSettlementDate,
     );
   }
 }
