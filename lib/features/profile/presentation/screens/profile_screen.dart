@@ -1,3 +1,5 @@
+import 'package:co_workfit/features/craft/presentation/pages/craft_page.dart';
+import 'package:co_workfit/features/craft/presentation/pages/character_page.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_state.dart';
@@ -492,62 +494,140 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildMenuSection(BuildContext context, dynamic user) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 제작 & 캐릭터 섹션
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 12),
+            child: Text(
+              '제작 & 캐릭터',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            _buildMenuItem(
-              icon: Icons.history,
-              iconColor: Colors.purple,
-              title: '정산 내역',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettlementHistoryPage(),
-                  ),
-                );
-              },
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            Divider(height: 1, color: Colors.grey[200]),
-            _buildMenuItem(
-              icon: Icons.notifications_outlined,
-              iconColor: Colors.blue,
-              title: '알림 설정',
-              onTap: () {
-                // TODO: 알림 설정
-              },
+            child: Column(
+              children: [
+                _buildMenuItem(
+                  icon: Icons.handyman,
+                  iconColor: Colors.brown,
+                  title: '제작소',
+                  subtitle: '통나무로 아이템 제작',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CraftPage(),
+                      ),
+                    );
+                  },
+                ),
+                Divider(height: 1, color: Colors.grey[200]),
+                _buildMenuItem(
+                  icon: Icons.person_outline,
+                  iconColor: Colors.amber,
+                  title: '내 캐릭터',
+                  subtitle: '의상 장착 및 관리',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CharacterPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-            Divider(height: 1, color: Colors.grey[200]),
-            _buildMenuItem(
-              icon: Icons.help_outline,
-              iconColor: Colors.teal,
-              title: '도움말',
-              onTap: () {
-                // TODO: 도움말
-              },
+          ),
+
+          const SizedBox(height: 24),
+
+          // 설정 섹션
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 12),
+            child: Text(
+              '설정',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
             ),
-            Divider(height: 1, color: Colors.grey[200]),
-            _buildMenuItem(
-              icon: Icons.logout,
-              iconColor: Colors.red,
-              title: '로그아웃',
-              titleColor: Colors.red,
-              showArrow: false,
-              onTap: () => _showLogoutConfirmDialog(context),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
+            child: Column(
+              children: [
+                _buildMenuItem(
+                  icon: Icons.history,
+                  iconColor: Colors.purple,
+                  title: '정산 내역',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettlementHistoryPage(),
+                      ),
+                    );
+                  },
+                ),
+                Divider(height: 1, color: Colors.grey[200]),
+                _buildMenuItem(
+                  icon: Icons.notifications_outlined,
+                  iconColor: Colors.blue,
+                  title: '알림 설정',
+                  onTap: () {
+                    // TODO: 알림 설정
+                  },
+                ),
+                Divider(height: 1, color: Colors.grey[200]),
+                _buildMenuItem(
+                  icon: Icons.help_outline,
+                  iconColor: Colors.teal,
+                  title: '도움말',
+                  onTap: () {
+                    // TODO: 도움말
+                  },
+                ),
+                Divider(height: 1, color: Colors.grey[200]),
+                _buildMenuItem(
+                  icon: Icons.logout,
+                  iconColor: Colors.red,
+                  title: '로그아웃',
+                  titleColor: Colors.red,
+                  showArrow: false,
+                  onTap: () => _showLogoutConfirmDialog(context),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -556,6 +636,7 @@ class ProfileScreen extends StatelessWidget {
     required IconData icon,
     required Color iconColor,
     required String title,
+    String? subtitle,
     Color? titleColor,
     bool showArrow = true,
     VoidCallback? onTap,
@@ -577,13 +658,26 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: titleColor ?? Colors.grey[800],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: titleColor ?? Colors.grey[800],
+                    ),
+                  ),
+                  if (subtitle != null)
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                ],
               ),
             ),
             if (showArrow)

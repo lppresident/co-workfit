@@ -23,6 +23,7 @@ import 'package:co_workfit/features/wood/presentation/bloc/wood_bloc.dart';
 import 'package:co_workfit/features/wood/presentation/bloc/wood_event.dart';
 import 'package:co_workfit/features/wood/presentation/bloc/wood_state.dart';
 import 'package:co_workfit/features/wood/presentation/widgets/settlement_dialog.dart';
+import 'package:co_workfit/features/craft/presentation/bloc/craft_bloc.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/core/services/deep_link_service.dart';
 
@@ -213,6 +214,9 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
         ),
         BlocProvider<WoodBloc>(
           create: (_) => di.sl<WoodBloc>(),
+        ),
+        BlocProvider<CraftBloc>(
+          create: (_) => di.sl<CraftBloc>(),
         ),
       ],
       child: MaterialApp(

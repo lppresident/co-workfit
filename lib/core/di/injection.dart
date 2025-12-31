@@ -76,6 +76,9 @@ import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart'
 // Wood (통나무 재화 시스템)
 import 'package:co_workfit/features/wood/wood.dart';
 
+// Craft (아이템 제작 시스템)
+import 'package:co_workfit/features/craft/craft.dart';
+
 final sl = GetIt.instance;
 
 Future<void> initializeDependencies() async {
@@ -334,6 +337,39 @@ Future<void> initializeDependencies() async {
       getWoodSummary: sl(),
       checkPendingSettlements: sl(),
       getSettlementHistory: sl(),
+      repository: sl(),
+    ),
+  );
+
+  // ========== Craft Feature (아이템 제작 시스템) ==========
+
+  // Data Sources
+  sl.registerLazySingleton<FirestoreCraftDataSource>(
+    () => FirestoreCraftDataSource(firestore: sl()),
+  );
+
+  // Repository
+  sl.registerLazySingleton<CraftRepository>(
+    () => CraftRepositoryImpl(dataSource: sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => GetRecipes(sl()));
+  sl.registerLazySingleton(() => GetInventory(sl()));
+  sl.registerLazySingleton(() => GetEquippedItems(sl()));
+  sl.registerLazySingleton(() => CraftItem(sl()));
+  sl.registerLazySingleton(() => EquipItem(sl()));
+  sl.registerLazySingleton(() => UnequipItem(sl()));
+
+  // BLoC
+  sl.registerFactory(
+    () => CraftBloc(
+      getRecipes: sl(),
+      getInventory: sl(),
+      getEquippedItems: sl(),
+      craftItem: sl(),
+      equipItem: sl(),
+      unequipItem: sl(),
       repository: sl(),
     ),
   );
