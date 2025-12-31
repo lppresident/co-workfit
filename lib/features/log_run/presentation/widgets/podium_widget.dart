@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
-import 'package:co_workfit/features/craft/domain/entities/item_entity.dart';
-import 'package:co_workfit/features/craft/domain/entities/item_recipes.dart';
+import 'package:co_workfit/features/craft/presentation/widgets/character_widget.dart';
 
 /// 참가자 순위 정보
 class ParticipantRank {
@@ -209,41 +208,8 @@ class PodiumWidget extends StatelessWidget {
   }
 
   Widget _buildCharacter(BuildContext context, ParticipantRank participant, int place) {
-    final equipped = participant.equippedItems;
-
-    // 장착 아이템 가져오기
-    ItemEntity? headItem;
-    ItemEntity? bodyItem;
-    ItemEntity? legsItem;
-
-    if (equipped != null) {
-      if (equipped.headItemId != null) {
-        headItem = ItemRecipes.allItems.firstWhere(
-          (i) => i.id == equipped.headItemId,
-          orElse: () => ItemRecipes.allItems.first,
-        );
-        if (headItem.id != equipped.headItemId) headItem = null;
-      }
-      if (equipped.bodyItemId != null) {
-        bodyItem = ItemRecipes.allItems.firstWhere(
-          (i) => i.id == equipped.bodyItemId,
-          orElse: () => ItemRecipes.allItems.first,
-        );
-        if (bodyItem.id != equipped.bodyItemId) bodyItem = null;
-      }
-      if (equipped.legsItemId != null) {
-        legsItem = ItemRecipes.allItems.firstWhere(
-          (i) => i.id == equipped.legsItemId,
-          orElse: () => ItemRecipes.allItems.first,
-        );
-        if (legsItem.id != equipped.legsItemId) legsItem = null;
-      }
-    }
-
     // 캐릭터 크기 (1등이 더 큼)
     final characterSize = place == 1 ? 70.0 : 55.0;
-    final fontSize = place == 1 ? 50.0 : 38.0;
-    final itemFontSize = place == 1 ? 16.0 : 12.0;
     final borderColor = switch (place) {
       1 => const Color(0xFFFFD700),
       2 => const Color(0xFFC0C0C0),
@@ -251,76 +217,10 @@ class PodiumWidget extends StatelessWidget {
       _ => Colors.grey,
     };
 
-    return Container(
-      width: characterSize,
-      height: characterSize,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
-        shape: BoxShape.circle,
-        border: Border.all(color: borderColor, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // 기본 캐릭터
-          Text('🧍', style: TextStyle(fontSize: fontSize)),
-          // 머리 아이템
-          if (headItem != null)
-            Positioned(
-              top: place == 1 ? 2 : 0,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: Color(headItem.rarityColorValue).withValues(alpha: 0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  headItem.iconEmoji,
-                  style: TextStyle(fontSize: itemFontSize),
-                ),
-              ),
-            ),
-          // 상체 아이템
-          if (bodyItem != null)
-            Positioned(
-              top: place == 1 ? 24 : 18,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Color(bodyItem.rarityColorValue).withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  bodyItem.iconEmoji,
-                  style: TextStyle(fontSize: itemFontSize - 2),
-                ),
-              ),
-            ),
-          // 하체 아이템
-          if (legsItem != null)
-            Positioned(
-              bottom: place == 1 ? 6 : 4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Color(legsItem.rarityColorValue).withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  legsItem.iconEmoji,
-                  style: TextStyle(fontSize: itemFontSize - 2),
-                ),
-              ),
-            ),
-        ],
-      ),
+    return MiniCharacterWidget(
+      size: characterSize,
+      equippedItems: participant.equippedItems,
+      borderColor: borderColor,
     );
   }
 }

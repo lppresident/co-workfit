@@ -11,6 +11,7 @@ import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.
 import 'package:co_workfit/features/craft/domain/entities/item_category.dart';
 import 'package:co_workfit/features/craft/domain/entities/item_entity.dart';
 import 'package:co_workfit/features/craft/domain/entities/item_recipes.dart';
+import 'package:co_workfit/features/craft/presentation/widgets/character_widget.dart';
 import 'package:co_workfit/features/social/domain/entities/friendship_entity.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
@@ -272,7 +273,7 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
 
     return Column(
       children: [
-        // 캐릭터 (기본 캐릭터 + 장착 아이템 오버레이)
+        // 도트 스타일 캐릭터
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(24),
@@ -289,83 +290,13 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
           ),
           child: Column(
             children: [
-              // 캐릭터 (기본 캐릭터 + 장착 아이템 오버레이)
-              SizedBox(
-                height: 150,
-                width: 100,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // 기본 캐릭터
-                    const Positioned(
-                      top: 15,
-                      child: Text(
-                        '🧍',
-                        style: TextStyle(fontSize: 100),
-                      ),
-                    ),
-                    // 머리 아이템
-                    if (headItem != null)
-                      Positioned(
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Color(headItem.rarityColorValue).withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Color(headItem.rarityColorValue),
-                              width: 2,
-                            ),
-                          ),
-                          child: Text(
-                            headItem.iconEmoji,
-                            style: const TextStyle(fontSize: 26),
-                          ),
-                        ),
-                      ),
-                    // 상체 아이템
-                    if (bodyItem != null)
-                      Positioned(
-                        top: 50,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Color(bodyItem.rarityColorValue).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Color(bodyItem.rarityColorValue),
-                              width: 2,
-                            ),
-                          ),
-                          child: Text(
-                            bodyItem.iconEmoji,
-                            style: const TextStyle(fontSize: 22),
-                          ),
-                        ),
-                      ),
-                    // 하체 아이템
-                    if (legsItem != null)
-                      Positioned(
-                        top: 95,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Color(legsItem.rarityColorValue).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Color(legsItem.rarityColorValue),
-                              width: 2,
-                            ),
-                          ),
-                          child: Text(
-                            legsItem.iconEmoji,
-                            style: const TextStyle(fontSize: 22),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+              // 도트 스타일 캐릭터
+              CharacterWidget(
+                size: 150,
+                equippedItems: equipped,
+                backgroundColor: Colors.white.withValues(alpha: 0.5),
+                borderColor: Colors.brown[400]!,
+                showShadow: true,
               ),
               const SizedBox(height: 12),
               // 장착 아이템 표시

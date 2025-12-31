@@ -8,6 +8,7 @@ import '../../domain/entities/item_recipes.dart';
 import '../bloc/craft_bloc.dart';
 import '../bloc/craft_event.dart';
 import '../bloc/craft_state.dart';
+import '../widgets/character_widget.dart';
 import 'inventory_page.dart';
 
 /// 캐릭터 페이지
@@ -147,83 +148,13 @@ class _CharacterPageState extends State<CharacterPage> {
       ),
       child: Column(
         children: [
-          // 캐릭터 (기본 캐릭터 + 장착 아이템 오버레이)
-          SizedBox(
-            height: 180,
-            width: 120,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // 기본 캐릭터
-                const Positioned(
-                  top: 20,
-                  child: Text(
-                    '🧍',
-                    style: TextStyle(fontSize: 120),
-                  ),
-                ),
-                // 머리 아이템
-                if (headItem != null)
-                  Positioned(
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Color(headItem.rarityColorValue).withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Color(headItem.rarityColorValue),
-                          width: 2,
-                        ),
-                      ),
-                      child: Text(
-                        headItem.iconEmoji,
-                        style: const TextStyle(fontSize: 32),
-                      ),
-                    ),
-                  ),
-                // 상체 아이템
-                if (bodyItem != null)
-                  Positioned(
-                    top: 60,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Color(bodyItem.rarityColorValue).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Color(bodyItem.rarityColorValue),
-                          width: 2,
-                        ),
-                      ),
-                      child: Text(
-                        bodyItem.iconEmoji,
-                        style: const TextStyle(fontSize: 28),
-                      ),
-                    ),
-                  ),
-                // 하체 아이템
-                if (legsItem != null)
-                  Positioned(
-                    top: 110,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Color(legsItem.rarityColorValue).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Color(legsItem.rarityColorValue),
-                          width: 2,
-                        ),
-                      ),
-                      child: Text(
-                        legsItem.iconEmoji,
-                        style: const TextStyle(fontSize: 28),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+          // 도트 스타일 캐릭터
+          CharacterWidget(
+            size: 180,
+            equippedItems: equipped,
+            backgroundColor: Colors.white.withValues(alpha: 0.5),
+            borderColor: Colors.brown[400]!,
+            showShadow: true,
           ),
 
           const SizedBox(height: 16),
