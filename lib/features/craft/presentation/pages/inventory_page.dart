@@ -138,7 +138,7 @@ class _InventoryPageState extends State<InventoryPage> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: Color(item.rarityColorValue).withValues(alpha: 0.1),
+            color: Color(item.themeColorValue).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Center(
@@ -166,22 +166,6 @@ class _InventoryPageState extends State<InventoryPage> {
         ),
         subtitle: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Color(item.rarityColorValue),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                item.rarityName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
             Text(
               item.clothingSlot?.displayName ?? '',
               style: TextStyle(

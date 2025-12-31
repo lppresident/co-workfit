@@ -1,12 +1,3 @@
-/// 아이템 제작 시스템 Feature
-///
-/// 통나무 재화를 소비하여 캐릭터 의상 아이템을 제작하고 장착하는 시스템
-///
-/// Phase 1: 의상 아이템 10개 (머리 4개, 상체 3개, 하체 3개)
-/// - 통나무로 의상 아이템 제작
-/// - 제작한 아이템을 인벤토리에 저장
-/// - 캐릭터에 의상 장착/해제
-
 // Domain - Entities
 export 'domain/entities/item_category.dart';
 export 'domain/entities/item_entity.dart';

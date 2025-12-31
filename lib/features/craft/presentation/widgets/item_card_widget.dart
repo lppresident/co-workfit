@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../domain/entities/item_category.dart';
 import '../../domain/entities/item_entity.dart';
 
 /// 아이템 카드 위젯
@@ -36,7 +37,7 @@ class ItemCardWidget extends StatelessWidget {
         side: BorderSide(
           color: isEquipped
               ? Colors.amber
-              : Color(item.rarityColorValue).withValues(alpha: 0.5),
+              : Color(item.themeColorValue).withValues(alpha: 0.5),
           width: isEquipped ? 2 : 1,
         ),
       ),
@@ -48,7 +49,7 @@ class ItemCardWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 아이콘 & 등급
+              // 아이콘 & 이름
               Row(
                 children: [
                   // 아이콘
@@ -56,7 +57,7 @@ class ItemCardWidget extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Color(item.rarityColorValue).withValues(alpha: 0.1),
+                      color: Color(item.themeColorValue).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
@@ -67,7 +68,7 @@ class ItemCardWidget extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // 이름 & 등급
+                  // 이름 & 슬롯
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,26 +85,15 @@ class ItemCardWidget extends StatelessWidget {
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Color(item.rarityColorValue),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                item.rarityName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            Text(
+                              item.clothingSlot?.displayName ?? '',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
                               ),
                             ),
                             if (isEquipped) ...[
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 6,

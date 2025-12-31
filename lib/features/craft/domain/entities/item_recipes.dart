@@ -25,7 +25,6 @@ class ItemRecipes {
           category: ItemCategory.clothing,
           clothingSlot: ClothingSlot.head,
           woodCost: 30,
-          rarity: 1,
           iconEmoji: '🌿',
           estimatedDays: 2,
         ),
@@ -36,7 +35,6 @@ class ItemRecipes {
           category: ItemCategory.clothing,
           clothingSlot: ClothingSlot.head,
           woodCost: 80,
-          rarity: 2,
           iconEmoji: '🧢',
           estimatedDays: 5,
         ),
@@ -47,7 +45,6 @@ class ItemRecipes {
           category: ItemCategory.clothing,
           clothingSlot: ClothingSlot.head,
           woodCost: 300,
-          rarity: 3,
           iconEmoji: '🎩',
           estimatedDays: 20,
         ),
@@ -58,7 +55,6 @@ class ItemRecipes {
           category: ItemCategory.clothing,
           clothingSlot: ClothingSlot.head,
           woodCost: 1200,
-          rarity: 4,
           iconEmoji: '👑',
           estimatedDays: 60,
         ),
@@ -73,7 +69,6 @@ class ItemRecipes {
           category: ItemCategory.clothing,
           clothingSlot: ClothingSlot.body,
           woodCost: 50,
-          rarity: 1,
           iconEmoji: '👕',
           estimatedDays: 3,
         ),
@@ -84,7 +79,6 @@ class ItemRecipes {
           category: ItemCategory.clothing,
           clothingSlot: ClothingSlot.body,
           woodCost: 150,
-          rarity: 2,
           iconEmoji: '🦺',
           estimatedDays: 10,
         ),
@@ -95,7 +89,6 @@ class ItemRecipes {
           category: ItemCategory.clothing,
           clothingSlot: ClothingSlot.body,
           woodCost: 500,
-          rarity: 3,
           iconEmoji: '🛡️',
           estimatedDays: 33,
         ),
@@ -110,7 +103,6 @@ class ItemRecipes {
           category: ItemCategory.clothing,
           clothingSlot: ClothingSlot.legs,
           woodCost: 40,
-          rarity: 1,
           iconEmoji: '🩳',
           estimatedDays: 3,
         ),
@@ -121,7 +113,6 @@ class ItemRecipes {
           category: ItemCategory.clothing,
           clothingSlot: ClothingSlot.legs,
           woodCost: 120,
-          rarity: 2,
           iconEmoji: '👖',
           estimatedDays: 8,
         ),
@@ -132,7 +123,6 @@ class ItemRecipes {
           category: ItemCategory.clothing,
           clothingSlot: ClothingSlot.legs,
           woodCost: 400,
-          rarity: 3,
           iconEmoji: '🦿',
           estimatedDays: 27,
         ),
@@ -152,11 +142,6 @@ class ItemRecipes {
     return allItems
         .where((item) => item.clothingSlot == slot)
         .toList();
-  }
-
-  /// 등급별 아이템 조회
-  static List<ItemEntity> getItemsByRarity(int rarity) {
-    return allItems.where((item) => item.rarity == rarity).toList();
   }
 
   /// 가격순 정렬

@@ -189,9 +189,9 @@ class _CharacterPageState extends State<CharacterPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Color(item.rarityColorValue).withValues(alpha: 0.1),
+        color: Color(item.themeColorValue).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Color(item.rarityColorValue)),
+        border: Border.all(color: Color(item.themeColorValue)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -202,7 +202,7 @@ class _CharacterPageState extends State<CharacterPage> {
             item.name,
             style: TextStyle(
               fontSize: 12,
-              color: Color(item.rarityColorValue),
+              color: Color(item.themeColorValue),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -242,12 +242,12 @@ class _CharacterPageState extends State<CharacterPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: item != null
-            ? Color(item.rarityColorValue).withValues(alpha: 0.05)
+            ? Color(item.themeColorValue).withValues(alpha: 0.05)
             : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: item != null
-              ? Color(item.rarityColorValue).withValues(alpha: 0.3)
+              ? Color(item.themeColorValue).withValues(alpha: 0.3)
               : Colors.grey[300]!,
         ),
       ),

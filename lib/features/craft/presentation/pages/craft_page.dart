@@ -185,7 +185,7 @@ class _CraftPageState extends State<CraftPage>
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: Color(item.rarityColorValue).withValues(alpha: 0.1),
+                      color: Color(item.themeColorValue).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   child: Center(
@@ -208,35 +208,12 @@ class _CraftPageState extends State<CraftPage>
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Color(item.rarityColorValue),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              item.rarityName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            item.clothingSlot?.displayName ?? '',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        item.clothingSlot?.displayName ?? '',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
