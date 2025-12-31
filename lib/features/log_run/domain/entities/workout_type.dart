@@ -1,5 +1,5 @@
-/// 운동 타입
-enum WorkoutType {
+/// 챌린지 운동 타입
+enum ChallengeType {
   /// 달리기 (거리 기반)
   running,
 
@@ -7,68 +7,68 @@ enum WorkoutType {
   strengthTraining,
 }
 
-extension WorkoutTypeExtension on WorkoutType {
+extension ChallengeTypeExtension on ChallengeType {
   String get displayName {
     switch (this) {
-      case WorkoutType.running:
+      case ChallengeType.running:
         return '달리기';
-      case WorkoutType.strengthTraining:
+      case ChallengeType.strengthTraining:
         return '헬스';
     }
   }
 
   String get emoji {
     switch (this) {
-      case WorkoutType.running:
+      case ChallengeType.running:
         return '🏃';
-      case WorkoutType.strengthTraining:
+      case ChallengeType.strengthTraining:
         return '🏋️';
     }
   }
 
   String get currencyEmoji {
     switch (this) {
-      case WorkoutType.running:
+      case ChallengeType.running:
         return '🪵';
-      case WorkoutType.strengthTraining:
+      case ChallengeType.strengthTraining:
         return '🔩';
     }
   }
 
   String get currencyName {
     switch (this) {
-      case WorkoutType.running:
+      case ChallengeType.running:
         return '통나무';
-      case WorkoutType.strengthTraining:
+      case ChallengeType.strengthTraining:
         return '쇠';
     }
   }
 
   String get unitName {
     switch (this) {
-      case WorkoutType.running:
+      case ChallengeType.running:
         return 'km';
-      case WorkoutType.strengthTraining:
+      case ChallengeType.strengthTraining:
         return '점';
     }
   }
 
   String toFirestore() {
     switch (this) {
-      case WorkoutType.running:
+      case ChallengeType.running:
         return 'running';
-      case WorkoutType.strengthTraining:
+      case ChallengeType.strengthTraining:
         return 'strength_training';
     }
   }
 
-  static WorkoutType fromFirestore(String? value) {
+  static ChallengeType fromFirestore(String? value) {
     switch (value) {
       case 'strength_training':
-        return WorkoutType.strengthTraining;
+        return ChallengeType.strengthTraining;
       case 'running':
       default:
-        return WorkoutType.running;
+        return ChallengeType.running;
     }
   }
 }

@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 
 /// 통나무런 Repository 인터페이스
 abstract class LogRunRepository {
@@ -12,6 +13,7 @@ abstract class LogRunRepository {
     required double targetWeight,
     required DateTime challengeDate,
     int? maxParticipants,
+    ChallengeType challengeType = ChallengeType.running,
   });
 
   /// 챌린지 참가

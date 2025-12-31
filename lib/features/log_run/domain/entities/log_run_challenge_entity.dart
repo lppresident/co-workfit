@@ -11,8 +11,8 @@ class LogRunChallengeEntity extends Equatable {
   /// 생성자 ID (userId)
   final String createdBy;
 
-  /// 운동 타입 (달리기 or 헬스)
-  final WorkoutType workoutType;
+  /// 챌린지 운동 타입 (달리기 or 헬스)
+  final ChallengeType challengeType;
 
   /// 목표 통나무 무게 (kg) / 헬스 목표 점수
   final double targetWeight;
@@ -62,7 +62,7 @@ class LogRunChallengeEntity extends Equatable {
   const LogRunChallengeEntity({
     required this.id,
     required this.createdBy,
-    this.workoutType = WorkoutType.running,
+    this.challengeType = ChallengeType.running,
     required this.targetWeight,
     required this.targetDistance,
     required this.currentDistance,
@@ -127,22 +127,22 @@ class LogRunChallengeEntity extends Equatable {
   }
 
   /// 달리기 챌린지인지 확인
-  bool get isRunning => workoutType == WorkoutType.running;
+  bool get isRunning => challengeType == ChallengeType.running;
 
   /// 헬스 챌린지인지 확인
-  bool get isStrengthTraining => workoutType == WorkoutType.strengthTraining;
+  bool get isStrengthTraining => challengeType == ChallengeType.strengthTraining;
 
   /// 목표 단위 표시 (km or 점)
-  String get targetUnitDisplay => '${targetWeight.toStringAsFixed(0)}${workoutType.unitName}';
+  String get targetUnitDisplay => '${targetWeight.toStringAsFixed(0)}${challengeType.unitName}';
 
   /// 현재 진행 단위 표시
-  String get currentUnitDisplay => '${currentDistance.toStringAsFixed(1)}${workoutType.unitName}';
+  String get currentUnitDisplay => '${currentDistance.toStringAsFixed(1)}${challengeType.unitName}';
 
   @override
   List<Object?> get props => [
         id,
         createdBy,
-        workoutType,
+        challengeType,
         targetWeight,
         targetDistance,
         currentDistance,

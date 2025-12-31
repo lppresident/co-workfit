@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:co_workfit/features/log_run/data/models/log_run_challenge_model.dart';
 import 'package:co_workfit/features/log_run/data/models/log_run_contribution_model.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/core/utils/logger.dart';
@@ -20,6 +21,7 @@ class FirestoreLogRunDataSource {
     required double targetWeight,
     required DateTime challengeDate,
     int? maxParticipants,
+    ChallengeType challengeType = ChallengeType.running,
   }) async {
     final now = DateTime.now();
     final challengeRef = firestore.collection(_challengesCollection).doc();
@@ -53,6 +55,7 @@ class FirestoreLogRunDataSource {
     await challengeRef.set({
       'createdBy': userId,
       'creatorNickname': userNickname,
+      'challengeType': challengeType.toFirestore(),
       'targetWeight': targetWeight,
       'targetDistance': targetWeight,
       'currentDistance': 0.0,
