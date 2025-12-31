@@ -1,3 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
+import 'package:co_workfit/features/craft/domain/entities/item_entity.dart';
+import 'package:co_workfit/features/craft/domain/entities/item_recipes.dart';
 import 'package:co_workfit/features/craft/presentation/pages/craft_page.dart';
 import 'package:co_workfit/features/craft/presentation/pages/character_page.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
@@ -9,8 +15,56 @@ import 'package:co_workfit/features/wood/presentation/pages/settlement_history_p
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  EquippedItemsEntity? _equippedItems;
+  bool _isLoadingEquipped = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEquippedItems();
+  }
+
+  Future<void> _loadEquippedItems() async {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! Authenticated) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(authState.user.id)
+          .get();
+
+      if (doc.exists && doc.data()?['equippedItems'] != null) {
+        final data = doc.data()!['equippedItems'] as Map<String, dynamic>;
+        setState(() {
+          _equippedItems = EquippedItemsEntity(
+            headItemId: data['headItemId'] as String?,
+            bodyItemId: data['bodyItemId'] as String?,
+            legsItemId: data['legsItemId'] as String?,
+          );
+          _isLoadingEquipped = false;
+        });
+      } else {
+        setState(() {
+          _equippedItems = const EquippedItemsEntity();
+          _isLoadingEquipped = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _equippedItems = const EquippedItemsEntity();
+        _isLoadingEquipped = false;
+      });
+    }
+  }
 
   void _showEditNicknameDialog(BuildContext context, String currentNickname) {
     final TextEditingController controller =
@@ -93,20 +147,6 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('내 프로필'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.black87,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              // TODO: 설정 페이지로 이동
-            },
-          ),
-        ],
-      ),
       body: BlocBuilder<ProfileBloc, ProfileState>(
         builder: (context, state) {
           if (state is ProfileInitial || state is ProfileLoading) {
@@ -148,27 +188,38 @@ class ProfileScreen extends StatelessWidget {
             return RefreshIndicator(
               onRefresh: () async {
                 context.read<ProfileBloc>().add(FetchProfileData());
+                await _loadEquippedItems();
               },
-              child: SingleChildScrollView(
+              child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    // 프로필 헤더
-                    _buildProfileHeader(context, user),
+                slivers: [
+                  // 커스텀 앱바 with 캐릭터
+                  _buildSliverAppBar(context, user),
 
-                    const SizedBox(height: 24),
+                  // 콘텐츠
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 16),
 
-                    // 재화 섹션
-                    _buildResourcesSection(context),
+                        // 재화 섹션
+                        _buildResourcesSection(context),
 
-                    const SizedBox(height: 24),
+                        const SizedBox(height: 20),
 
-                    // 메뉴 섹션
-                    _buildMenuSection(context, user),
+                        // 빠른 액션 버튼
+                        _buildQuickActions(context),
 
-                    const SizedBox(height: 32),
-                  ],
-                ),
+                        const SizedBox(height: 20),
+
+                        // 메뉴 섹션
+                        _buildMenuSection(context, user),
+
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             );
           }
@@ -178,119 +229,176 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, dynamic user) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).primaryColor.withValues(alpha: 0.1),
-            Colors.white,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: Column(
-        children: [
-          // 프로필 이미지
-          Stack(
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).primaryColor,
-                      Theme.of(context).primaryColor.withValues(alpha: 0.7),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+  Widget _buildSliverAppBar(BuildContext context, dynamic user) {
+    final equipped = _equippedItems ?? const EquippedItemsEntity();
+    final headItem = equipped.headItemId != null
+        ? ItemRecipes.getItemById(equipped.headItemId!)
+        : null;
+    final bodyItem = equipped.bodyItemId != null
+        ? ItemRecipes.getItemById(equipped.bodyItemId!)
+        : null;
+    final legsItem = equipped.legsItemId != null
+        ? ItemRecipes.getItemById(equipped.legsItemId!)
+        : null;
+
+    return SliverAppBar(
+      expandedHeight: 280,
+      floating: false,
+      pinned: true,
+      backgroundColor: Colors.brown[400],
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.green[300]!,
+                Colors.brown[300]!,
+                Colors.brown[400]!,
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 40),
+                // 캐릭터 뷰
+                GestureDetector(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CharacterPage(),
+                      ),
+                    );
+                    _loadEquippedItems();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      children: [
+                        // 캐릭터 이모지
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const Text(
+                              '🧍',
+                              style: TextStyle(fontSize: 70),
+                            ),
+                            if (headItem != null)
+                              Positioned(
+                                top: 0,
+                                child: Text(
+                                  headItem.iconEmoji,
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                              ),
+                          ],
+                        ),
+                        // 장착 아이템 배지
+                        if (equipped.equippedCount > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              alignment: WrapAlignment.center,
+                              children: [
+                                if (headItem != null)
+                                  _buildMiniItemBadge(headItem),
+                                if (bodyItem != null)
+                                  _buildMiniItemBadge(bodyItem),
+                                if (legsItem != null)
+                                  _buildMiniItemBadge(legsItem),
+                              ],
+                            ),
+                          )
+                        else if (!_isLoadingEquipped)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              '탭하여 의상 장착하기',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+                ),
+                const SizedBox(height: 12),
+                // 닉네임
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      user.nickname,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _showEditNicknameDialog(context, user.nickname),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.edit,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                child: user.photoUrl != null
-                    ? ClipOval(
-                        child: Image.network(
-                          user.photoUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildDefaultAvatar(user),
-                        ),
-                      )
-                    : _buildDefaultAvatar(user),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.camera_alt,
-                    size: 18,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
+        ),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.settings_outlined, color: Colors.white),
+          onPressed: () {
+            // TODO: 설정 페이지
+          },
+        ),
+      ],
+    );
+  }
 
-          // 닉네임
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                user.nickname,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => _showEditNicknameDialog(context, user.nickname),
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Icon(
-                    Icons.edit,
-                    size: 16,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-
-          // 이메일
+  Widget _buildMiniItemBadge(ItemEntity item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(item.iconEmoji, style: const TextStyle(fontSize: 12)),
+          const SizedBox(width: 3),
           Text(
-            user.email,
+            item.name,
             style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Color(item.rarityColorValue),
             ),
           ),
         ],
@@ -298,14 +406,100 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDefaultAvatar(dynamic user) {
-    return Center(
-      child: Text(
-        user.nickname.isNotEmpty ? user.nickname[0].toUpperCase() : '?',
-        style: const TextStyle(
-          fontSize: 40,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
+  Widget _buildQuickActions(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildQuickActionButton(
+              context,
+              icon: Icons.handyman,
+              label: '제작소',
+              color: Colors.brown,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CraftPage()),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildQuickActionButton(
+              context,
+              icon: Icons.checkroom,
+              label: '내 캐릭터',
+              color: Colors.amber[700]!,
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CharacterPage()),
+                );
+                _loadEquippedItems();
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildQuickActionButton(
+              context,
+              icon: Icons.inventory_2_outlined,
+              label: '인벤토리',
+              color: Colors.teal,
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CharacterPage()),
+                );
+                _loadEquippedItems();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.1),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -314,179 +508,121 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildResourcesSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 12),
-            child: Text(
-              '내 재화',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
+      child: BlocBuilder<WoodBloc, WoodState>(
+        builder: (context, state) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ),
-          BlocBuilder<WoodBloc, WoodState>(
-            builder: (context, state) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+            child: Row(
+              children: [
+                // 통나무
+                Expanded(
+                  child: _buildResourceItem(
+                    emoji: '🪵',
+                    name: '통나무',
+                    amount: state.totalWood,
+                    color: const Color(0xFF8B4513),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SettlementHistoryPage(),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    // 통나무
-                    _buildResourceTile(
-                      context,
-                      emoji: '🪵',
-                      name: '통나무',
-                      amount: state.totalWood,
-                      lifetimeAmount: state.lifetimeEarned,
-                      color: const Color(0xFF8B4513),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SettlementHistoryPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(height: 1, color: Colors.grey[200]),
-                    // 철 (준비 중)
-                    _buildResourceTile(
-                      context,
-                      emoji: '🔩',
-                      name: '철',
-                      amount: 0,
-                      color: const Color(0xFF607D8B),
-                      comingSoon: true,
-                    ),
-                    Divider(height: 1, color: Colors.grey[200]),
-                    // 돌 (준비 중)
-                    _buildResourceTile(
-                      context,
-                      emoji: '🪨',
-                      name: '돌',
-                      amount: 0,
-                      color: const Color(0xFF78909C),
-                      comingSoon: true,
-                    ),
-                  ],
+                Container(
+                  width: 1,
+                  height: 50,
+                  color: Colors.grey[200],
                 ),
-              );
-            },
-          ),
-        ],
+                // 철 (준비 중)
+                Expanded(
+                  child: _buildResourceItem(
+                    emoji: '🔩',
+                    name: '철',
+                    amount: 0,
+                    color: const Color(0xFF607D8B),
+                    comingSoon: true,
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 50,
+                  color: Colors.grey[200],
+                ),
+                // 돌 (준비 중)
+                Expanded(
+                  child: _buildResourceItem(
+                    emoji: '🪨',
+                    name: '돌',
+                    amount: 0,
+                    color: const Color(0xFF78909C),
+                    comingSoon: true,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildResourceTile(
-    BuildContext context, {
+  Widget _buildResourceItem({
     required String emoji,
     required String name,
     required int amount,
-    int? lifetimeAmount,
     required Color color,
     bool comingSoon = false,
     VoidCallback? onTap,
   }) {
-    return InkWell(
+    return GestureDetector(
       onTap: comingSoon ? null : onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            // 아이콘
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 28)),
+          const SizedBox(height: 4),
+          Text(
+            comingSoon ? '-' : _formatNumber(amount),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: comingSoon ? Colors.grey[400] : color,
+            ),
+          ),
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+          if (comingSoon)
             Container(
-              width: 44,
-              height: 44,
+              margin: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(4),
               ),
-              child: Center(
-                child: Text(emoji, style: const TextStyle(fontSize: 24)),
-              ),
-            ),
-            const SizedBox(width: 16),
-            // 이름
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        name,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: comingSoon ? Colors.grey[400] : Colors.grey[800],
-                        ),
-                      ),
-                      if (comingSoon) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '준비중',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (lifetimeAmount != null && !comingSoon)
-                    Text(
-                      '총 획득: ${_formatNumber(lifetimeAmount)}개',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                ],
+              child: Text(
+                '준비중',
+                style: TextStyle(fontSize: 8, color: Colors.grey[500]),
               ),
             ),
-            // 수량
-            Text(
-              comingSoon ? '-' : _formatNumber(amount),
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: comingSoon ? Colors.grey[400] : color,
-              ),
-            ),
-            if (!comingSoon && onTap != null) ...[
-              const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right,
-                color: Colors.grey[400],
-              ),
-            ],
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -494,140 +630,62 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildMenuSection(BuildContext context, dynamic user) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 제작 & 캐릭터 섹션
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 12),
-            child: Text(
-              '제작 & 캐릭터',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+          ],
+        ),
+        child: Column(
+          children: [
+            _buildMenuItem(
+              icon: Icons.history,
+              iconColor: Colors.purple,
+              title: '정산 내역',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettlementHistoryPage(),
+                  ),
+                );
+              },
             ),
-            child: Column(
-              children: [
-                _buildMenuItem(
-                  icon: Icons.handyman,
-                  iconColor: Colors.brown,
-                  title: '제작소',
-                  subtitle: '통나무로 아이템 제작',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CraftPage(),
-                      ),
-                    );
-                  },
-                ),
-                Divider(height: 1, color: Colors.grey[200]),
-                _buildMenuItem(
-                  icon: Icons.person_outline,
-                  iconColor: Colors.amber,
-                  title: '내 캐릭터',
-                  subtitle: '의상 장착 및 관리',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CharacterPage(),
-                      ),
-                    );
-                  },
-                ),
-              ],
+            Divider(height: 1, color: Colors.grey[200]),
+            _buildMenuItem(
+              icon: Icons.notifications_outlined,
+              iconColor: Colors.blue,
+              title: '알림 설정',
+              onTap: () {
+                // TODO: 알림 설정
+              },
             ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // 설정 섹션
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 12),
-            child: Text(
-              '설정',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
+            Divider(height: 1, color: Colors.grey[200]),
+            _buildMenuItem(
+              icon: Icons.help_outline,
+              iconColor: Colors.teal,
+              title: '도움말',
+              onTap: () {
+                // TODO: 도움말
+              },
             ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+            Divider(height: 1, color: Colors.grey[200]),
+            _buildMenuItem(
+              icon: Icons.logout,
+              iconColor: Colors.red,
+              title: '로그아웃',
+              titleColor: Colors.red,
+              showArrow: false,
+              onTap: () => _showLogoutConfirmDialog(context),
             ),
-            child: Column(
-              children: [
-                _buildMenuItem(
-                  icon: Icons.history,
-                  iconColor: Colors.purple,
-                  title: '정산 내역',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SettlementHistoryPage(),
-                      ),
-                    );
-                  },
-                ),
-                Divider(height: 1, color: Colors.grey[200]),
-                _buildMenuItem(
-                  icon: Icons.notifications_outlined,
-                  iconColor: Colors.blue,
-                  title: '알림 설정',
-                  onTap: () {
-                    // TODO: 알림 설정
-                  },
-                ),
-                Divider(height: 1, color: Colors.grey[200]),
-                _buildMenuItem(
-                  icon: Icons.help_outline,
-                  iconColor: Colors.teal,
-                  title: '도움말',
-                  onTap: () {
-                    // TODO: 도움말
-                  },
-                ),
-                Divider(height: 1, color: Colors.grey[200]),
-                _buildMenuItem(
-                  icon: Icons.logout,
-                  iconColor: Colors.red,
-                  title: '로그아웃',
-                  titleColor: Colors.red,
-                  showArrow: false,
-                  onTap: () => _showLogoutConfirmDialog(context),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
