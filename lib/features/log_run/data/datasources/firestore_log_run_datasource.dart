@@ -5,7 +5,6 @@ import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_en
 import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/core/utils/logger.dart';
-import 'package:co_workfit/core/config/firebase_config.dart';
 
 class FirestoreLogRunDataSource {
   final FirebaseFirestore firestore;

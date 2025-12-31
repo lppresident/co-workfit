@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:co_workfit/core/utils/logger.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/wood/data/models/wood_settlement_model.dart';
 import 'package:co_workfit/features/wood/data/models/wood_summary_model.dart';
 import 'package:co_workfit/features/wood/domain/entities/wood_reward_constants.dart';

@@ -193,8 +193,6 @@ class SocialRepositoryImpl implements SocialRepository {
               displayName: data['displayName'] as String,
               nickname: data['nickname'] as String? ?? data['email'].toString().split('@')[0],
               photoUrl: data['photoUrl'] as String?,
-              totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
-              workoutCount: (data['workoutCount'] as num?)?.toInt() ?? 0,
               createdAt: data['createdAt'] is Timestamp
                   ? (data['createdAt'] as Timestamp).toDate()
                   : DateTime.parse(data['createdAt'] as String),

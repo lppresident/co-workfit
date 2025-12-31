@@ -251,8 +251,6 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
               friendName: acceptedRequest.senderName,
               friendEmail: acceptedRequest.senderEmail,
               friendPhotoUrl: acceptedRequest.senderPhotoUrl,
-              friendTotalScore: 0, // 초기값, 새로고침 시 업데이트됨
-              friendWorkoutCount: 0,
             );
             updatedFriends.insert(0, newFriend); // 맨 앞에 추가
           }
