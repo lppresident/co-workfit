@@ -73,21 +73,39 @@ class ItemSpriteData {
 
 /// 스프라이트 타입
 enum SpriteType {
-  // 머리 아이템
+  // === 통나무 아이템 (달리기) ===
+  // 머리
   leafBand,      // 나뭇잎 머리띠
   woodHat,       // 나무 모자
   logCrown,      // 통나무 왕관
   goldenCrown,   // 황금 통나무 왕관
   
-  // 상체 아이템
+  // 상체
   woodTshirt,    // 나무 티셔츠
   forestVest,    // 숲의 조끼
   ancientArmor,  // 고대 나무 갑옷
   
-  // 하체 아이템
+  // 하체
   woodShorts,    // 나무 반바지
   forestPants,   // 숲의 바지
   ancientGreaves, // 고대 나무 각반
+  
+  // === 쇠 아이템 (헬스) ===
+  // 머리
+  ironHeadband,     // 철 머리띠
+  steelHelmet,      // 강철 헬멧
+  warriorHelm,      // 전사의 투구
+  championCrown,    // 챔피언 왕관
+  
+  // 상체
+  ironTankTop,      // 철 탱크탑
+  chainMail,        // 쇠사슬 갑옷
+  plateArmor,       // 강철 판금 갑옷
+  
+  // 하체
+  ironGymShorts,    // 철 운동 반바지
+  ironTrainingPants,// 강철 트레이닝 바지
+  warriorGreaves,   // 전사의 정강이 받침
 }
 
 /// 아이템 스프라이트 레지스트리
@@ -176,6 +194,93 @@ class ItemSpriteRegistry {
       secondaryColor: Color(0xFF795548),
       accentColor: Color(0xFFFFD700), // 금색 장식
       spriteType: SpriteType.ancientGreaves,
+    ),
+    
+    // === 쇠 아이템 (헬스) ===
+    
+    // 머리 아이템
+    'iron_head_band': const ItemSpriteData(
+      itemId: 'iron_head_band',
+      slot: ClothingSlot.head,
+      primaryColor: Color(0xFF607D8B), // 청회색
+      secondaryColor: Color(0xFF78909C),
+      spriteType: SpriteType.ironHeadband,
+    ),
+    'iron_steel_helmet': const ItemSpriteData(
+      itemId: 'iron_steel_helmet',
+      slot: ClothingSlot.head,
+      primaryColor: Color(0xFF546E7A), // 진한 청회색
+      secondaryColor: Color(0xFF78909C),
+      accentColor: Color(0xFFB0BEC5), // 하이라이트
+      spriteType: SpriteType.steelHelmet,
+    ),
+    'iron_warrior_helm': const ItemSpriteData(
+      itemId: 'iron_warrior_helm',
+      slot: ClothingSlot.head,
+      primaryColor: Color(0xFF455A64), // 진한 강철
+      secondaryColor: Color(0xFF607D8B),
+      accentColor: Color(0xFFE53935), // 빨간 깃털
+      spriteType: SpriteType.warriorHelm,
+    ),
+    'iron_champion_crown': const ItemSpriteData(
+      itemId: 'iron_champion_crown',
+      slot: ClothingSlot.head,
+      primaryColor: Color(0xFFFFD700), // 금색
+      secondaryColor: Color(0xFF455A64),
+      accentColor: Color(0xFFE91E63), // 핑크 보석
+      spriteType: SpriteType.championCrown,
+    ),
+    
+    // 상체 아이템
+    'iron_tank_top': const ItemSpriteData(
+      itemId: 'iron_tank_top',
+      slot: ClothingSlot.body,
+      primaryColor: Color(0xFF37474F), // 진한 회색
+      secondaryColor: Color(0xFF546E7A),
+      accentColor: Color(0xFFE53935), // 빨간 라인
+      spriteType: SpriteType.ironTankTop,
+    ),
+    'iron_chain_mail': const ItemSpriteData(
+      itemId: 'iron_chain_mail',
+      slot: ClothingSlot.body,
+      primaryColor: Color(0xFF78909C), // 은색
+      secondaryColor: Color(0xFF546E7A),
+      accentColor: Color(0xFFB0BEC5), // 반짝임
+      spriteType: SpriteType.chainMail,
+    ),
+    'iron_plate_armor': const ItemSpriteData(
+      itemId: 'iron_plate_armor',
+      slot: ClothingSlot.body,
+      primaryColor: Color(0xFF455A64), // 진한 강철
+      secondaryColor: Color(0xFF263238),
+      accentColor: Color(0xFFFFD700), // 금색 장식
+      spriteType: SpriteType.plateArmor,
+    ),
+    
+    // 하체 아이템
+    'iron_gym_shorts': const ItemSpriteData(
+      itemId: 'iron_gym_shorts',
+      slot: ClothingSlot.legs,
+      primaryColor: Color(0xFF37474F), // 진한 회색
+      secondaryColor: Color(0xFF546E7A),
+      accentColor: Color(0xFFE53935), // 빨간 라인
+      spriteType: SpriteType.ironGymShorts,
+    ),
+    'iron_training_pants': const ItemSpriteData(
+      itemId: 'iron_training_pants',
+      slot: ClothingSlot.legs,
+      primaryColor: Color(0xFF455A64), // 회색
+      secondaryColor: Color(0xFF37474F),
+      accentColor: Color(0xFF1E88E5), // 파란 라인
+      spriteType: SpriteType.ironTrainingPants,
+    ),
+    'iron_warrior_greaves': const ItemSpriteData(
+      itemId: 'iron_warrior_greaves',
+      slot: ClothingSlot.legs,
+      primaryColor: Color(0xFF455A64), // 강철
+      secondaryColor: Color(0xFF263238),
+      accentColor: Color(0xFFFFD700), // 금색 장식
+      spriteType: SpriteType.warriorGreaves,
     ),
   };
 

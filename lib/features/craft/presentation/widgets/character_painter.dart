@@ -187,6 +187,7 @@ class CharacterPainter extends CustomPainter {
     }
 
     switch (spriteData.spriteType) {
+      // 통나무 상체 아이템
       case SpriteType.woodTshirt:
         _drawWoodTshirt(canvas, offsetX, offsetY, spriteData);
         break;
@@ -195,6 +196,16 @@ class CharacterPainter extends CustomPainter {
         break;
       case SpriteType.ancientArmor:
         _drawAncientArmor(canvas, offsetX, offsetY, spriteData);
+        break;
+      // 쇠 상체 아이템
+      case SpriteType.ironTankTop:
+        _drawIronTankTop(canvas, offsetX, offsetY, spriteData);
+        break;
+      case SpriteType.chainMail:
+        _drawChainMail(canvas, offsetX, offsetY, spriteData);
+        break;
+      case SpriteType.plateArmor:
+        _drawPlateArmor(canvas, offsetX, offsetY, spriteData);
         break;
       default:
         _drawDefaultBody(canvas, offsetX, offsetY);
@@ -374,6 +385,171 @@ class CharacterPainter extends CustomPainter {
     }
   }
 
+  // ========== 쇠 상체 아이템 ==========
+
+  /// 철 탱크탑
+  void _drawIronTankTop(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.2);
+    final accent = Paint()..color = data.accentColor ?? const Color(0xFFE53935);
+    final skinPaint = Paint()..color = sprite.skinColor;
+    final skinShadow = Paint()..color = _darken(sprite.skinColor, 0.15);
+    
+    // 탱크탑 몸통
+    for (int y = 19; y <= 32; y++) {
+      for (int x = 10; x <= 21; x++) {
+        Paint paint = primary;
+        if (x <= 11 || x >= 20) paint = secondary;
+        // 사이드 라인
+        if (x == 10 || x == 21) paint = accent;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 어깨 부분 (피부 노출)
+    for (int y = 19; y <= 20; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 9, y, skinPaint);
+      _drawPixel(canvas, offsetX, offsetY, 22, y, skinPaint);
+    }
+    
+    // 팔 (피부)
+    for (int y = 19; y <= 30; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 6, y, skinPaint);
+      _drawPixel(canvas, offsetX, offsetY, 7, y, skinShadow);
+      _drawPixel(canvas, offsetX, offsetY, 8, y, y <= 21 ? skinShadow : primary);
+      _drawPixel(canvas, offsetX, offsetY, 23, y, y <= 21 ? skinShadow : secondary);
+      _drawPixel(canvas, offsetX, offsetY, 24, y, skinShadow);
+      _drawPixel(canvas, offsetX, offsetY, 25, y, skinPaint);
+    }
+    
+    // 로고 (덤벨 아이콘)
+    final logoPaint = Paint()..color = const Color(0xFF90A4AE);
+    _drawPixel(canvas, offsetX, offsetY, 14, 24, logoPaint);
+    _drawPixel(canvas, offsetX, offsetY, 15, 24, logoPaint);
+    _drawPixel(canvas, offsetX, offsetY, 16, 24, logoPaint);
+    _drawPixel(canvas, offsetX, offsetY, 17, 24, logoPaint);
+    _drawPixel(canvas, offsetX, offsetY, 14, 23, logoPaint);
+    _drawPixel(canvas, offsetX, offsetY, 14, 25, logoPaint);
+    _drawPixel(canvas, offsetX, offsetY, 17, 23, logoPaint);
+    _drawPixel(canvas, offsetX, offsetY, 17, 25, logoPaint);
+  }
+
+  /// 쇠사슬 갑옷
+  void _drawChainMail(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.15);
+    final highlight = Paint()..color = data.accentColor ?? _lighten(data.primaryColor, 0.2);
+    
+    // 쇠사슬 패턴 몸통
+    for (int y = 19; y <= 32; y++) {
+      for (int x = 8; x <= 23; x++) {
+        // 체인 패턴 (체크 무늬)
+        Paint paint;
+        if ((x + y) % 2 == 0) {
+          paint = primary;
+        } else {
+          paint = secondary;
+        }
+        // 하이라이트
+        if (x >= 18 && y <= 23 && (x + y) % 3 == 0) {
+          paint = highlight;
+        }
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 목 부분 체인
+    for (int x = 13; x <= 18; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 18, highlight);
+    }
+    
+    // 팔
+    for (int y = 19; y <= 30; y++) {
+      final paint = (y % 2 == 0) ? primary : secondary;
+      final paintAlt = (y % 2 == 0) ? secondary : primary;
+      _drawPixel(canvas, offsetX, offsetY, 6, y, paint);
+      _drawPixel(canvas, offsetX, offsetY, 7, y, paintAlt);
+      _drawPixel(canvas, offsetX, offsetY, 24, y, paintAlt);
+      _drawPixel(canvas, offsetX, offsetY, 25, y, paint);
+    }
+    
+    // 허리 벨트
+    final belt = Paint()..color = const Color(0xFF5D4037);
+    for (int x = 9; x <= 22; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 30, belt);
+    }
+    // 버클
+    _drawPixel(canvas, offsetX, offsetY, 15, 30, Paint()..color = const Color(0xFFFFD700));
+    _drawPixel(canvas, offsetX, offsetY, 16, 30, Paint()..color = const Color(0xFFFFD700));
+  }
+
+  /// 강철 판금 갑옷
+  void _drawPlateArmor(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.25);
+    final highlight = Paint()..color = _lighten(data.primaryColor, 0.2);
+    final gold = Paint()..color = data.accentColor ?? const Color(0xFFFFD700);
+    
+    // 갑옷 본체
+    for (int y = 19; y <= 32; y++) {
+      for (int x = 8; x <= 23; x++) {
+        Paint paint = primary;
+        // 판금 라인
+        if (y == 19 || y == 24 || y == 29 || y == 32) paint = secondary;
+        if (x == 8 || x == 23) paint = secondary;
+        // 하이라이트
+        if (x >= 19 && x <= 21 && y >= 20 && y <= 23) paint = highlight;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 금색 장식 라인
+    for (int x = 9; x <= 22; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 22, gold);
+      _drawPixel(canvas, offsetX, offsetY, x, 27, gold);
+    }
+    
+    // 중앙 문양 (방패)
+    _drawPixel(canvas, offsetX, offsetY, 15, 23, gold);
+    _drawPixel(canvas, offsetX, offsetY, 16, 23, gold);
+    _drawPixel(canvas, offsetX, offsetY, 14, 24, gold);
+    _drawPixel(canvas, offsetX, offsetY, 15, 24, highlight);
+    _drawPixel(canvas, offsetX, offsetY, 16, 24, highlight);
+    _drawPixel(canvas, offsetX, offsetY, 17, 24, gold);
+    _drawPixel(canvas, offsetX, offsetY, 15, 25, gold);
+    _drawPixel(canvas, offsetX, offsetY, 16, 25, gold);
+    
+    // 대형 어깨 보호대
+    for (int y = 16; y <= 22; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 3, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 4, y, primary);
+      _drawPixel(canvas, offsetX, offsetY, 5, y, primary);
+      _drawPixel(canvas, offsetX, offsetY, 6, y, highlight);
+      _drawPixel(canvas, offsetX, offsetY, 7, y, secondary);
+      
+      _drawPixel(canvas, offsetX, offsetY, 24, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 25, y, highlight);
+      _drawPixel(canvas, offsetX, offsetY, 26, y, primary);
+      _drawPixel(canvas, offsetX, offsetY, 27, y, primary);
+      _drawPixel(canvas, offsetX, offsetY, 28, y, secondary);
+    }
+    // 어깨 장식
+    _drawPixel(canvas, offsetX, offsetY, 4, 15, gold);
+    _drawPixel(canvas, offsetX, offsetY, 5, 15, gold);
+    _drawPixel(canvas, offsetX, offsetY, 26, 15, gold);
+    _drawPixel(canvas, offsetX, offsetY, 27, 15, gold);
+    
+    // 팔 갑옷
+    for (int y = 23; y <= 30; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 5, y, primary);
+      _drawPixel(canvas, offsetX, offsetY, 6, y, highlight);
+      _drawPixel(canvas, offsetX, offsetY, 7, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 24, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 25, y, highlight);
+      _drawPixel(canvas, offsetX, offsetY, 26, y, primary);
+    }
+  }
+
   /// 하체 의상 그리기
   void _drawLegs(Canvas canvas, double offsetX, double offsetY) {
     final itemId = sprite.legsItemId;
@@ -389,6 +565,7 @@ class CharacterPainter extends CustomPainter {
     }
 
     switch (spriteData.spriteType) {
+      // 통나무 하체 아이템
       case SpriteType.woodShorts:
         _drawWoodShorts(canvas, offsetX, offsetY, spriteData);
         break;
@@ -397,6 +574,16 @@ class CharacterPainter extends CustomPainter {
         break;
       case SpriteType.ancientGreaves:
         _drawAncientGreaves(canvas, offsetX, offsetY, spriteData);
+        break;
+      // 쇠 하체 아이템
+      case SpriteType.ironGymShorts:
+        _drawIronGymShorts(canvas, offsetX, offsetY, spriteData);
+        break;
+      case SpriteType.ironTrainingPants:
+        _drawIronTrainingPants(canvas, offsetX, offsetY, spriteData);
+        break;
+      case SpriteType.warriorGreaves:
+        _drawWarriorGreaves(canvas, offsetX, offsetY, spriteData);
         break;
       default:
         _drawDefaultLegs(canvas, offsetX, offsetY);
@@ -586,6 +773,186 @@ class CharacterPainter extends CustomPainter {
     _drawPixel(canvas, offsetX, offsetY, 20, 43, accent);
   }
 
+  // ========== 쇠 하체 아이템 ==========
+
+  /// 철 운동 반바지
+  void _drawIronGymShorts(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.2);
+    final accent = Paint()..color = data.accentColor ?? const Color(0xFFE53935);
+    final skinPaint = Paint()..color = sprite.skinColor;
+    final skinShadow = Paint()..color = _darken(sprite.skinColor, 0.15);
+    final shoePrimary = Paint()..color = const Color(0xFFE0E0E0);
+    final shoeShadow = Paint()..color = const Color(0xFF9E9E9E);
+    final shoeAccent = Paint()..color = const Color(0xFFE53935);
+    
+    // 운동 반바지
+    for (int y = 33; y <= 38; y++) {
+      // 왼쪽
+      for (int x = 10; x <= 14; x++) {
+        Paint paint = primary;
+        if (x == 10) paint = accent; // 사이드 라인
+        if (x == 14) paint = secondary; // 안쪽 그림자
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+      // 오른쪽
+      for (int x = 17; x <= 21; x++) {
+        Paint paint = primary;
+        if (x == 21) paint = accent; // 사이드 라인
+        if (x == 17) paint = secondary; // 안쪽 그림자
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 다리 (피부)
+    for (int y = 39; y <= 42; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 11, y, skinPaint);
+      _drawPixel(canvas, offsetX, offsetY, 12, y, skinPaint);
+      _drawPixel(canvas, offsetX, offsetY, 13, y, skinShadow);
+      _drawPixel(canvas, offsetX, offsetY, 18, y, skinShadow);
+      _drawPixel(canvas, offsetX, offsetY, 19, y, skinPaint);
+      _drawPixel(canvas, offsetX, offsetY, 20, y, skinPaint);
+    }
+    
+    // 운동화
+    for (int y = 43; y <= 45; y++) {
+      for (int x = 9; x <= 15; x++) {
+        Paint paint = shoePrimary;
+        if (y == 45) paint = shoeShadow;
+        if (x == 12 || x == 13) paint = shoeAccent;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+      for (int x = 16; x <= 22; x++) {
+        Paint paint = shoePrimary;
+        if (y == 45) paint = shoeShadow;
+        if (x == 18 || x == 19) paint = shoeAccent;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+  }
+
+  /// 강철 트레이닝 바지
+  void _drawIronTrainingPants(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.15);
+    final accent = Paint()..color = data.accentColor ?? const Color(0xFF1E88E5);
+    final shoePrimary = Paint()..color = const Color(0xFF212121);
+    final shoeShadow = Paint()..color = const Color(0xFF000000);
+    final shoeWhite = Paint()..color = Colors.white;
+    
+    // 트레이닝 바지
+    for (int y = 33; y <= 42; y++) {
+      // 왼쪽 다리
+      for (int x = 10; x <= 14; x++) {
+        Paint paint = primary;
+        if (x == 10) paint = secondary;
+        // 사이드 라인
+        if (x == 11 && y >= 35) paint = accent;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+      // 오른쪽 다리
+      for (int x = 17; x <= 21; x++) {
+        Paint paint = primary;
+        if (x == 21) paint = secondary;
+        // 사이드 라인
+        if (x == 20 && y >= 35) paint = accent;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 허리 밴드
+    for (int x = 10; x <= 21; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 33, secondary);
+    }
+    
+    // 무릎 부분 강조
+    for (int x = 11; x <= 13; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 38, secondary);
+    }
+    for (int x = 18; x <= 20; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 38, secondary);
+    }
+    
+    // 운동화
+    for (int y = 43; y <= 45; y++) {
+      for (int x = 8; x <= 15; x++) {
+        Paint paint = shoePrimary;
+        if (y == 45) paint = shoeShadow;
+        if (y == 43 && x >= 10 && x <= 14) paint = shoeWhite;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+      for (int x = 16; x <= 23; x++) {
+        Paint paint = shoePrimary;
+        if (y == 45) paint = shoeShadow;
+        if (y == 43 && x >= 17 && x <= 21) paint = shoeWhite;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+  }
+
+  /// 전사의 정강이 받침
+  void _drawWarriorGreaves(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.25);
+    final highlight = Paint()..color = _lighten(data.primaryColor, 0.15);
+    final gold = Paint()..color = data.accentColor ?? const Color(0xFFFFD700);
+    final bootPrimary = Paint()..color = const Color(0xFF37474F);
+    final bootShadow = Paint()..color = const Color(0xFF263238);
+    
+    // 갑옷 바지
+    for (int y = 33; y <= 42; y++) {
+      // 왼쪽 다리
+      for (int x = 9; x <= 15; x++) {
+        Paint paint = primary;
+        if (x == 9 || x == 15) paint = secondary;
+        // 판금 라인
+        if (y == 35 || y == 39) paint = secondary;
+        // 하이라이트
+        if (x == 13 && y >= 36 && y <= 38) paint = highlight;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+      // 오른쪽 다리
+      for (int x = 16; x <= 22; x++) {
+        Paint paint = primary;
+        if (x == 16 || x == 22) paint = secondary;
+        if (y == 35 || y == 39) paint = secondary;
+        if (x == 18 && y >= 36 && y <= 38) paint = highlight;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 무릎 보호대 (금색)
+    for (int y = 36; y <= 38; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 11, y, gold);
+      _drawPixel(canvas, offsetX, offsetY, 12, y, gold);
+      _drawPixel(canvas, offsetX, offsetY, 19, y, gold);
+      _drawPixel(canvas, offsetX, offsetY, 20, y, gold);
+    }
+    
+    // 금속 부츠
+    for (int y = 43; y <= 45; y++) {
+      for (int x = 7; x <= 15; x++) {
+        Paint paint = bootPrimary;
+        if (y == 45) paint = bootShadow;
+        if (x == 7 || x == 15) paint = secondary;
+        // 금속 하이라이트
+        if (y == 43 && x >= 10 && x <= 13) paint = highlight;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+      for (int x = 16; x <= 24; x++) {
+        Paint paint = bootPrimary;
+        if (y == 45) paint = bootShadow;
+        if (x == 16 || x == 24) paint = secondary;
+        if (y == 43 && x >= 18 && x <= 21) paint = highlight;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 부츠 장식
+    _drawPixel(canvas, offsetX, offsetY, 11, 43, gold);
+    _drawPixel(canvas, offsetX, offsetY, 20, 43, gold);
+  }
+
   /// 머리 장식 그리기
   void _drawHead(Canvas canvas, double offsetX, double offsetY) {
     final itemId = sprite.headItemId;
@@ -595,6 +962,7 @@ class CharacterPainter extends CustomPainter {
     if (spriteData == null) return;
 
     switch (spriteData.spriteType) {
+      // 통나무 머리 아이템
       case SpriteType.leafBand:
         _drawLeafBand(canvas, offsetX, offsetY, spriteData);
         break;
@@ -606,6 +974,19 @@ class CharacterPainter extends CustomPainter {
         break;
       case SpriteType.goldenCrown:
         _drawGoldenCrown(canvas, offsetX, offsetY, spriteData);
+        break;
+      // 쇠 머리 아이템
+      case SpriteType.ironHeadband:
+        _drawIronHeadband(canvas, offsetX, offsetY, spriteData);
+        break;
+      case SpriteType.steelHelmet:
+        _drawSteelHelmet(canvas, offsetX, offsetY, spriteData);
+        break;
+      case SpriteType.warriorHelm:
+        _drawWarriorHelm(canvas, offsetX, offsetY, spriteData);
+        break;
+      case SpriteType.championCrown:
+        _drawChampionCrown(canvas, offsetX, offsetY, spriteData);
         break;
       default:
         break;
@@ -750,6 +1131,186 @@ class CharacterPainter extends CustomPainter {
     // 하단 장식
     for (int x = 8; x <= 23; x += 3) {
       _drawPixel(canvas, offsetX, offsetY, x, 4, shine);
+    }
+  }
+
+  // ========== 쇠 머리 아이템 ==========
+
+  /// 철 머리띠
+  void _drawIronHeadband(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final highlight = Paint()..color = _lighten(data.primaryColor, 0.2);
+    final shadow = Paint()..color = _darken(data.primaryColor, 0.15);
+    
+    // 메탈 밴드
+    for (int x = 7; x <= 24; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 4, primary);
+      // 메탈릭 하이라이트
+      if (x >= 14 && x <= 18) {
+        _drawPixel(canvas, offsetX, offsetY, x, 4, highlight);
+      }
+    }
+    for (int x = 8; x <= 23; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 5, shadow);
+    }
+    
+    // 중앙 기어 장식
+    _drawPixel(canvas, offsetX, offsetY, 15, 3, primary);
+    _drawPixel(canvas, offsetX, offsetY, 16, 3, primary);
+    _drawPixel(canvas, offsetX, offsetY, 14, 4, highlight);
+    _drawPixel(canvas, offsetX, offsetY, 17, 4, highlight);
+    
+    // 사이드 볼트
+    _drawPixel(canvas, offsetX, offsetY, 10, 4, highlight);
+    _drawPixel(canvas, offsetX, offsetY, 21, 4, highlight);
+  }
+
+  /// 강철 헬멧
+  void _drawSteelHelmet(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.2);
+    final highlight = Paint()..color = data.accentColor ?? _lighten(data.primaryColor, 0.25);
+    
+    // 헬멧 돔
+    for (int y = 0; y <= 4; y++) {
+      int startX = 10, endX = 21;
+      if (y == 0) { startX = 13; endX = 18; }
+      if (y == 1) { startX = 11; endX = 20; }
+      if (y == 2) { startX = 10; endX = 21; }
+      
+      for (int x = startX; x <= endX; x++) {
+        Paint paint = primary;
+        // 하이라이트 (왼쪽 상단)
+        if (x >= startX && x <= startX + 2 && y <= 2) paint = highlight;
+        // 그림자 (오른쪽)
+        if (x >= endX - 1) paint = secondary;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 얼굴 가리개 (T자)
+    for (int y = 5; y <= 8; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 15, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 16, y, secondary);
+    }
+    
+    // 볼 가드
+    for (int y = 6; y <= 10; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 8, y, primary);
+      _drawPixel(canvas, offsetX, offsetY, 9, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 22, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 23, y, primary);
+    }
+    
+    // 리벳 장식
+    _drawPixel(canvas, offsetX, offsetY, 12, 4, highlight);
+    _drawPixel(canvas, offsetX, offsetY, 19, 4, highlight);
+  }
+
+  /// 전사의 투구
+  void _drawWarriorHelm(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.2);
+    final feather = Paint()..color = data.accentColor ?? const Color(0xFFE53935);
+    final gold = Paint()..color = const Color(0xFFFFD700);
+    
+    // 헬멧 본체
+    for (int y = 1; y <= 5; y++) {
+      int startX = 9, endX = 22;
+      if (y == 1) { startX = 11; endX = 20; }
+      if (y == 2) { startX = 10; endX = 21; }
+      
+      for (int x = startX; x <= endX; x++) {
+        Paint paint = primary;
+        if (x >= endX - 2) paint = secondary;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 뿔/깃털 장식 (중앙)
+    for (int y = -3; y <= 0; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 15, y, feather);
+      _drawPixel(canvas, offsetX, offsetY, 16, y, feather);
+    }
+    _drawPixel(canvas, offsetX, offsetY, 14, -1, feather);
+    _drawPixel(canvas, offsetX, offsetY, 17, -1, feather);
+    _drawPixel(canvas, offsetX, offsetY, 14, 0, feather);
+    _drawPixel(canvas, offsetX, offsetY, 17, 0, feather);
+    
+    // 페이스 가드
+    for (int y = 6; y <= 12; y++) {
+      if (y <= 8) {
+        _drawPixel(canvas, offsetX, offsetY, 15, y, secondary);
+        _drawPixel(canvas, offsetX, offsetY, 16, y, secondary);
+      }
+      // 사이드 가드
+      _drawPixel(canvas, offsetX, offsetY, 7, y, primary);
+      _drawPixel(canvas, offsetX, offsetY, 8, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 23, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 24, y, primary);
+    }
+    
+    // 금색 테두리
+    for (int x = 10; x <= 21; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 5, gold);
+    }
+    
+    // 볼트
+    _drawPixel(canvas, offsetX, offsetY, 8, 7, gold);
+    _drawPixel(canvas, offsetX, offsetY, 23, 7, gold);
+  }
+
+  /// 챔피언 왕관
+  void _drawChampionCrown(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final gold = Paint()..color = data.primaryColor;
+    final steel = Paint()..color = data.secondaryColor ?? const Color(0xFF455A64);
+    final shine = Paint()..color = _lighten(data.primaryColor, 0.3);
+    final gem = Paint()..color = data.accentColor ?? const Color(0xFFE91E63);
+    final diamond = Paint()..color = const Color(0xFF81D4FA);
+    
+    // 강철 베이스
+    for (int x = 7; x <= 24; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 4, steel);
+      _drawPixel(canvas, offsetX, offsetY, x, 5, steel);
+    }
+    
+    // 금색 왕관
+    for (int x = 8; x <= 23; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 2, gold);
+      _drawPixel(canvas, offsetX, offsetY, x, 3, gold);
+    }
+    
+    // 왕관 뾰족 (5개, 다양한 높이)
+    final spikes = [10, 13, 16, 19, 22];
+    final heights = [2, 3, 4, 3, 2];
+    for (int i = 0; i < spikes.length; i++) {
+      final sx = spikes[i];
+      for (int h = 0; h < heights[i]; h++) {
+        _drawPixel(canvas, offsetX, offsetY, sx - 1, 1 - h, gold);
+        _drawPixel(canvas, offsetX, offsetY, sx, 1 - h, shine);
+        _drawPixel(canvas, offsetX, offsetY, sx + 1, 1 - h, gold);
+      }
+    }
+    
+    // 중앙 다이아몬드
+    _drawPixel(canvas, offsetX, offsetY, 15, -2, diamond);
+    _drawPixel(canvas, offsetX, offsetY, 16, -2, diamond);
+    _drawPixel(canvas, offsetX, offsetY, 15, -1, diamond);
+    _drawPixel(canvas, offsetX, offsetY, 16, -1, diamond);
+    _drawPixel(canvas, offsetX, offsetY, 17, -2, Paint()..color = Colors.white.withValues(alpha: 0.7));
+    
+    // 사이드 보석
+    _drawPixel(canvas, offsetX, offsetY, 10, 0, gem);
+    _drawPixel(canvas, offsetX, offsetY, 22, 0, gem);
+    _drawPixel(canvas, offsetX, offsetY, 10, 3, gem);
+    _drawPixel(canvas, offsetX, offsetY, 22, 3, gem);
+    
+    // 트로피 느낌 날개 장식
+    for (int y = 3; y <= 5; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 5, y, gold);
+      _drawPixel(canvas, offsetX, offsetY, 6, y, shine);
+      _drawPixel(canvas, offsetX, offsetY, 25, y, shine);
+      _drawPixel(canvas, offsetX, offsetY, 26, y, gold);
     }
   }
 
