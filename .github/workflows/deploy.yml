@@ -309,54 +309,23 @@ jobs:
           cd ios
           bundle install --path vendor/bundle
 
-      - name: Setup Fastlane Match
+      - name: Build and Upload to TestFlight
         env:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
-        run: |
-          cd ios
-          bundle exec fastlane match appstore --readonly
-
-      - name: Build iOS
-        run: |
-          cd ios
-          flutter build ios --release --no-codesign
-          xcodebuild -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -sdk iphoneos \
-            -configuration Release \
-            -archivePath build/Runner.xcarchive \
-            archive \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.PROVISIONING_PROFILE_NAME }}"
-
-      - name: Export IPA
-        run: |
-          cd ios
-          xcodebuild -exportArchive \
-            -archivePath build/Runner.xcarchive \
-            -exportPath build/ipa \
-            -exportOptionsPlist ExportOptions-AppStore.plist
-
-      - name: Upload to TestFlight
-        env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          bundle exec fastlane pilot upload \
-            --ipa build/ipa/Runner.ipa \
-            --skip_waiting_for_build_processing true \
-            --changelog "${{ github.event.inputs.release_notes }}"
+          bundle exec fastlane beta changelog:"${{ github.event.inputs.release_notes }}"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa-self-hosted
-          path: ios/build/ipa/Runner.ipa
+          path: build/ios/ipa/co_workfit.ipa
           retention-days: 7
 
       - name: Mark success
@@ -403,54 +372,23 @@ jobs:
           bundler-cache: true
           working-directory: ios
 
-      - name: Setup Fastlane Match
+      - name: Build and Upload to TestFlight
         env:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
-        run: |
-          cd ios
-          bundle exec fastlane match appstore --readonly
-
-      - name: Build iOS
-        run: |
-          cd ios
-          flutter build ios --release --no-codesign
-          xcodebuild -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -sdk iphoneos \
-            -configuration Release \
-            -archivePath build/Runner.xcarchive \
-            archive \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.PROVISIONING_PROFILE_NAME }}"
-
-      - name: Export IPA
-        run: |
-          cd ios
-          xcodebuild -exportArchive \
-            -archivePath build/Runner.xcarchive \
-            -exportPath build/ipa \
-            -exportOptionsPlist ExportOptions-AppStore.plist
-
-      - name: Upload to TestFlight
-        env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          bundle exec fastlane pilot upload \
-            --ipa build/ipa/Runner.ipa \
-            --skip_waiting_for_build_processing true \
-            --changelog "${{ github.event.inputs.release_notes }} (Built on GitHub-hosted runner)"
+          bundle exec fastlane beta changelog:"${{ github.event.inputs.release_notes }} (Built on GitHub-hosted runner)"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa-github-hosted
-          path: ios/build/ipa/Runner.ipa
+          path: build/ios/ipa/co_workfit.ipa
           retention-days: 7
 
       - name: Mark success
