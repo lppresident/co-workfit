@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_bump:
-        description: '버전 증가 타입'
+        description: '버전 증가 타입 (major/minor/patch/build)'
         required: true
         default: 'build'
         type: choice
@@ -16,12 +16,30 @@ on:
       release_notes:
         description: '릴리스 노트'
         required: false
-        default: 'New build'
+        default: 'New test release'
+      runner_type:
+        description: 'Runner 선택'
+        required: true
+        default: 'self-hosted-first'
+        type: choice
+        options:
+          - self-hosted-first    # Self-hosted 먼저 시도, 실패시 GitHub runner
+          - self-hosted-only     # Self-hosted만 사용
+          - github-hosted        # GitHub runner만 사용
 
 jobs:
-  build-and-deploy:
-    runs-on: macos-latest
-    timeout-minutes: 60
+  # ==================== Self-hosted 먼저 시도 ====================
+  build-self-hosted:
+    if: github.event.inputs.runner_type != 'github-hosted'
+    runs-on: self-hosted
+    timeout-minutes: 20  # Self-hosted는 빠르므로 짧은 타임아웃
+    continue-on-error: ${{ github.event.inputs.runner_type == 'self-hosted-first' }}
+
+    outputs:
+      success: ${{ steps.build_result.outputs.success }}
+      new_version: ${{ steps.bump_version.outputs.new_version }}
+      version_name: ${{ steps.bump_version.outputs.version_name }}
+      build_number: ${{ steps.bump_version.outputs.build_number }}
 
     steps:
       - name: Checkout code
@@ -36,13 +54,6 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
-
-      - name: Read current version
-        id: read_version
-        run: |
-          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
-          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          echo "Current version: $CURRENT_VERSION"
 
       - name: Bump version
         id: bump_version
@@ -69,81 +80,232 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "version_name=$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
-          echo "Version: $CURRENT_VERSION → $NEW_VERSION"
 
-      - name: Setup Xcode
-        run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          xcodebuild -version
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.0'
-          bundler-cache: false
-
-      - name: Install Fastlane
-        run: |
-          cd ios
-          gem install fastlane
-
-      - name: Setup temporary keychain
-        run: |
-          security create-keychain -p "" fastlane_tmp_keychain
-          security default-keychain -s fastlane_tmp_keychain
-          security unlock-keychain -p "" fastlane_tmp_keychain
-          security set-keychain-settings -t 3600 -u fastlane_tmp_keychain
-
-      - name: Update iOS version
-        run: |
-          VERSION_NAME="${{ steps.bump_version.outputs.version_name }}"
-          BUILD_NUMBER="${{ steps.bump_version.outputs.build_number }}"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION_NAME" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/Runner/Info.plist
-
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios
-          pod install
-
-      - name: Build IPA for TestFlight
+      - name: Setup Fastlane Match
         env:
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
-          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          fastlane build_appstore
+          bundle install
+          bundle exec fastlane match appstore --readonly
+
+      - name: Build iOS
+        run: |
+          cd ios
+          flutter build ios --release --no-codesign
+          xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/Runner.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.PROVISIONING_PROFILE_NAME }}"
+
+      - name: Export IPA
+        run: |
+          cd ios
+          xcodebuild -exportArchive \
+            -archivePath build/Runner.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist ExportOptions-AppStore.plist
 
       - name: Upload to TestFlight
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          fastlane upload_testflight changelog:"${{ github.event.inputs.release_notes }}"
+          bundle exec fastlane pilot upload \
+            --ipa build/ipa/Runner.ipa \
+            --skip_waiting_for_build_processing true \
+            --changelog "${{ github.event.inputs.release_notes }}"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-self-hosted
+          path: ios/build/ipa/Runner.ipa
+          retention-days: 7
+
+      - name: Upload version info
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-info-ios
+          path: pubspec.yaml
+          retention-days: 1
+
+      - name: Mark success
+        id: build_result
+        run: echo "success=true" >> $GITHUB_OUTPUT
+
+  # ==================== GitHub-hosted Fallback ====================
+  build-github-hosted:
+    needs: build-self-hosted
+    if: |
+      always() && (
+        github.event.inputs.runner_type == 'github-hosted' ||
+        (github.event.inputs.runner_type == 'self-hosted-first' && needs.build-self-hosted.outputs.success != 'true')
+      )
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    outputs:
+      new_version: ${{ steps.bump_version.outputs.new_version }}
+      version_name: ${{ steps.bump_version.outputs.version_name }}
+      build_number: ${{ steps.bump_version.outputs.build_number }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          VERSION_BUMP="${{ github.event.inputs.version_bump || 'build' }}"
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          VERSION_NAME=$(echo "$CURRENT_VERSION" | cut -d'+' -f1)
+          BUILD_NUMBER=$(echo "$CURRENT_VERSION" | cut -d'+' -f2)
+
+          MAJOR=$(echo "$VERSION_NAME" | cut -d'.' -f1)
+          MINOR=$(echo "$VERSION_NAME" | cut -d'.' -f2)
+          PATCH=$(echo "$VERSION_NAME" | cut -d'.' -f3)
+
+          case "$VERSION_BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0; BUILD_NUMBER=1 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0; BUILD_NUMBER=1 ;;
+            patch) PATCH=$((PATCH + 1)); BUILD_NUMBER=1 ;;
+            build) BUILD_NUMBER=$((BUILD_NUMBER + 1)) ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH+$BUILD_NUMBER"
+          sed -i '' "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_name=$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Setup Fastlane Match
+        env:
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+        run: |
+          cd ios
+          bundle install
+          bundle exec fastlane match appstore --readonly
+
+      - name: Build iOS
+        run: |
+          cd ios
+          flutter build ios --release --no-codesign
+          xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/Runner.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.PROVISIONING_PROFILE_NAME }}"
+
+      - name: Export IPA
+        run: |
+          cd ios
+          xcodebuild -exportArchive \
+            -archivePath build/Runner.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist ExportOptions-AppStore.plist
+
+      - name: Upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: |
+          cd ios
+          bundle exec fastlane pilot upload \
+            --ipa build/ipa/Runner.ipa \
+            --skip_waiting_for_build_processing true \
+            --changelog "${{ github.event.inputs.release_notes }} (Built on GitHub-hosted runner)"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-github-hosted
+          path: ios/build/ipa/Runner.ipa
+          retention-days: 7
+
+      - name: Upload version info
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-info-ios
+          path: pubspec.yaml
+          retention-days: 1
+
+  # ==================== Commit Version ====================
+  finalize:
+    needs: [build-self-hosted, build-github-hosted]
+    if: always() && (needs.build-self-hosted.outputs.success == 'true' || needs.build-github-hosted.result == 'success')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download version info
+        uses: actions/download-artifact@v4
+        with:
+          name: version-info-ios
+        continue-on-error: true
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -f pubspec.yaml ]; then
+            VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
+          else
+            VERSION="${{ needs.build-self-hosted.outputs.new_version || needs.build-github-hosted.outputs.new_version }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Commit version bump
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add pubspec.yaml ios/Runner/Info.plist
-          git commit -m "chore: Bump iOS version to ${{ steps.bump_version.outputs.new_version }}" || echo "No changes to commit"
+          git add pubspec.yaml || true
+          git commit -m "chore: Bump iOS version to ${{ steps.version.outputs.version }}" || echo "No changes"
           git push || echo "Push failed"
 
+  # ==================== Summary ====================
+  summary:
+    needs: [build-self-hosted, build-github-hosted, finalize]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Summary
-        if: always()
         run: |
           echo "## 🍎 iOS Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version**: ${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Release Notes**: ${{ github.event.inputs.release_notes }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **TestFlight**: ✅ 업로드됨" >> $GITHUB_STEP_SUMMARY
+          echo "| Runner | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Self-hosted | ${{ needs.build-self-hosted.outputs.success == 'true' && '✅ 성공' || needs.build-self-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패/오프라인' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| GitHub-hosted | ${{ needs.build-github-hosted.result == 'success' && '✅ 성공 (Fallback)' || needs.build-github-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📱 설치 방법" >> $GITHUB_STEP_SUMMARY
-          echo "TestFlight 앱에서 설치하세요!" >> $GITHUB_STEP_SUMMARY
-
+          echo "### 📱 TestFlight" >> $GITHUB_STEP_SUMMARY
+          echo "빌드가 완료되면 TestFlight에서 확인하세요." >> $GITHUB_STEP_SUMMARY
