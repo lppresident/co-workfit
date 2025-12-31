@@ -12,8 +12,6 @@ class HealthDataTypes {
     HealthDataType.STEPS, // 걸음 수
     HealthDataType.HEART_RATE, // 심박수
     HealthDataType.FLIGHTS_CLIMBED, // 계단 오른 층수
-    HealthDataType.WALKING_SPEED, // 걷기 속도 (iOS only, m/s)
-    HealthDataType.SPEED, // 속도 (Android only, m/s)
   ];
 
   // 권한 요청시 사용할 타입 (읽기 전용)
@@ -26,8 +24,6 @@ class HealthDataTypes {
     HealthDataType.STEPS,
     HealthDataType.HEART_RATE,
     HealthDataType.FLIGHTS_CLIMBED,
-    HealthDataType.WALKING_SPEED, // 걷기 속도 (iOS only, m/s)
-    HealthDataType.SPEED, // 속도 (Android only, m/s)
   ];
 
   // 쓰기 권한이 필요한 타입 (현재는 비어있음, 추후 확장 가능)
