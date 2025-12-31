@@ -117,10 +117,8 @@ class FriendsListTab extends StatelessWidget {
               // 친구 목록 셀
               final friendIndex = requestCount > 0 ? index - 1 : index;
               final friend = friends[friendIndex];
-              final friendName = friend.friendName ?? '알 수 없음';
+              final friendNickname = friend.friendNickname ?? friend.friendName ?? '알 수 없음';
               final friendEmail = friend.friendEmail ?? '';
-              final friendTotalScore = friend.friendTotalScore ?? 0;
-              final friendWorkoutCount = friend.friendWorkoutCount ?? 0;
               return Card(
                 margin: const EdgeInsets.symmetric(
                   horizontal: AppConstants.defaultPadding,
@@ -132,25 +130,11 @@ class FriendsListTab extends StatelessWidget {
                         ? NetworkImage(friend.friendPhotoUrl!)
                         : null,
                     child: friend.friendPhotoUrl == null
-                        ? Text(friendName.isNotEmpty ? friendName[0].toUpperCase() : '?')
+                        ? Text(friendNickname.isNotEmpty ? friendNickname[0].toUpperCase() : '?')
                         : null,
                   ),
-                  title: Text(friendName),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (friendEmail.isNotEmpty) Text(friendEmail),
-                      const SizedBox(height: 4),
-                      Text(
-                        '점수: $friendTotalScore | 운동: $friendWorkoutCount회',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                  isThreeLine: true,
+                  title: Text(friendNickname),
+                  subtitle: friendEmail.isNotEmpty ? Text(friendEmail) : null,
                   onTap: () {
                     Navigator.push(
                       context,
