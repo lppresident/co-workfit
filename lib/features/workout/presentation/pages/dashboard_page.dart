@@ -140,6 +140,19 @@ class _DashboardHomeState extends State<_DashboardHome> {
       appBar: AppBar(
         title: const Text('홈'),
         actions: [
+          // 통나무 잔액 표시
+          WoodBalanceWidget(
+            compact: true,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettlementHistoryPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
           // Android용 디버그 버튼
           if (Platform.isAndroid)
             IconButton(
