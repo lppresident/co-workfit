@@ -107,4 +107,45 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       awardedScores: entity.awardedScores,
     );
   }
+
+  /// 일부 필드만 변경한 새 인스턴스 생성
+  LogRunChallengeModel copyWith({
+    String? id,
+    String? createdBy,
+    double? targetWeight,
+    double? targetDistance,
+    double? currentDistance,
+    double? remainingWeight,
+    List<String>? participants,
+    ChallengeStatus? status,
+    DateTime? createdAt,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? inviteCode,
+    DateTime? completedAt,
+    DateTime? expireAt,
+    int? maxParticipants,
+    bool? scoreAwarded,
+    Map<String, int>? awardedScores,
+  }) {
+    return LogRunChallengeModel(
+      id: id ?? this.id,
+      createdBy: createdBy ?? this.createdBy,
+      targetWeight: targetWeight ?? this.targetWeight,
+      targetDistance: targetDistance ?? this.targetDistance,
+      currentDistance: currentDistance ?? this.currentDistance,
+      remainingWeight: remainingWeight ?? this.remainingWeight,
+      participants: participants ?? this.participants,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      inviteCode: inviteCode ?? this.inviteCode,
+      completedAt: completedAt ?? this.completedAt,
+      expireAt: expireAt ?? this.expireAt,
+      maxParticipants: maxParticipants ?? this.maxParticipants,
+      scoreAwarded: scoreAwarded ?? this.scoreAwarded,
+      awardedScores: awardedScores ?? this.awardedScores,
+    );
+  }
 }

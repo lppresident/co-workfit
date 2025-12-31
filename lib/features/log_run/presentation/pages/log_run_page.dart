@@ -9,10 +9,10 @@ import 'package:co_workfit/features/log_run/presentation/widgets/invite_code_bot
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
+import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/log_run/presentation/pages/challenge_detail_page.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
-import 'package:co_workfit/core/utils/logger.dart';
 
 /// 통나무런 메인 페이지
 class LogRunPage extends BasePage {
@@ -31,13 +31,11 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
     refreshChallenges();
   }
 
-  /// 챌린지 목록 새로고침 (탭 재클릭, 당겨서 새로고침에서 사용)
+  /// 챌린지 목록 새로고침
   void refreshChallenges() {
-    AppLogger.info('LogRunPage', 'Loading log run challenges');
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
-      context.read<LogRunBloc>().add(LoadActiveChallenges(authState.user.id));
-      context.read<LogRunBloc>().add(LoadCompletedChallenges(authState.user.id));
+      context.read<LogRunBloc>().add(LoadChallenges(authState.user.id));
     }
   }
 
@@ -68,7 +66,6 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
   }
 
   void _showCreateChallengeSheet() {
-    // BottomSheet 내부에서 Bloc에 접근하기 위해 미리 참조를 가져옴
     final authBloc = context.read<AuthBloc>();
     final logRunBloc = context.read<LogRunBloc>();
 
@@ -98,7 +95,6 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
   }
 
   void _showJoinByCodeSheet() {
-    // BottomSheet 내부에서 Bloc에 접근하기 위해 미리 참조를 가져옴
     final authBloc = context.read<AuthBloc>();
     final logRunBloc = context.read<LogRunBloc>();
 
@@ -132,6 +128,14 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
     );
   }
 
+  /// 현재 상태에서 챌린지 목록 추출
+  List<LogRunChallengeEntity> _getChallenges(LogRunState state) {
+    if (state is ChallengesLoaded) return state.challenges;
+    if (state is ChallengeDetailLoaded) return state.challenges;
+    if (state is WorkoutSubmitted) return state.challenges;
+    return [];
+  }
+
   @override
   Widget buildBody(BuildContext context) {
     return BlocConsumer<LogRunBloc, LogRunState>(
@@ -143,7 +147,6 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
               backgroundColor: Colors.red,
             ),
           );
-          // 에러 후 목록 복구
           refreshChallenges();
         } else if (state is ChallengeCreated) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -152,7 +155,6 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
               backgroundColor: Colors.green,
             ),
           );
-          // 목록 새로고침
           refreshChallenges();
         } else if (state is ChallengeJoined) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -161,62 +163,49 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
               backgroundColor: Colors.green,
             ),
           );
-          // 목록 새로고침
           refreshChallenges();
         } else if (state is ChallengeDeleted) {
-          // 챌린지 삭제 후 목록 새로고침
           refreshChallenges();
         }
       },
       builder: (context, state) {
-        // 초기 상태 또는 로딩 상태 - 로딩 인디케이터 표시
+        // 초기 상태 또는 로딩 상태
         if (state is LogRunInitial || state is LogRunLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Empty 상태 (데이터 로드 완료 후 챌린지가 없는 경우)
+        // Empty 상태
         if (state is LogRunEmpty) {
           return EmptyLogRunWidget(
             onCreateOrJoin: _showActionSelectionDialog,
           );
         }
 
-        // ChallengesLoaded 또는 ChallengeDetailLoaded 상태 처리
-        if (state is ChallengesLoaded || state is ChallengeDetailLoaded) {
-          final activeChallenges = state is ChallengesLoaded
-              ? state.activeChallenges
-              : (state as ChallengeDetailLoaded).activeChallenges;
-          final completedChallenges = state is ChallengesLoaded
-              ? state.completedChallenges
-              : (state as ChallengeDetailLoaded).completedChallenges;
-          final expiredChallenges = state is ChallengesLoaded
-              ? state.expiredChallenges
-              : (state as ChallengeDetailLoaded).expiredChallenges;
+        // 챌린지 목록이 있는 상태들
+        if (state is ChallengesLoaded || state is ChallengeDetailLoaded || state is WorkoutSubmitted) {
+          final challenges = _getChallenges(state);
 
-          // 진행 중 → 완료 → 실패 순으로 표시
-          final allChallenges = [...activeChallenges, ...completedChallenges, ...expiredChallenges];
-
-          if (allChallenges.isEmpty) {
+          if (challenges.isEmpty) {
             return EmptyLogRunWidget(
               onCreateOrJoin: _showActionSelectionDialog,
             );
           }
 
-          return _buildUnifiedChallengeList(allChallenges);
+          return _buildChallengeList(challenges);
         }
 
-        // WorkoutSubmitted, ChallengeCreated 등 일시적인 상태는 로딩 표시
-        if (state is WorkoutSubmitted || state is ChallengeCreated || state is ChallengeJoined) {
+        // 일시적인 상태
+        if (state is ChallengeCreated || state is ChallengeJoined) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // 기본: 로딩 표시 (알 수 없는 상태)
+        // 기본
         return const Center(child: CircularProgressIndicator());
       },
     );
   }
 
-  Widget _buildUnifiedChallengeList(List<dynamic> challenges) {
+  Widget _buildChallengeList(List<LogRunChallengeEntity> challenges) {
     return RefreshIndicator(
       onRefresh: () async {
         refreshChallenges();
@@ -229,7 +218,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           return ChallengeCardWidget(
             challenge: challenge,
             onTap: () async {
-              final result = await Navigator.push<bool>(
+              await Navigator.push<bool>(
                 context,
                 MaterialPageRoute(
                   builder: (context) => ChallengeDetailPage(
@@ -237,8 +226,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
                   ),
                 ),
               );
-              // 상세 페이지에서 변경이 있었으면 목록 새로고침
-              if (result == true && mounted) {
+              // 상세 페이지에서 돌아오면 목록 새로고침
+              if (mounted) {
                 refreshChallenges();
               }
             },
@@ -253,8 +242,8 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
     return BlocBuilder<LogRunBloc, LogRunState>(
       builder: (context, state) {
         // 챌린지가 있을 때만 FloatingActionButton 표시
-        final hasActiveChallenges = (state is ChallengesLoaded && state.activeChallenges.isNotEmpty) ||
-            (state is ChallengeDetailLoaded && state.activeChallenges.isNotEmpty);
+        final challenges = _getChallenges(state);
+        final hasActiveChallenges = challenges.any((c) => c.status == ChallengeStatus.active);
 
         if (hasActiveChallenges) {
           return FloatingActionButton(

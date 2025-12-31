@@ -278,7 +278,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => JoinLogRunChallenge(sl()));
   sl.registerLazySingleton(() => JoinChallengeByInviteCode(sl()));
   sl.registerLazySingleton(() => SubmitWorkoutToChallenge(sl()));
-  sl.registerLazySingleton(() => GetActiveChallenges(sl()));
+  sl.registerLazySingleton(() => GetAllChallenges(sl()));
   sl.registerLazySingleton(() => GetChallengeContributions(sl()));
   sl.registerLazySingleton(() => DeleteContribution(sl()));
 
@@ -289,7 +289,7 @@ Future<void> initializeDependencies() async {
       joinChallengeUseCase: sl(),
       joinChallengeByCodeUseCase: sl(),
       submitWorkoutUseCase: sl(),
-      getActiveChallengesUseCase: sl(),
+      getAllChallengesUseCase: sl(),
       getChallengeContributionsUseCase: sl(),
       deleteContributionUseCase: sl(),
       repository: sl(),

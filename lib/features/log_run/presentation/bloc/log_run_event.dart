@@ -8,21 +8,11 @@ abstract class LogRunEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// 활성 챌린지 목록 로드
-class LoadActiveChallenges extends LogRunEvent {
+/// 챌린지 목록 로드 (활성, 완료, 만료 모두 포함)
+class LoadChallenges extends LogRunEvent {
   final String userId;
 
-  const LoadActiveChallenges(this.userId);
-
-  @override
-  List<Object?> get props => [userId];
-}
-
-/// 완료된 챌린지 목록 로드
-class LoadCompletedChallenges extends LogRunEvent {
-  final String userId;
-
-  const LoadCompletedChallenges(this.userId);
+  const LoadChallenges(this.userId);
 
   @override
   List<Object?> get props => [userId];
@@ -184,16 +174,6 @@ class DeleteChallenge extends LogRunEvent {
 
   @override
   List<Object?> get props => [challengeId, userId];
-}
-
-/// 챌린지 새로고침
-class RefreshChallenges extends LogRunEvent {
-  final String userId;
-
-  const RefreshChallenges(this.userId);
-
-  @override
-  List<Object?> get props => [userId];
 }
 
 /// 기여 기록 삭제

@@ -21,40 +21,42 @@ class LogRunLoading extends LogRunState {
 }
 
 /// 챌린지 목록 로드 성공
+/// 모든 챌린지를 하나의 리스트로 관리하고, 각 챌린지의 status로 구분
 class ChallengesLoaded extends LogRunState {
-  final List<LogRunChallengeEntity> activeChallenges;
-  final List<LogRunChallengeEntity> completedChallenges;
-  final List<LogRunChallengeEntity> expiredChallenges; // 실패한 챌린지
+  final List<LogRunChallengeEntity> challenges;
 
-  const ChallengesLoaded({
-    required this.activeChallenges,
-    required this.completedChallenges,
-    this.expiredChallenges = const [],
-  });
+  const ChallengesLoaded({required this.challenges});
+
+  /// 활성 챌린지 필터
+  List<LogRunChallengeEntity> get activeChallenges =>
+      challenges.where((c) => c.status == ChallengeStatus.active).toList();
+
+  /// 완료된 챌린지 필터
+  List<LogRunChallengeEntity> get completedChallenges =>
+      challenges.where((c) => c.status == ChallengeStatus.completed).toList();
+
+  /// 만료된(실패) 챌린지 필터
+  List<LogRunChallengeEntity> get expiredChallenges =>
+      challenges.where((c) => c.status == ChallengeStatus.expired).toList();
 
   @override
-  List<Object?> get props => [activeChallenges, completedChallenges, expiredChallenges];
+  List<Object?> get props => [challenges];
 }
 
 /// 챌린지 상세 로드 성공 (목록 상태 유지)
 class ChallengeDetailLoaded extends LogRunState {
   final LogRunChallengeEntity challenge;
   final List<LogRunContributionEntity> contributions;
-  // 목록 상태도 함께 유지
-  final List<LogRunChallengeEntity> activeChallenges;
-  final List<LogRunChallengeEntity> completedChallenges;
-  final List<LogRunChallengeEntity> expiredChallenges;
+  final List<LogRunChallengeEntity> challenges; // 목록 상태 유지
 
   const ChallengeDetailLoaded({
     required this.challenge,
     required this.contributions,
-    this.activeChallenges = const [],
-    this.completedChallenges = const [],
-    this.expiredChallenges = const [],
+    this.challenges = const [],
   });
 
   @override
-  List<Object?> get props => [challenge, contributions, activeChallenges, completedChallenges, expiredChallenges];
+  List<Object?> get props => [challenge, contributions, challenges];
 }
 
 /// 챌린지 생성 성공
@@ -81,20 +83,16 @@ class ChallengeJoined extends LogRunState {
 class WorkoutSubmitted extends LogRunState {
   final LogRunContributionEntity contribution;
   final LogRunChallengeEntity challenge;
-  final List<LogRunChallengeEntity> activeChallenges;
-  final List<LogRunChallengeEntity> completedChallenges;
-  final List<LogRunChallengeEntity> expiredChallenges;
+  final List<LogRunChallengeEntity> challenges;
 
   const WorkoutSubmitted({
     required this.contribution,
     required this.challenge,
-    this.activeChallenges = const [],
-    this.completedChallenges = const [],
-    this.expiredChallenges = const [],
+    this.challenges = const [],
   });
 
   @override
-  List<Object?> get props => [contribution, challenge, activeChallenges, completedChallenges, expiredChallenges];
+  List<Object?> get props => [contribution, challenge, challenges];
 }
 
 /// 챌린지 삭제 성공

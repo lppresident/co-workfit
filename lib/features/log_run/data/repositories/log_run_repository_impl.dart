@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/error/failures.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
@@ -60,27 +61,14 @@ class LogRunRepositoryImpl implements LogRunRepository {
   }
 
   @override
-  Future<Either<Failure, List<LogRunChallengeEntity>>> getActiveChallenges(String userId) async {
+  Future<Either<Failure, List<LogRunChallengeEntity>>> getAllChallenges(String userId) async {
     try {
-      final challenges = await dataSource.getActiveChallenges(userId);
+      final challenges = await dataSource.getAllChallenges(userId);
       return Right(challenges);
-    } catch (e) { return Left(ServerFailure(e.toString())); }
-  }
-
-  @override
-  Future<Either<Failure, List<LogRunChallengeEntity>>> getCompletedChallenges(String userId) async {
-    try {
-      final challenges = await dataSource.getCompletedChallenges(userId);
-      return Right(challenges);
-    } catch (e) { return Left(ServerFailure(e.toString())); }
-  }
-
-  @override
-  Future<Either<Failure, List<LogRunChallengeEntity>>> getExpiredChallenges(String userId) async {
-    try {
-      final challenges = await dataSource.getExpiredChallenges(userId);
-      return Right(challenges);
-    } catch (e) { return Left(ServerFailure(e.toString())); }
+    } catch (e, stackTrace) {
+      AppLogger.error('LogRunRepository', 'getAllChallenges 에러: $e\n$stackTrace');
+      return Left(ServerFailure(e.toString()));
+    }
   }
 
   @override

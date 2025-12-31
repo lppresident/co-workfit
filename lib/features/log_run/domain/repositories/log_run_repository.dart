@@ -38,18 +38,8 @@ abstract class LogRunRepository {
     required DateTime workoutDate,
   });
 
-  /// 활성 챌린지 목록 조회
-  Future<Either<Failure, List<LogRunChallengeEntity>>> getActiveChallenges(
-    String userId,
-  );
-
-  /// 완료된 챌린지 목록 조회
-  Future<Either<Failure, List<LogRunChallengeEntity>>> getCompletedChallenges(
-    String userId,
-  );
-
-  /// 만료된(실패한) 챌린지 목록 조회
-  Future<Either<Failure, List<LogRunChallengeEntity>>> getExpiredChallenges(
+  /// 모든 챌린지 목록 조회 (활성, 완료, 만료 모두 포함)
+  Future<Either<Failure, List<LogRunChallengeEntity>>> getAllChallenges(
     String userId,
   );
 

@@ -84,7 +84,7 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
         _isJoiningFromDeepLink = false;
         _showResultSnackBar(context, '챌린지에 참가했습니다! 🎉', Colors.green);
         // 통나무런 탭으로 이동하도록 새로고침
-        context.read<LogRunBloc>().add(RefreshChallenges(
+        context.read<LogRunBloc>().add(LoadChallenges(
           (context.read<AuthBloc>().state as Authenticated).user.id,
         ));
       } else if (state is LogRunError) {
