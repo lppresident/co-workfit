@@ -59,7 +59,7 @@ class ItemRecipes {
           clothingSlot: ClothingSlot.head,
           woodCost: 1200,
           rarity: 4,
-          iconEmoji: '✨👑',
+          iconEmoji: '🏆',
           estimatedDays: 60,
         ),
       ];
