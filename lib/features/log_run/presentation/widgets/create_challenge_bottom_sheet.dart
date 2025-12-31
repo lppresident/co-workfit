@@ -92,6 +92,12 @@ class _CreateChallengeBottomSheetState extends State<CreateChallengeBottomSheet>
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
+              
+              // 헬스 챌린지일 때 예시 표시
+              if (_challengeType == ChallengeType.strengthTraining) ...[
+                const SizedBox(height: 12),
+                _buildScoreExamples(),
+              ],
               const SizedBox(height: 20),
 
               // 목표 입력
@@ -209,6 +215,93 @@ class _CreateChallengeBottomSheetState extends State<CreateChallengeBottomSheet>
               label: '헬스',
               subLabel: '시간×강도',
               color: Colors.blueGrey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 헬스 점수 계산 예시
+  Widget _buildScoreExamples() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey[50],
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.blueGrey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: Colors.blueGrey[600]),
+              const SizedBox(width: 6),
+              Text(
+                '점수 계산 예시',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Colors.blueGrey[700],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _buildExampleRow('저강도 30분', '30 × 0.5', '15점', '🚶'),
+          _buildExampleRow('중강도 60분', '60 × 0.83', '50점', '🏃'),
+          _buildExampleRow('고강도 60분', '60 × 1.0', '60점', '🔥'),
+          _buildExampleRow('매우 고강도 45분', '45 × 1.3', '59점', '💪'),
+          const SizedBox(height: 8),
+          Text(
+            '※ 강도는 심박수로 자동 측정됩니다',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.blueGrey[500],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExampleRow(String activity, String formula, String result, String emoji) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              activity,
+              style: TextStyle(fontSize: 12, color: Colors.blueGrey[700]),
+            ),
+          ),
+          Text(
+            formula,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.blueGrey[400],
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.blueGrey[100],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              result,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueGrey[700],
+              ),
             ),
           ),
         ],
