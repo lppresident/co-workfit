@@ -15,14 +15,28 @@
 - Garmin Connect 지원
 - 수동 운동 기록 입력
 
-### 🏆 통나무런 (Log Run)
+### 🏆 챌린지 시스템
+- **달리기 챌린지** 🏃 - 거리 기반 목표
+- **헬스 챌린지** 🏋️ - 강도 점수 기반 목표
 - 그룹 챌린지 생성 및 참여
 - 초대 코드로 친구와 함께
-- 실시간 기여도 추적
+- 실시간 기여도 추적 및 포디움 순위
+
+### 💰 재화 시스템
+| 재화 | 획득 방법 | 용도 |
+|------|----------|------|
+| 🪵 **통나무 (Wood)** | 달리기 챌린지 | 달리기 장비 제작 |
+| 🔩 **쇠 (Iron)** | 헬스 챌린지 | 헬스 장비 제작 |
+
+### 🛠️ 제작 시스템
+- 20종 의상 아이템 제작 (통나무 10종 + 쇠 10종)
+- 머리 / 상체 / 하체 슬롯
+- 캐릭터 장착 및 커스터마이징
+- 픽셀아트 캐릭터 렌더링
 
 ### 👥 소셜 기능
 - 친구 추가 및 관리
-- 주간/월간 리더보드
+- 친구 캐릭터 확인
 - 운동 기록 공유
 
 ### ⚖️ 공정한 비교
@@ -85,9 +99,12 @@ lib/
 ├── core/           # 공통 기능 (DI, Utils, Widgets)
 ├── features/       # 기능별 모듈
 │   ├── auth/       # 인증
-│   ├── log_run/    # 통나무런
+│   ├── craft/      # 제작 시스템
+│   ├── iron/       # 쇠 재화 상수
+│   ├── log_run/    # 챌린지 (통나무런)
 │   ├── profile/    # 프로필
 │   ├── social/     # 소셜
+│   ├── wood/       # 통나무 재화 시스템
 │   └── workout/    # 운동
 └── main.dart
 ```
@@ -110,6 +127,7 @@ lib/
 | [APPLE_SIGNIN_SETUP.md](docs/APPLE_SIGNIN_SETUP.md) | Apple 로그인 설정 |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | 배포 가이드 |
 | [FASTLANE_MATCH_SETUP.md](docs/FASTLANE_MATCH_SETUP.md) | 인증서 관리 |
+| [CURRENCY_SYSTEM.md](docs/CURRENCY_SYSTEM.md) | 재화 시스템 설계 |
 
 ---
 

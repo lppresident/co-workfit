@@ -32,9 +32,12 @@ lib/
 │   └── widgets/                  # CommonLoadingWidget 등
 ├── features/
 │   ├── auth/                     # 인증
-│   ├── log_run/                  # 통나무런
+│   ├── craft/                    # 제작 시스템 ⭐ NEW
+│   ├── iron/                     # 쇠 재화 상수
+│   ├── log_run/                  # 챌린지 (통나무런)
 │   ├── profile/                  # 프로필
 │   ├── social/                   # 소셜 (참고용 ⭐)
+│   ├── wood/                     # 통나무 재화 시스템
 │   └── workout/                  # 운동
 └── main.dart
 ```
@@ -46,6 +49,39 @@ feature/
 ├── data/       # Model, DataSource, Repository(구현)
 └── presentation/  # BLoC, Page, Widget
 ```
+
+---
+
+## 💰 재화 시스템
+
+### 통나무 (Wood) 🪵
+- **획득**: 달리기 챌린지 완료
+- **용도**: 달리기 장비 제작 (10종)
+- **파일**: `lib/features/wood/`
+
+### 쇠 (Iron) 🔩
+- **획득**: 헬스 챌린지 완료
+- **용도**: 헬스 장비 제작 (10종)
+- **파일**: `lib/features/iron/`
+
+### 제작 시스템 🛠️
+- **위치**: `lib/features/craft/`
+- **아이템**: 머리 / 상체 / 하체 슬롯
+- **UI**: 재화 선택 칩으로 통나무/쇠 전환
+
+---
+
+## 🎮 챌린지 시스템
+
+### 챌린지 타입 (LogRunChallengeType)
+| 타입 | 설명 | 재화 |
+|------|------|------|
+| `running` | 달리기 챌린지 | 🪵 통나무 |
+| `strengthTraining` | 헬스 챌린지 | 🔩 쇠 |
+
+### 파일 위치
+- Entity: `lib/features/log_run/domain/entities/log_run_challenge_entity.dart`
+- BLoC: `lib/features/log_run/presentation/bloc/`
 
 ---
 
@@ -158,11 +194,39 @@ EdgeInsets.all(16.0)
 
 ---
 
+## 🎨 제작 아이템 추가 방법
+
+### 1. 아이템 레시피 등록
+```dart
+// lib/features/craft/domain/entities/item_recipes.dart
+
+const ItemEntity(
+  id: 'unique_id',
+  name: '아이템명',
+  description: '설명',
+  category: ItemCategory.clothing,
+  clothingSlot: ClothingSlot.head, // head, body, legs
+  woodCost: 100,  // 통나무 아이템
+  // 또는
+  ironCost: 100,  // 쇠 아이템
+  iconEmoji: '🎩',
+  estimatedDays: 7,
+)
+```
+
+### 2. 픽셀아트 추가 (선택)
+```dart
+// lib/features/craft/presentation/widgets/character_painter.dart
+// _drawEquippedItems 메서드에 새 아이템 렌더링 추가
+```
+
+---
+
 ## 🔀 Git 규칙
 
 **브랜치**: `feature/{기능명}-{issue번호}`
 ```
-feature/log-run-22
+feature/iron-items-70
 ```
 
 **커밋**:
@@ -193,6 +257,8 @@ refactor: 코드 정리
 | 탭 페이지 | `social/pages/community_page.dart` | TabbedMixin |
 | 기본 페이지 | `log_run/pages/log_run_page.dart` | BasePage |
 | BLoC 패턴 | `social/bloc/social_bloc.dart` | 상태관리 |
+| 제작 시스템 | `craft/presentation/pages/craft_page.dart` | 재화 선택 UI |
+| 캐릭터 렌더링 | `craft/presentation/widgets/character_painter.dart` | CustomPainter |
 
 ---
 
@@ -209,7 +275,8 @@ source scripts/setup-env.sh
 
 - `docs/APPLE_SIGNIN_SETUP.md` - Apple 로그인 설정
 - `docs/DEPLOYMENT.md` - 배포 가이드
+- `docs/CURRENCY_SYSTEM.md` - 재화 시스템 설계
 
 ---
 
-_v3.0 | 2025-12-29_
+_v4.0 | 2026-01-01_

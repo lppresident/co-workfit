@@ -490,5 +490,102 @@ BlocProvider<ItemBloc>(
 
 ---
 
-_v1.0 | 2025-12-29_
+## 🔟+3 제작 아이템 추가
+
+### 통나무 아이템
+
+```dart
+// lib/features/craft/domain/entities/item_recipes.dart
+// headItems, bodyItems, legsItems 리스트에 추가
+
+const ItemEntity(
+  id: 'head_unique_id',        // 유니크 ID (접두사: head_, body_, legs_)
+  name: '아이템 이름',
+  description: '아이템 설명',
+  category: ItemCategory.clothing,
+  clothingSlot: ClothingSlot.head,  // head, body, legs
+  woodCost: 100,               // 통나무 비용
+  iconEmoji: '🎩',             // 이모지 아이콘
+  estimatedDays: 7,            // 예상 획득 기간
+),
+```
+
+### 쇠 아이템
+
+```dart
+// lib/features/craft/domain/entities/item_recipes.dart
+// ironHeadItems, ironBodyItems, ironLegsItems 리스트에 추가
+
+const ItemEntity(
+  id: 'iron_head_unique_id',   // 접두사: iron_head_, iron_body_, iron_legs_
+  name: '아이템 이름',
+  description: '아이템 설명',
+  category: ItemCategory.clothing,
+  clothingSlot: ClothingSlot.head,
+  ironCost: 100,               // 쇠 비용 (woodCost 대신)
+  iconEmoji: '⛑️',
+  estimatedDays: 10,
+),
+```
+
+### 픽셀아트 렌더링 (선택)
+
+```dart
+// lib/features/craft/presentation/widgets/character_painter.dart
+// _drawEquippedItems 메서드에 추가
+
+case 'new_item_id':
+  _drawNewItem(canvas, size);
+  break;
+
+void _drawNewItem(Canvas canvas, Size size) {
+  final pixelSize = size.width / 16;
+  // 픽셀 그리기 로직
+  _drawPixel(canvas, x, y, pixelSize, color);
+}
+```
+
+---
+
+## 🔟+4 챌린지 타입 확장
+
+### 새 챌린지 타입 추가
+
+```dart
+// lib/features/log_run/domain/entities/log_run_challenge_entity.dart
+
+enum LogRunChallengeType {
+  running,           // 달리기 → 통나무
+  strengthTraining,  // 헬스 → 쇠
+  newType,          // 새 타입 → 새 재화
+}
+
+extension LogRunChallengeTypeExtension on LogRunChallengeType {
+  String get displayName {
+    switch (this) {
+      case LogRunChallengeType.running:
+        return '달리기';
+      case LogRunChallengeType.strengthTraining:
+        return '헬스';
+      case LogRunChallengeType.newType:
+        return '새 타입';
+    }
+  }
+
+  String get emoji {
+    switch (this) {
+      case LogRunChallengeType.running:
+        return '🏃';
+      case LogRunChallengeType.strengthTraining:
+        return '🏋️';
+      case LogRunChallengeType.newType:
+        return '🆕';
+    }
+  }
+}
+```
+
+---
+
+_v2.0 | 2026-01-01_
 
