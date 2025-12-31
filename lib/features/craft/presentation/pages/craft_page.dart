@@ -9,6 +9,7 @@ import '../../domain/entities/item_recipes.dart';
 import '../bloc/craft_bloc.dart';
 import '../bloc/craft_event.dart';
 import '../bloc/craft_state.dart';
+import '../widgets/character_widget.dart';
 import '../widgets/item_card_widget.dart';
 import '../widgets/wood_display_widget.dart';
 
@@ -142,6 +143,7 @@ class _CraftPageState extends State<CraftPage>
                 currentWood: currentWood,
                 ownedQuantity: quantity,
                 isEquipped: isEquipped,
+                currentEquipped: state.equippedItems,
                 onTap: () => _showItemDetail(context, item, state, currentWood),
                 onCraft: () => _craftItem(item.id),
                 onEquip: quantity > 0 && !isEquipped
@@ -165,6 +167,12 @@ class _CraftPageState extends State<CraftPage>
     final quantity = state.getItemQuantity(item.id);
     final isEquipped = state.isItemEquipped(item.id);
     final canCraft = currentWood >= item.woodCost;
+    
+    // 미리보기용 장착 상태
+    var previewEquipped = state.equippedItems;
+    if (item.clothingSlot != null) {
+      previewEquipped = previewEquipped.equip(item.clothingSlot!, item.id);
+    }
 
     showModalBottomSheet(
       context: context,
@@ -176,22 +184,111 @@ class _CraftPageState extends State<CraftPage>
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 헤더
+            // 캐릭터 미리보기
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.green[50]!,
+                    Colors.brown[50]!,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.brown[200]!),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // 현재 모습
+                      Column(
+                        children: [
+                          Text(
+                            '현재',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          CharacterWidget(
+                            size: 100,
+                            equippedItems: state.equippedItems,
+                            backgroundColor: Colors.white.withValues(alpha: 0.5),
+                            borderColor: Colors.grey[400]!,
+                            showShadow: false,
+                          ),
+                        ],
+                      ),
+                      // 화살표
+                      Icon(
+                        Icons.arrow_forward,
+                        color: Colors.brown[400],
+                        size: 32,
+                      ),
+                      // 장착 후 모습
+                      Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              '미리보기',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          CharacterWidget(
+                            size: 100,
+                            equippedItems: previewEquipped,
+                            backgroundColor: Colors.white.withValues(alpha: 0.8),
+                            borderColor: Colors.amber,
+                            borderWidth: 2,
+                            showShadow: true,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // 아이템 정보
             Row(
               children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: Color(item.themeColorValue).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Color(item.themeColorValue).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Color(item.themeColorValue).withValues(alpha: 0.3),
                     ),
+                  ),
                   child: Center(
                     child: Text(
                       item.iconEmoji,
-                      style: const TextStyle(fontSize: 32),
+                      style: const TextStyle(fontSize: 28),
                     ),
                   ),
                 ),
@@ -203,7 +300,7 @@ class _CraftPageState extends State<CraftPage>
                       Text(
                         item.name,
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -212,42 +309,66 @@ class _CraftPageState extends State<CraftPage>
                         item.clothingSlot?.displayName ?? '',
                         style: TextStyle(
                           color: Colors.grey[600],
-                          fontSize: 14,
+                          fontSize: 13,
                         ),
                       ),
                     ],
                   ),
                 ),
+                if (isEquipped)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.amber,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      '장착 중',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
               ],
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // 설명
-            Text(
-              item.description,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                item.description,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[700],
+                ),
               ),
             ),
 
             const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 16),
 
             // 정보
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildInfoItem('🪵', '제작 비용', '${item.woodCost}개'),
-                const SizedBox(width: 24),
                 _buildInfoItem('📦', '보유량', '$quantity개'),
-                const SizedBox(width: 24),
                 _buildInfoItem('⏱️', '획득 예상', '~${item.estimatedDays}일'),
               ],
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // 액션 버튼
             Row(
@@ -264,6 +385,9 @@ class _CraftPageState extends State<CraftPage>
                       backgroundColor: Colors.brown[400],
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: Text(
                       canCraft
@@ -283,6 +407,9 @@ class _CraftPageState extends State<CraftPage>
                             },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: const Text('해제하기'),
                           )
@@ -295,6 +422,9 @@ class _CraftPageState extends State<CraftPage>
                               backgroundColor: Colors.amber,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: const Text('장착하기'),
                           ),
