@@ -23,18 +23,16 @@ class WorkoutListItem extends StatelessWidget {
   }
 
   /// 페이스 계산 (분'초"/km 형식)
-  /// 거리가 0이거나 없으면 null 반환
+  /// 초 단위로 정확하게 계산, 거리가 0이거나 없으면 null 반환
   String? get _pace {
     final distance = workout.effectiveDistance;
     if (distance == null || distance <= 0) return null;
-    if (workout.durationMinutes <= 0) return null;
+    if (workout.durationSeconds <= 0) return null;
 
-    // 총 시간(분) / 거리(km) = km당 분
-    final paceMinutesPerKm = workout.durationMinutes / distance;
-    
-    // 분과 초로 분리
-    final minutes = paceMinutesPerKm.floor();
-    final seconds = ((paceMinutesPerKm - minutes) * 60).round();
+    // 초 단위로 페이스 계산: (총 초 / 거리 km) = 초/km
+    final paceSecondsPerKm = workout.durationSeconds / distance;
+    final minutes = (paceSecondsPerKm / 60).floor();
+    final seconds = (paceSecondsPerKm % 60).round();
 
     // 비정상적인 페이스 필터링 (1분 미만 또는 30분 초과)
     if (minutes < 1 || minutes > 30) return null;

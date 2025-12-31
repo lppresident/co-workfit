@@ -33,7 +33,7 @@ class HealthDataMapper {
     // 시간 정보
     final startTime = healthPoint.dateFrom;
     final endTime = healthPoint.dateTo;
-    final durationMinutes = endTime.difference(startTime).inMinutes;
+    final durationSeconds = endTime.difference(startTime).inSeconds;
 
     // WorkoutHealthValue에서 직접 거리 데이터 추출 (중복 합산 방지)
     double? distance;
@@ -82,7 +82,7 @@ class HealthDataMapper {
       type: workoutType,
       startTime: startTime,
       endTime: endTime,
-      durationMinutes: durationMinutes,
+      durationSeconds: durationSeconds,
       distance: distance,
       calories: calories,
       averageHeartRate: averageHeartRate,

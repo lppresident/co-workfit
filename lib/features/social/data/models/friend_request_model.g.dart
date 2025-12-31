@@ -16,6 +16,9 @@ FriendRequestModel _$FriendRequestModelFromJson(Map<String, dynamic> json) =>
       respondedAt: json['respondedAt'] == null
           ? null
           : DateTime.parse(json['respondedAt'] as String),
+      senderName: json['senderName'] as String?,
+      senderEmail: json['senderEmail'] as String?,
+      senderPhotoUrl: json['senderPhotoUrl'] as String?,
     );
 
 Map<String, dynamic> _$FriendRequestModelToJson(FriendRequestModel instance) =>
@@ -26,6 +29,9 @@ Map<String, dynamic> _$FriendRequestModelToJson(FriendRequestModel instance) =>
       'status': _$FriendRequestStatusEnumMap[instance.status]!,
       'createdAt': instance.createdAt.toIso8601String(),
       'respondedAt': instance.respondedAt?.toIso8601String(),
+      'senderName': instance.senderName,
+      'senderEmail': instance.senderEmail,
+      'senderPhotoUrl': instance.senderPhotoUrl,
     };
 
 const _$FriendRequestStatusEnumMap = {

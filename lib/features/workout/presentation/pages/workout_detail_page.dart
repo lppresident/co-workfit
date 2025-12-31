@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
-import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
-import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/edit_distance_dialog.dart';
 import 'package:intl/intl.dart';
 
@@ -36,14 +33,16 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
   }
 
   /// 페이스 계산 (분'초"/km 형식)
+  /// 초 단위로 정확하게 계산
   String? get _pace {
     final distance = workout.effectiveDistance;
     if (distance == null || distance <= 0) return null;
-    if (workout.durationMinutes <= 0) return null;
+    if (workout.durationSeconds <= 0) return null;
 
-    final paceMinutesPerKm = workout.durationMinutes / distance;
-    final minutes = paceMinutesPerKm.floor();
-    final seconds = ((paceMinutesPerKm - minutes) * 60).round();
+    // 초 단위로 페이스 계산: (총 초 / 거리 km) = 초/km
+    final paceSecondsPerKm = workout.durationSeconds / distance;
+    final minutes = (paceSecondsPerKm / 60).floor();
+    final seconds = (paceSecondsPerKm % 60).round();
 
     // 비정상적인 페이스 필터링
     if (minutes < 1 || minutes > 30) return null;

@@ -27,8 +27,8 @@ class EditDistanceDialog extends StatelessWidget {
 
   /// 페이스 계산 (초/km)
   double? _calculatePaceSeconds(double distanceKm) {
-    if (distanceKm <= 0 || workout.durationMinutes <= 0) return null;
-    return (workout.durationMinutes * 60) / distanceKm;
+    if (distanceKm <= 0 || workout.durationSeconds <= 0) return null;
+    return workout.durationSeconds / distanceKm;
   }
 
   /// 페이스를 "분'초"" 형식으로 변환
