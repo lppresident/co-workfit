@@ -276,29 +276,106 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _loadEquippedItems();
                   },
                   child: Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Column(
                       children: [
-                        // 캐릭터 이모지
-                        Stack(
-                          alignment: Alignment.center,
+                        // 캐릭터 (세로 배치 - 머리/상체/하체)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              '🧍',
-                              style: TextStyle(fontSize: 70),
-                            ),
-                            if (headItem != null)
-                              Positioned(
-                                top: 0,
-                                child: Text(
-                                  headItem.iconEmoji,
-                                  style: const TextStyle(fontSize: 24),
+                            // 캐릭터 슬롯들
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // 머리 슬롯
+                                Container(
+                                  width: 50,
+                                  height: 35,
+                                  decoration: BoxDecoration(
+                                    color: headItem != null
+                                        ? Color(headItem.rarityColorValue).withValues(alpha: 0.3)
+                                        : Colors.white.withValues(alpha: 0.3),
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(25),
+                                      topRight: Radius.circular(25),
+                                    ),
+                                    border: Border.all(
+                                      color: headItem != null
+                                          ? Color(headItem.rarityColorValue)
+                                          : Colors.white.withValues(alpha: 0.5),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      headItem?.iconEmoji ?? '🧢',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        color: headItem != null ? null : Colors.white.withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                // 상체 슬롯
+                                Container(
+                                  width: 56,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: bodyItem != null
+                                        ? Color(bodyItem.rarityColorValue).withValues(alpha: 0.3)
+                                        : Colors.white.withValues(alpha: 0.3),
+                                    border: Border.all(
+                                      color: bodyItem != null
+                                          ? Color(bodyItem.rarityColorValue)
+                                          : Colors.white.withValues(alpha: 0.5),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      bodyItem?.iconEmoji ?? '👕',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        color: bodyItem != null ? null : Colors.white.withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // 하체 슬롯
+                                Container(
+                                  width: 50,
+                                  height: 45,
+                                  decoration: BoxDecoration(
+                                    color: legsItem != null
+                                        ? Color(legsItem.rarityColorValue).withValues(alpha: 0.3)
+                                        : Colors.white.withValues(alpha: 0.3),
+                                    borderRadius: const BorderRadius.only(
+                                      bottomLeft: Radius.circular(8),
+                                      bottomRight: Radius.circular(8),
+                                    ),
+                                    border: Border.all(
+                                      color: legsItem != null
+                                          ? Color(legsItem.rarityColorValue)
+                                          : Colors.white.withValues(alpha: 0.5),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      legsItem?.iconEmoji ?? '👖',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        color: legsItem != null ? null : Colors.white.withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                         // 장착 아이템 배지

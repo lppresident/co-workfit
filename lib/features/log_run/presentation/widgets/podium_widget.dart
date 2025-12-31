@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
 import 'package:co_workfit/features/craft/domain/entities/item_entity.dart';
 import 'package:co_workfit/features/craft/domain/entities/item_recipes.dart';
-import 'package:co_workfit/features/craft/domain/entities/item_category.dart';
 
 /// 참가자 순위 정보
 class ParticipantRank {
@@ -211,48 +210,51 @@ class PodiumWidget extends StatelessWidget {
 
   Widget _buildCharacter(BuildContext context, ParticipantRank participant, int place) {
     final equipped = participant.equippedItems;
-    final characterItems = <ItemEntity>[];
+
+    // 장착 아이템 가져오기
+    ItemEntity? headItem;
+    ItemEntity? bodyItem;
+    ItemEntity? legsItem;
 
     if (equipped != null) {
-      // 각 슬롯별로 장착된 아이템 확인
-      final slotItemIds = {
-        ClothingSlot.head: equipped.headItemId,
-        ClothingSlot.body: equipped.bodyItemId,
-        ClothingSlot.legs: equipped.legsItemId,
-      };
-
-      for (final entry in slotItemIds.entries) {
-        final itemId = entry.value;
-        if (itemId != null) {
-          final item = ItemRecipes.allItems.firstWhere(
-            (i) => i.id == itemId,
-            orElse: () => ItemRecipes.allItems.first,
-          );
-          if (item.id == itemId) {
-            characterItems.add(item);
-          }
-        }
+      if (equipped.headItemId != null) {
+        headItem = ItemRecipes.allItems.firstWhere(
+          (i) => i.id == equipped.headItemId,
+          orElse: () => ItemRecipes.allItems.first,
+        );
+        if (headItem.id != equipped.headItemId) headItem = null;
+      }
+      if (equipped.bodyItemId != null) {
+        bodyItem = ItemRecipes.allItems.firstWhere(
+          (i) => i.id == equipped.bodyItemId,
+          orElse: () => ItemRecipes.allItems.first,
+        );
+        if (bodyItem.id != equipped.bodyItemId) bodyItem = null;
+      }
+      if (equipped.legsItemId != null) {
+        legsItem = ItemRecipes.allItems.firstWhere(
+          (i) => i.id == equipped.legsItemId,
+          orElse: () => ItemRecipes.allItems.first,
+        );
+        if (legsItem.id != equipped.legsItemId) legsItem = null;
       }
     }
 
     // 캐릭터 크기 (1등이 더 큼)
-    final characterSize = place == 1 ? 70.0 : 55.0;
+    final scale = place == 1 ? 1.0 : 0.8;
+    final borderColor = switch (place) {
+      1 => const Color(0xFFFFD700),
+      2 => const Color(0xFFC0C0C0),
+      3 => const Color(0xFFCD7F32),
+      _ => Colors.grey,
+    };
 
     return Container(
-      width: characterSize,
-      height: characterSize,
+      padding: EdgeInsets.all(4 * scale),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: switch (place) {
-            1 => const Color(0xFFFFD700),
-            2 => const Color(0xFFC0C0C0),
-            3 => const Color(0xFFCD7F32),
-            _ => Colors.grey,
-          },
-          width: 3,
-        ),
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(12 * scale),
+        border: Border.all(color: borderColor, width: 2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -261,34 +263,75 @@ class PodiumWidget extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
-        alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // 기본 캐릭터
-          const Text('🧍', style: TextStyle(fontSize: 28)),
-          // 장착 아이템들
-          ...characterItems.map((item) {
-            if (item.clothingSlot == null) return const SizedBox.shrink();
-            return Positioned(
-              top: _getSlotPosition(item.clothingSlot!).dy,
-              left: _getSlotPosition(item.clothingSlot!).dx,
-              child: Text(
-                item.iconEmoji,
-                style: TextStyle(fontSize: place == 1 ? 16 : 14),
+          // 머리 슬롯
+          Container(
+            width: 28 * scale,
+            height: 20 * scale,
+            decoration: BoxDecoration(
+              color: headItem != null
+                  ? Color(headItem.rarityColorValue).withValues(alpha: 0.2)
+                  : Colors.grey[200],
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(14 * scale),
+                topRight: Radius.circular(14 * scale),
               ),
-            );
-          }),
+            ),
+            child: Center(
+              child: Text(
+                headItem?.iconEmoji ?? '🧢',
+                style: TextStyle(
+                  fontSize: 12 * scale,
+                  color: headItem != null ? null : Colors.grey[400],
+                ),
+              ),
+            ),
+          ),
+          // 상체 슬롯
+          Container(
+            width: 32 * scale,
+            height: 22 * scale,
+            color: bodyItem != null
+                ? Color(bodyItem.rarityColorValue).withValues(alpha: 0.2)
+                : Colors.grey[200],
+            child: Center(
+              child: Text(
+                bodyItem?.iconEmoji ?? '👕',
+                style: TextStyle(
+                  fontSize: 14 * scale,
+                  color: bodyItem != null ? null : Colors.grey[400],
+                ),
+              ),
+            ),
+          ),
+          // 하체 슬롯
+          Container(
+            width: 28 * scale,
+            height: 24 * scale,
+            decoration: BoxDecoration(
+              color: legsItem != null
+                  ? Color(legsItem.rarityColorValue).withValues(alpha: 0.2)
+                  : Colors.grey[200],
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(4 * scale),
+                bottomRight: Radius.circular(4 * scale),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                legsItem?.iconEmoji ?? '👖',
+                style: TextStyle(
+                  fontSize: 14 * scale,
+                  color: legsItem != null ? null : Colors.grey[400],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
-  }
-
-  Offset _getSlotPosition(ClothingSlot slot) {
-    return switch (slot) {
-      ClothingSlot.head => const Offset(20, 0),
-      ClothingSlot.body => const Offset(20, 18),
-      ClothingSlot.legs => const Offset(20, 32),
-    };
   }
 }
 

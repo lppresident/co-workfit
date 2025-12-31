@@ -272,7 +272,7 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
 
     return Column(
       children: [
-        // 캐릭터 (이모지 기반)
+        // 캐릭터 (세로 배치 - 머리/상체/하체)
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(24),
@@ -289,23 +289,97 @@ class _FriendDetailPageState extends BasePageState<FriendDetailPage> {
           ),
           child: Column(
             children: [
-              // 캐릭터
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  const Text(
-                    '🧍',
-                    style: TextStyle(fontSize: 80),
-                  ),
-                  if (headItem != null)
-                    Positioned(
-                      top: 0,
-                      child: Text(
-                        headItem.iconEmoji,
-                        style: const TextStyle(fontSize: 28),
+              // 캐릭터 슬롯들
+              SizedBox(
+                height: 160,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // 머리 슬롯
+                    Container(
+                      width: 60,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: headItem != null
+                            ? Color(headItem.rarityColorValue).withValues(alpha: 0.15)
+                            : Colors.grey[200],
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                        border: Border.all(
+                          color: headItem != null
+                              ? Color(headItem.rarityColorValue)
+                              : Colors.grey[400]!,
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          headItem?.iconEmoji ?? '🧢',
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: headItem != null ? null : Colors.grey[400],
+                          ),
+                        ),
                       ),
                     ),
-                ],
+                    // 상체 슬롯
+                    Container(
+                      width: 68,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: bodyItem != null
+                            ? Color(bodyItem.rarityColorValue).withValues(alpha: 0.15)
+                            : Colors.grey[200],
+                        border: Border.all(
+                          color: bodyItem != null
+                              ? Color(bodyItem.rarityColorValue)
+                              : Colors.grey[400]!,
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          bodyItem?.iconEmoji ?? '👕',
+                          style: TextStyle(
+                            fontSize: 28,
+                            color: bodyItem != null ? null : Colors.grey[400],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 하체 슬롯
+                    Container(
+                      width: 60,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        color: legsItem != null
+                            ? Color(legsItem.rarityColorValue).withValues(alpha: 0.15)
+                            : Colors.grey[200],
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(8),
+                          bottomRight: Radius.circular(8),
+                        ),
+                        border: Border.all(
+                          color: legsItem != null
+                              ? Color(legsItem.rarityColorValue)
+                              : Colors.grey[400]!,
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          legsItem?.iconEmoji ?? '👖',
+                          style: TextStyle(
+                            fontSize: 28,
+                            color: legsItem != null ? null : Colors.grey[400],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               // 장착 아이템 표시
