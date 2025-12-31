@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import '../../domain/entities/item_category.dart';
+import '../../domain/entities/item_entity.dart';
 import '../../domain/entities/item_recipes.dart';
 import '../bloc/craft_bloc.dart';
 import '../bloc/craft_event.dart';
@@ -195,7 +196,7 @@ class _CharacterPageState extends State<CharacterPage> {
     );
   }
 
-  Widget _buildEquippedBadge(dynamic item) {
+  Widget _buildEquippedBadge(ItemEntity item) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(

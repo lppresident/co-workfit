@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import '../../domain/entities/item_category.dart';
+import '../../domain/entities/item_entity.dart';
 import '../../domain/entities/item_recipes.dart';
 import '../bloc/craft_bloc.dart';
 import '../bloc/craft_event.dart';
@@ -120,7 +122,7 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  Widget _buildInventoryItem(dynamic item, int quantity, bool isEquipped) {
+  Widget _buildInventoryItem(ItemEntity item, int quantity, bool isEquipped) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(

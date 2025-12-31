@@ -4,6 +4,7 @@ import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/wood/wood.dart';
 import '../../domain/entities/item_category.dart';
+import '../../domain/entities/item_entity.dart';
 import '../../domain/entities/item_recipes.dart';
 import '../bloc/craft_bloc.dart';
 import '../bloc/craft_event.dart';
@@ -157,7 +158,7 @@ class _CraftPageState extends State<CraftPage>
 
   void _showItemDetail(
     BuildContext context,
-    dynamic item,
+    ItemEntity item,
     CraftState state,
     int currentWood,
   ) {
