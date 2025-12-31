@@ -1,10 +1,19 @@
-name: Deploy All (Android + iOS)
+name: Deploy
 
 on:
   workflow_dispatch:
     inputs:
+      deploy_target:
+        description: '배포 대상'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all       # Android + iOS 모두 배포
+          - android   # Android만 배포 (Firebase)
+          - ios       # iOS만 배포 (TestFlight)
       version_bump:
-        description: '버전 증가 타입 (major/minor/patch/build)'
+        description: '버전 증가 타입'
         required: true
         default: 'build'
         type: choice
@@ -17,20 +26,10 @@ on:
         description: '릴리스 노트'
         required: false
         default: 'New test release'
-      deploy_android_firebase:
-        description: 'Android: Firebase App Distribution에 배포'
-        required: true
-        default: true
-        type: boolean
-      deploy_android_github:
-        description: 'Android: GitHub Release 생성'
+      create_github_release:
+        description: 'GitHub Release 생성 (Android APK 포함)'
         required: true
         default: false
-        type: boolean
-      deploy_ios:
-        description: 'iOS: TestFlight에 배포'
-        required: true
-        default: true
         type: boolean
       runner_type:
         description: 'Runner 선택'
@@ -50,10 +49,27 @@ jobs:
       new_version: ${{ steps.bump_version.outputs.new_version }}
       version_name: ${{ steps.bump_version.outputs.version_name }}
       build_number: ${{ steps.bump_version.outputs.build_number }}
+      deploy_android: ${{ steps.check_target.outputs.deploy_android }}
+      deploy_ios: ${{ steps.check_target.outputs.deploy_ios }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Check deploy target
+        id: check_target
+        run: |
+          TARGET="${{ github.event.inputs.deploy_target }}"
+          if [[ "$TARGET" == "all" || "$TARGET" == "android" ]]; then
+            echo "deploy_android=true" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_android=false" >> $GITHUB_OUTPUT
+          fi
+          if [[ "$TARGET" == "all" || "$TARGET" == "ios" ]]; then
+            echo "deploy_ios=true" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_ios=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Calculate version
         id: bump_version
@@ -80,14 +96,15 @@ jobs:
           echo "version_name=$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
 
-          echo "## 📦 Version Info" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Deploy Info" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target**: ${{ github.event.inputs.deploy_target }}" >> $GITHUB_STEP_SUMMARY
           echo "- **New Version**: $NEW_VERSION" >> $GITHUB_STEP_SUMMARY
           echo "- **Runner Type**: ${{ github.event.inputs.runner_type }}" >> $GITHUB_STEP_SUMMARY
 
   # ==================== Android: Self-hosted ====================
   android-self-hosted:
     needs: prepare
-    if: github.event.inputs.runner_type != 'github-hosted'
+    if: needs.prepare.outputs.deploy_android == 'true' && github.event.inputs.runner_type != 'github-hosted'
     runs-on: self-hosted
     timeout-minutes: 15
     continue-on-error: ${{ github.event.inputs.runner_type == 'self-hosted-first' }}
@@ -139,7 +156,6 @@ jobs:
 
       # macOS self-hosted에서는 Docker 기반 액션 사용 불가 → Firebase CLI 직접 사용
       - name: Deploy to Firebase (via CLI)
-        if: github.event.inputs.deploy_android_firebase == 'true'
         run: |
           # Firebase CLI 설치 (없으면)
           if ! command -v firebase &> /dev/null; then
@@ -177,7 +193,7 @@ jobs:
   android-github-hosted:
     needs: [prepare, android-self-hosted]
     if: |
-      always() && (
+      always() && needs.prepare.outputs.deploy_android == 'true' && (
         github.event.inputs.runner_type == 'github-hosted' ||
         (github.event.inputs.runner_type == 'self-hosted-first' && needs.android-self-hosted.outputs.success != 'true')
       )
@@ -227,7 +243,6 @@ jobs:
 
       # Linux에서는 Docker 기반 액션 사용 가능
       - name: Deploy to Firebase
-        if: github.event.inputs.deploy_android_firebase == 'true'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
@@ -254,7 +269,7 @@ jobs:
   # ==================== iOS: Self-hosted ====================
   ios-self-hosted:
     needs: prepare
-    if: github.event.inputs.deploy_ios == 'true' && github.event.inputs.runner_type != 'github-hosted'
+    if: needs.prepare.outputs.deploy_ios == 'true' && github.event.inputs.runner_type != 'github-hosted'
     runs-on: self-hosted
     timeout-minutes: 20
     continue-on-error: ${{ github.event.inputs.runner_type == 'self-hosted-first' }}
@@ -283,11 +298,8 @@ jobs:
 
       - name: Setup Ruby and Bundler
         run: |
-          # Ruby가 설치되어 있는지 확인
           ruby --version
           gem --version
-          
-          # Bundler 설치 (없으면)
           if ! command -v bundle &> /dev/null; then
             gem install bundler
           fi
@@ -355,7 +367,7 @@ jobs:
   ios-github-hosted:
     needs: [prepare, ios-self-hosted]
     if: |
-      always() && github.event.inputs.deploy_ios == 'true' && (
+      always() && needs.prepare.outputs.deploy_ios == 'true' && (
         github.event.inputs.runner_type == 'github-hosted' ||
         (github.event.inputs.runner_type == 'self-hosted-first' && needs.ios-self-hosted.outputs.success != 'true')
       )
@@ -483,7 +495,7 @@ jobs:
         continue-on-error: true
 
       - name: Create GitHub Release
-        if: github.event.inputs.deploy_android_github == 'true'
+        if: github.event.inputs.create_github_release == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.prepare.outputs.new_version }}
@@ -497,8 +509,8 @@ jobs:
             - Commit: ${{ github.sha }}
             
             ## Build Info
-            - Android: ${{ needs.android-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.android-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '❌' }}
-            - iOS: ${{ needs.ios-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.ios-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '❌' }}
+            - Android: ${{ needs.android-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.android-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '⏭️ 스킵' }}
+            - iOS: ${{ needs.ios-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.ios-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '⏭️ 스킵' }}
           files: ./apk/app-release.apk
           fail_on_unmatched_files: false
         env:
@@ -513,24 +525,31 @@ jobs:
     steps:
       - name: Summary
         run: |
-          echo "## 🚀 Full Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version**: ${{ needs.prepare.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Runner Type**: ${{ github.event.inputs.runner_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target**: ${{ github.event.inputs.deploy_target }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Runner**: ${{ github.event.inputs.runner_type }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🤖 Android" >> $GITHUB_STEP_SUMMARY
-          echo "| Runner | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Self-hosted | ${{ needs.android-self-hosted.outputs.success == 'true' && '✅ 성공' || needs.android-self-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패/오프라인' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| GitHub-hosted | ${{ needs.android-github-hosted.outputs.success == 'true' && '✅ 성공 (Fallback)' || needs.android-github-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🍎 iOS" >> $GITHUB_STEP_SUMMARY
-          echo "| Runner | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Self-hosted | ${{ needs.ios-self-hosted.outputs.success == 'true' && '✅ 성공' || needs.ios-self-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패/오프라인' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| GitHub-hosted | ${{ needs.ios-github-hosted.outputs.success == 'true' && '✅ 성공 (Fallback)' || needs.ios-github-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📱 배포 대상" >> $GITHUB_STEP_SUMMARY
-          echo "- **Firebase App Distribution**: ${{ github.event.inputs.deploy_android_firebase == 'true' && '✅' || '⏭️' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **GitHub Release**: ${{ github.event.inputs.deploy_android_github == 'true' && '✅' || '⏭️' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **TestFlight**: ${{ github.event.inputs.deploy_ios == 'true' && '✅' || '⏭️' }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.prepare.outputs.deploy_android }}" == "true" ]]; then
+            echo "### 🤖 Android (Firebase App Distribution)" >> $GITHUB_STEP_SUMMARY
+            echo "| Runner | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Self-hosted | ${{ needs.android-self-hosted.outputs.success == 'true' && '✅ 성공' || needs.android-self-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패/오프라인' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| GitHub-hosted | ${{ needs.android-github-hosted.outputs.success == 'true' && '✅ 성공 (Fallback)' || needs.android-github-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [[ "${{ needs.prepare.outputs.deploy_ios }}" == "true" ]]; then
+            echo "### 🍎 iOS (TestFlight)" >> $GITHUB_STEP_SUMMARY
+            echo "| Runner | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Self-hosted | ${{ needs.ios-self-hosted.outputs.success == 'true' && '✅ 성공' || needs.ios-self-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패/오프라인' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| GitHub-hosted | ${{ needs.ios-github-hosted.outputs.success == 'true' && '✅ 성공 (Fallback)' || needs.ios-github-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "### 📋 Options" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release**: ${{ github.event.inputs.create_github_release == 'true' && '✅' || '⏭️' }}" >> $GITHUB_STEP_SUMMARY
+
