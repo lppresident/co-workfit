@@ -1,19 +1,38 @@
 import 'item_category.dart';
 import 'item_entity.dart';
 
-/// Phase 1 의상 아이템 레시피 (10개)
+/// Phase 1 의상 아이템 레시피
 /// 
-/// 머리 (HEAD) - 4개
-/// 상체 (BODY) - 3개
-/// 하체 (LEGS) - 3개
+/// 통나무 아이템 (10개): 달리기 챌린지로 획득
+/// - 머리 (HEAD) - 4개
+/// - 상체 (BODY) - 3개
+/// - 하체 (LEGS) - 3개
+/// 
+/// 쇠 아이템 (10개): 헬스 챌린지로 획득
+/// - 머리 (HEAD) - 4개
+/// - 상체 (BODY) - 3개
+/// - 하체 (LEGS) - 3개
 class ItemRecipes {
   ItemRecipes._();
 
-  /// 모든 Phase 1 아이템 목록
+  /// 모든 아이템 목록 (통나무 + 쇠)
   static List<ItemEntity> get allItems => [
+        ...woodItems,
+        ...ironItems,
+      ];
+  
+  /// 통나무 아이템 목록
+  static List<ItemEntity> get woodItems => [
         ...headItems,
         ...bodyItems,
         ...legsItems,
+      ];
+  
+  /// 쇠 아이템 목록
+  static List<ItemEntity> get ironItems => [
+        ...ironHeadItems,
+        ...ironBodyItems,
+        ...ironLegsItems,
       ];
 
   /// 머리 아이템 (4개)
@@ -144,11 +163,132 @@ class ItemRecipes {
         .toList();
   }
 
-  /// 가격순 정렬
-  static List<ItemEntity> get itemsSortedByPrice {
-    final sorted = List<ItemEntity>.from(allItems);
+  /// 가격순 정렬 (통나무 아이템)
+  static List<ItemEntity> get woodItemsSortedByPrice {
+    final sorted = List<ItemEntity>.from(woodItems);
     sorted.sort((a, b) => a.woodCost.compareTo(b.woodCost));
     return sorted;
   }
+  
+  /// 가격순 정렬 (쇠 아이템)
+  static List<ItemEntity> get ironItemsSortedByPrice {
+    final sorted = List<ItemEntity>.from(ironItems);
+    sorted.sort((a, b) => a.ironCost.compareTo(b.ironCost));
+    return sorted;
+  }
+
+  // ========== 쇠 아이템 (헬스 챌린지) ==========
+
+  /// 쇠 머리 아이템 (4개)
+  static List<ItemEntity> get ironHeadItems => [
+        const ItemEntity(
+          id: 'iron_head_band',
+          name: '철 머리띠',
+          description: '헬스 입문자의 첫 장식. 땀을 잡아줍니다!',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.head,
+          ironCost: 30,
+          iconEmoji: '⚙️',
+          estimatedDays: 3,
+        ),
+        const ItemEntity(
+          id: 'iron_steel_helmet',
+          name: '강철 헬멧',
+          description: '단단한 강철로 만든 헬멧. 집중력을 높여줍니다.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.head,
+          ironCost: 80,
+          iconEmoji: '⛑️',
+          estimatedDays: 7,
+        ),
+        const ItemEntity(
+          id: 'iron_warrior_helm',
+          name: '전사의 투구',
+          description: '강인한 전사에게 어울리는 투구.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.head,
+          ironCost: 300,
+          iconEmoji: '🪖',
+          estimatedDays: 25,
+        ),
+        const ItemEntity(
+          id: 'iron_champion_crown',
+          name: '챔피언 왕관',
+          description: '헬스의 정점에 선 챔피언만이 쓸 수 있는 왕관.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.head,
+          ironCost: 1200,
+          iconEmoji: '🏆',
+          estimatedDays: 80,
+        ),
+      ];
+
+  /// 쇠 상체 아이템 (3개)
+  static List<ItemEntity> get ironBodyItems => [
+        const ItemEntity(
+          id: 'iron_tank_top',
+          name: '철 탱크탑',
+          description: '근육을 드러내는 탱크탑. 운동할 맛이 납니다!',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.body,
+          ironCost: 50,
+          iconEmoji: '🎽',
+          estimatedDays: 4,
+        ),
+        const ItemEntity(
+          id: 'iron_chain_mail',
+          name: '쇠사슬 갑옷',
+          description: '촘촘한 쇠사슬로 엮은 갑옷.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.body,
+          ironCost: 150,
+          iconEmoji: '🔗',
+          estimatedDays: 12,
+        ),
+        const ItemEntity(
+          id: 'iron_plate_armor',
+          name: '강철 판금 갑옷',
+          description: '최강의 방어력을 자랑하는 판금 갑옷.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.body,
+          ironCost: 500,
+          iconEmoji: '🛡️',
+          estimatedDays: 40,
+        ),
+      ];
+
+  /// 쇠 하체 아이템 (3개)
+  static List<ItemEntity> get ironLegsItems => [
+        const ItemEntity(
+          id: 'iron_gym_shorts',
+          name: '철 운동 반바지',
+          description: '움직임이 자유로운 운동 반바지.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.legs,
+          ironCost: 40,
+          iconEmoji: '🩲',
+          estimatedDays: 4,
+        ),
+        const ItemEntity(
+          id: 'iron_training_pants',
+          name: '강철 트레이닝 바지',
+          description: '강도 높은 훈련에도 견디는 바지.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.legs,
+          ironCost: 120,
+          iconEmoji: '👖',
+          estimatedDays: 10,
+        ),
+        const ItemEntity(
+          id: 'iron_warrior_greaves',
+          name: '전사의 정강이 받침',
+          description: '전설의 전사가 착용하던 정강이 받침.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.legs,
+          ironCost: 400,
+          iconEmoji: '🦾',
+          estimatedDays: 33,
+        ),
+      ];
 }
 

@@ -8,6 +8,7 @@ import 'character_widget.dart';
 class ItemCardWidget extends StatelessWidget {
   final ItemEntity item;
   final int currentWood;
+  final int currentIron;
   final int ownedQuantity;
   final bool isEquipped;
   final EquippedItemsEntity? currentEquipped;
@@ -19,7 +20,8 @@ class ItemCardWidget extends StatelessWidget {
   const ItemCardWidget({
     super.key,
     required this.item,
-    required this.currentWood,
+    this.currentWood = 0,
+    this.currentIron = 0,
     this.ownedQuantity = 0,
     this.isEquipped = false,
     this.currentEquipped,
@@ -29,7 +31,7 @@ class ItemCardWidget extends StatelessWidget {
     this.onUnequip,
   });
 
-  bool get canCraft => currentWood >= item.woodCost;
+  bool get canCraft => item.canCraft(currentWood: currentWood, currentIron: currentIron);
   bool get isOwned => ownedQuantity > 0;
 
   @override
@@ -113,10 +115,10 @@ class ItemCardWidget extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('🪵', style: TextStyle(fontSize: 12)),
+                  Text(item.currencyEmoji, style: const TextStyle(fontSize: 12)),
                   const SizedBox(width: 3),
                   Text(
-                    '${item.woodCost}',
+                    '${item.cost}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -201,7 +203,9 @@ class ItemCardWidget extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: canCraft ? onCraft : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.brown[400],
+                  backgroundColor: item.isIronItem 
+                      ? Colors.blueGrey[600] 
+                      : Colors.brown[400],
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(

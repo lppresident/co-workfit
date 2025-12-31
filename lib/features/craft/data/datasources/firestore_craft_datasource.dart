@@ -254,5 +254,56 @@ class FirestoreCraftDataSource {
       rethrow;
     }
   }
+
+  // ========== 쇠 관련 ==========
+
+  /// 현재 쇠 보유량 조회
+  Future<int> getIronAmount(String userId) async {
+    try {
+      final doc = await firestore
+          .collection(_usersCollection)
+          .doc(userId)
+          .get();
+
+      if (!doc.exists) return 0;
+      return (doc.data()?['ironAmount'] as num?)?.toInt() ?? 0;
+    } catch (e) {
+      AppLogger.error('FirestoreCraftDataSource', '쇠 조회 실패', e);
+      return 0;
+    }
+  }
+
+  /// 쇠 사용 (제작 시)
+  Future<void> useIron(String userId, int amount) async {
+    try {
+      await firestore.runTransaction((transaction) async {
+        final userRef = firestore.collection(_usersCollection).doc(userId);
+        final userDoc = await transaction.get(userRef);
+
+        if (!userDoc.exists) {
+          throw Exception('사용자 정보가 없습니다');
+        }
+
+        final currentAmount =
+            (userDoc.data()?['ironAmount'] as num?)?.toInt() ?? 0;
+        if (currentAmount < amount) {
+          throw Exception(
+              '쇠가 부족합니다. 보유: $currentAmount, 필요: $amount');
+        }
+
+        transaction.update(userRef, {
+          'ironAmount': FieldValue.increment(-amount),
+        });
+      });
+
+      AppLogger.info(
+        'FirestoreCraftDataSource',
+        '쇠 $amount개 사용 (userId: $userId)',
+      );
+    } catch (e) {
+      AppLogger.error('FirestoreCraftDataSource', '쇠 사용 실패', e);
+      rethrow;
+    }
+  }
 }
 

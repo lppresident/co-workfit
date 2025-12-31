@@ -36,6 +36,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SignInWithAppleRequested>(_onSignInWithAppleRequested);
     on<UpdateNicknameRequested>(_onUpdateNicknameRequested);
     on<SignOutRequested>(_onSignOutRequested);
+    on<AuthRefreshUserRequested>(_onAuthRefreshUserRequested);
 
     // Firebase Auth 상태 변경 리스너
     _authStateSubscription = _authRepository.authStateChanges.listen(
@@ -134,6 +135,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (error) => emit(AuthError(error)),
       (_) => emit(const Unauthenticated()),
     );
+  }
+
+  /// 사용자 정보 새로고침 (재화 등 업데이트 반영)
+  Future<void> _onAuthRefreshUserRequested(
+    AuthRefreshUserRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    // 현재 인증된 상태일 때만 새로고침
+    if (state is Authenticated) {
+      final result = await _getCurrentUser();
+
+      result.fold(
+        (error) => {}, // 에러 시 현재 상태 유지
+        (user) {
+          if (user != null) {
+            emit(Authenticated(user));
+          }
+        },
+      );
+    }
   }
 
   @override

@@ -41,3 +41,8 @@ class UpdateNicknameRequested extends AuthEvent {
 class SignOutRequested extends AuthEvent {
   const SignOutRequested();
 }
+
+/// 사용자 정보 새로고침
+class AuthRefreshUserRequested extends AuthEvent {
+  const AuthRefreshUserRequested();
+}

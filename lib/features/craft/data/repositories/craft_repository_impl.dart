@@ -151,23 +151,41 @@ class CraftRepositoryImpl implements CraftRepository {
         throw Exception('존재하지 않는 아이템입니다: $itemId');
       }
 
-      // 2. 통나무 보유량 확인
-      final woodAmount = await dataSource.getWoodAmount(userId);
-      if (woodAmount < item.woodCost) {
-        throw Exception(
-            '통나무가 부족합니다. 보유: $woodAmount, 필요: ${item.woodCost}');
+      // 2. 재화 타입에 따라 처리
+      if (item.isIronItem) {
+        // 쇠 아이템 제작
+        final ironAmount = await dataSource.getIronAmount(userId);
+        if (ironAmount < item.ironCost) {
+          throw Exception(
+              '쇠가 부족합니다. 보유: $ironAmount, 필요: ${item.ironCost}');
+        }
+
+        // 쇠 소비
+        await dataSource.useIron(userId, item.ironCost);
+
+        AppLogger.info(
+          'CraftRepositoryImpl',
+          '아이템 제작 완료: ${item.name} (쇠 ${item.ironCost}개 사용)',
+        );
+      } else {
+        // 통나무 아이템 제작
+        final woodAmount = await dataSource.getWoodAmount(userId);
+        if (woodAmount < item.woodCost) {
+          throw Exception(
+              '통나무가 부족합니다. 보유: $woodAmount, 필요: ${item.woodCost}');
+        }
+
+        // 통나무 소비
+        await dataSource.useWood(userId, item.woodCost);
+
+        AppLogger.info(
+          'CraftRepositoryImpl',
+          '아이템 제작 완료: ${item.name} (통나무 ${item.woodCost}개 사용)',
+        );
       }
 
-      // 3. 통나무 소비
-      await dataSource.useWood(userId, item.woodCost);
-
-      // 4. 인벤토리에 아이템 추가
+      // 3. 인벤토리에 아이템 추가
       await dataSource.addToInventory(userId, itemId, 1);
-
-      AppLogger.info(
-        'CraftRepositoryImpl',
-        '아이템 제작 완료: ${item.name} (통나무 ${item.woodCost}개 사용)',
-      );
 
       return true;
     } catch (e) {
