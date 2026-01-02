@@ -42,7 +42,7 @@ on:
           - github-hosted        # GitHub runner만 사용
 
 jobs:
-  # ==================== 준비: 버전 계산 + Flutter 설정 (한번만) ====================
+  # ==================== 버전 계산 (한번만) ====================
   prepare:
     runs-on: ubuntu-latest
     outputs:
@@ -101,67 +101,148 @@ jobs:
           echo "- **New Version**: $NEW_VERSION" >> $GITHUB_STEP_SUMMARY
           echo "- **Runner Type**: ${{ github.event.inputs.runner_type }}" >> $GITHUB_STEP_SUMMARY
 
-      # Flutter setup을 여기서 한 번만 수행
-      - name: Setup Flutter (once for all)
-        uses: ./.github/actions/setup-flutter
-        with:
-          new-version: ${{ steps.bump_version.outputs.new_version }}
-
-      # 버전 업데이트된 소스를 아티팩트로 공유
-      - name: Upload prepared source
-        uses: actions/upload-artifact@v4
-        with:
-          name: prepared-source
-          path: |
-            .
-            !.git
-          retention-days: 1
-
-  # ==================== Android 빌드 ====================
-  build-android:
+  # ==================== Android: Self-hosted ====================
+  android-self-hosted:
     needs: prepare
-    if: needs.prepare.outputs.deploy_android == 'true'
-    runs-on: ${{ github.event.inputs.runner_type == 'github-hosted' && 'ubuntu-latest' || 'self-hosted' }}
-    timeout-minutes: 30
+    if: needs.prepare.outputs.deploy_android == 'true' && github.event.inputs.runner_type != 'github-hosted'
+    runs-on: self-hosted
+    timeout-minutes: 15
+    continue-on-error: ${{ github.event.inputs.runner_type == 'self-hosted-first' }}
+
+    outputs:
+      success: ${{ steps.build_result.outputs.success }}
 
     steps:
-      - name: Download prepared source
-        uses: actions/download-artifact@v4
-        with:
-          name: prepared-source
-          path: .
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Build Android
-        uses: ./.github/actions/build-android
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          keystore-base64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-          keystore-password: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          key-alias: ${{ secrets.RELEASE_KEY_ALIAS }}
-          key-password: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          distribution: 'temurin'
+          java-version: '17'
 
-      # macOS self-hosted는 CLI, Linux는 Docker action 사용
-      - name: Deploy to Firebase (CLI)
-        if: runner.os == 'macOS'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Update version
         run: |
+          NEW_VERSION="${{ needs.prepare.outputs.new_version }}"
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+          else
+            sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+          fi
+
+      - name: Setup release keystore
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release-keystore.jks
+          echo "storeFile=release-keystore.jks" > android/key.properties
+          echo "storePassword=${{ secrets.RELEASE_KEYSTORE_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}" >> android/key.properties
+          echo "keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}" >> android/key.properties
+
+      - name: Build APK
+        run: |
+          flutter clean
+          flutter build apk --release
+
+      # macOS self-hosted에서는 Docker 기반 액션 사용 불가 → Firebase CLI 직접 사용
+      - name: Deploy to Firebase (via CLI)
+        run: |
+          # Firebase CLI 설치 (없으면)
           if ! command -v firebase &> /dev/null; then
             echo "Installing Firebase CLI..."
             curl -sL https://firebase.tools | bash
           fi
-
+          
+          # 서비스 계정 키 저장
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
           export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/firebase-service-account.json"
-
+          
+          # Firebase App Distribution에 배포
           firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
             --app "${{ secrets.FIREBASE_APP_ID }}" \
             --groups "testers" \
             --release-notes "${{ github.event.inputs.release_notes }}
           Version: ${{ needs.prepare.outputs.new_version }}
           Commit: ${{ github.sha }}"
-
+          
+          # 키 파일 삭제
           rm -f firebase-service-account.json
 
-      - name: Deploy to Firebase (Action)
-        if: runner.os == 'Linux'
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-self-hosted
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+
+      - name: Mark success
+        id: build_result
+        run: echo "success=true" >> $GITHUB_OUTPUT
+
+  # ==================== Android: GitHub-hosted Fallback ====================
+  android-github-hosted:
+    needs: [prepare, android-self-hosted]
+    if: |
+      always() && needs.prepare.outputs.deploy_android == 'true' && (
+        github.event.inputs.runner_type == 'github-hosted' ||
+        (github.event.inputs.runner_type == 'self-hosted-first' && needs.android-self-hosted.outputs.success != 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    outputs:
+      success: ${{ steps.build_result.outputs.success }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Update version
+        run: |
+          NEW_VERSION="${{ needs.prepare.outputs.new_version }}"
+          sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+      - name: Setup release keystore
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release-keystore.jks
+          echo "storeFile=release-keystore.jks" > android/key.properties
+          echo "storePassword=${{ secrets.RELEASE_KEYSTORE_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}" >> android/key.properties
+          echo "keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}" >> android/key.properties
+
+      - name: Build APK
+        run: |
+          flutter clean
+          flutter build apk --release
+
+      # Linux에서는 Docker 기반 액션 사용 가능
+      - name: Deploy to Firebase
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
@@ -172,32 +253,61 @@ jobs:
             ${{ github.event.inputs.release_notes }}
             Version: ${{ needs.prepare.outputs.new_version }}
             Commit: ${{ github.sha }}
+            (Built on GitHub-hosted runner)
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: android-apk-github-hosted
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
 
-  # ==================== iOS 빌드 ====================
-  build-ios:
+      - name: Mark success
+        id: build_result
+        run: echo "success=true" >> $GITHUB_OUTPUT
+
+  # ==================== iOS: Self-hosted ====================
+  ios-self-hosted:
     needs: prepare
-    if: needs.prepare.outputs.deploy_ios == 'true'
-    runs-on: ${{ github.event.inputs.runner_type == 'github-hosted' && 'macos-latest' || 'self-hosted' }}
+    if: needs.prepare.outputs.deploy_ios == 'true' && github.event.inputs.runner_type != 'github-hosted'
+    runs-on: self-hosted
     timeout-minutes: 60
+    continue-on-error: ${{ github.event.inputs.runner_type == 'self-hosted-first' }}
+
+    outputs:
+      success: ${{ steps.build_result.outputs.success }}
 
     steps:
-      - name: Download prepared source
-        uses: actions/download-artifact@v4
-        with:
-          name: prepared-source
-          path: .
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup iOS Ruby
-        uses: ./.github/actions/setup-ios-ruby
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          use-github-action: ${{ github.event.inputs.runner_type == 'github-hosted' && 'true' || 'false' }}
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Update version
+        run: |
+          NEW_VERSION="${{ needs.prepare.outputs.new_version }}"
+          sed -i '' "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+      - name: Setup Ruby and Bundler
+        run: |
+          ruby --version
+          gem --version
+          if ! command -v bundle &> /dev/null; then
+            gem install bundler
+          fi
+
+      - name: Install Fastlane dependencies
+        run: |
+          cd ios
+          bundle install --path vendor/bundle
 
       - name: Build and Upload to TestFlight
         env:
@@ -214,13 +324,80 @@ jobs:
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ipa
+          name: ios-ipa-self-hosted
           path: build/ios/ipa/co_workfit.ipa
           retention-days: 7
 
+      - name: Mark success
+        id: build_result
+        run: echo "success=true" >> $GITHUB_OUTPUT
+
+  # ==================== iOS: GitHub-hosted Fallback ====================
+  ios-github-hosted:
+    needs: [prepare, ios-self-hosted]
+    if: |
+      always() && needs.prepare.outputs.deploy_ios == 'true' && (
+        github.event.inputs.runner_type == 'github-hosted' ||
+        (github.event.inputs.runner_type == 'self-hosted-first' && needs.ios-self-hosted.outputs.success != 'true')
+      )
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    outputs:
+      success: ${{ steps.build_result.outputs.success }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Update version
+        run: |
+          NEW_VERSION="${{ needs.prepare.outputs.new_version }}"
+          sed -i '' "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios
+
+      - name: Build and Upload to TestFlight
+        env:
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: |
+          cd ios
+          bundle exec fastlane beta changelog:"${{ github.event.inputs.release_notes }} (Built on GitHub-hosted runner)"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-github-hosted
+          path: build/ios/ipa/co_workfit.ipa
+          retention-days: 7
+
+      - name: Mark success
+        id: build_result
+        run: echo "success=true" >> $GITHUB_OUTPUT
+
   # ==================== Finalize ====================
   finalize:
-    needs: [prepare, build-android, build-ios]
+    needs: [prepare, android-self-hosted, android-github-hosted, ios-self-hosted, ios-github-hosted]
     if: always()
     runs-on: ubuntu-latest
 
@@ -239,11 +416,19 @@ jobs:
           git commit -m "chore: Bump version to $NEW_VERSION" || echo "No changes"
           git push || echo "Push failed"
 
-      - name: Download Android APK
-        if: needs.build-android.result == 'success'
+      - name: Download Android APK (self-hosted)
+        if: needs.android-self-hosted.outputs.success == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: android-apk
+          name: android-apk-self-hosted
+          path: ./apk
+        continue-on-error: true
+
+      - name: Download Android APK (github-hosted)
+        if: needs.android-github-hosted.outputs.success == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk-github-hosted
           path: ./apk
         continue-on-error: true
 
@@ -262,9 +447,8 @@ jobs:
             - Commit: ${{ github.sha }}
             
             ## Build Info
-            - Android: ${{ needs.build-android.result == 'success' && '✅' || needs.build-android.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }}
-            - iOS: ${{ needs.build-ios.result == 'success' && '✅' || needs.build-ios.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }}
-            - Runner: ${{ github.event.inputs.runner_type }}
+            - Android: ${{ needs.android-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.android-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '⏭️ 스킵' }}
+            - iOS: ${{ needs.ios-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.ios-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '⏭️ 스킵' }}
           files: ./apk/app-release.apk
           fail_on_unmatched_files: false
         env:
@@ -272,7 +456,7 @@ jobs:
 
   # ==================== Summary ====================
   summary:
-    needs: [prepare, build-android, build-ios, finalize]
+    needs: [prepare, android-self-hosted, android-github-hosted, ios-self-hosted, ios-github-hosted, finalize]
     if: always()
     runs-on: ubuntu-latest
 
@@ -285,19 +469,25 @@ jobs:
           echo "**Target**: ${{ github.event.inputs.deploy_target }}" >> $GITHUB_STEP_SUMMARY
           echo "**Runner**: ${{ github.event.inputs.runner_type }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
+          
           if [[ "${{ needs.prepare.outputs.deploy_android }}" == "true" ]]; then
             echo "### 🤖 Android (Firebase App Distribution)" >> $GITHUB_STEP_SUMMARY
-            echo "**Status**: ${{ needs.build-android.result == 'success' && '✅ 성공' || needs.build-android.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }}" >> $GITHUB_STEP_SUMMARY
+            echo "| Runner | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Self-hosted | ${{ needs.android-self-hosted.outputs.success == 'true' && '✅ 성공' || needs.android-self-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패/오프라인' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| GitHub-hosted | ${{ needs.android-github-hosted.outputs.success == 'true' && '✅ 성공 (Fallback)' || needs.android-github-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
-
+          
           if [[ "${{ needs.prepare.outputs.deploy_ios }}" == "true" ]]; then
             echo "### 🍎 iOS (TestFlight)" >> $GITHUB_STEP_SUMMARY
-            echo "**Status**: ${{ needs.build-ios.result == 'success' && '✅ 성공' || needs.build-ios.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }}" >> $GITHUB_STEP_SUMMARY
+            echo "| Runner | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Self-hosted | ${{ needs.ios-self-hosted.outputs.success == 'true' && '✅ 성공' || needs.ios-self-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패/오프라인' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| GitHub-hosted | ${{ needs.ios-github-hosted.outputs.success == 'true' && '✅ 성공 (Fallback)' || needs.ios-github-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
-
+          
           echo "### 📋 Options" >> $GITHUB_STEP_SUMMARY
           echo "- **GitHub Release**: ${{ github.event.inputs.create_github_release == 'true' && '✅' || '⏭️' }}" >> $GITHUB_STEP_SUMMARY
 
