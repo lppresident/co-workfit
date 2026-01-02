@@ -125,24 +125,11 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Download prepared source
         uses: actions/download-artifact@v4
         with:
           name: prepared-source
           path: .
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.38.1'
-          channel: 'stable'
-          cache: true
-
-      - name: Get dependencies
-        run: flutter pub get
 
       - name: Build Android
         uses: ./.github/actions/build-android
@@ -201,24 +188,11 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Download prepared source
         uses: actions/download-artifact@v4
         with:
           name: prepared-source
           path: .
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.38.1'
-          channel: 'stable'
-          cache: true
-
-      - name: Get dependencies
-        run: flutter pub get
 
       - name: Setup iOS Ruby
         uses: ./.github/actions/setup-ios-ruby
