@@ -460,6 +460,7 @@ class FirestoreSocialDataSource {
         return LeaderboardEntryEntity(
           userId: doc.id,
           displayName: data['displayName'] as String,
+          nickname: data['nickname'] as String?,
           photoUrl: data['photoUrl'] as String?,
           totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
           workoutCount: (data['workoutCount'] as num?)?.toInt() ?? 0,
@@ -515,6 +516,7 @@ class FirestoreSocialDataSource {
               return LeaderboardEntryEntity(
                 userId: doc.id,
                 displayName: data['displayName'] as String,
+                nickname: data['nickname'] as String?,
                 photoUrl: data['photoUrl'] as String?,
                 totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
                 workoutCount: (data['workoutCount'] as num?)?.toInt() ?? 0,
@@ -538,6 +540,7 @@ class FirestoreSocialDataSource {
             entries.add(LeaderboardEntryEntity(
               userId: userId,
               displayName: userData['displayName'] as String,
+              nickname: userData['nickname'] as String?,
               photoUrl: userData['photoUrl'] as String?,
               totalScore: (userData['totalScore'] as num?)?.toInt() ?? 0,
               workoutCount: (userData['workoutCount'] as num?)?.toInt() ?? 0,

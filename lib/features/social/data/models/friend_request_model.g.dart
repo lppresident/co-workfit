@@ -17,6 +17,7 @@ FriendRequestModel _$FriendRequestModelFromJson(Map<String, dynamic> json) =>
           ? null
           : DateTime.parse(json['respondedAt'] as String),
       senderName: json['senderName'] as String?,
+      senderNickname: json['senderNickname'] as String?,
       senderEmail: json['senderEmail'] as String?,
       senderPhotoUrl: json['senderPhotoUrl'] as String?,
     );
@@ -30,6 +31,7 @@ Map<String, dynamic> _$FriendRequestModelToJson(FriendRequestModel instance) =>
       'createdAt': instance.createdAt.toIso8601String(),
       'respondedAt': instance.respondedAt?.toIso8601String(),
       'senderName': instance.senderName,
+      'senderNickname': instance.senderNickname,
       'senderEmail': instance.senderEmail,
       'senderPhotoUrl': instance.senderPhotoUrl,
     };

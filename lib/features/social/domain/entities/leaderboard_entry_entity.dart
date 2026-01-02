@@ -35,6 +35,7 @@ enum LeaderboardType {
 class LeaderboardEntryEntity extends Equatable {
   final String userId;
   final String displayName;
+  final String? nickname;
   final String? photoUrl;
   final int totalScore;
   final int workoutCount;
@@ -45,6 +46,7 @@ class LeaderboardEntryEntity extends Equatable {
   const LeaderboardEntryEntity({
     required this.userId,
     required this.displayName,
+    this.nickname,
     this.photoUrl,
     required this.totalScore,
     required this.workoutCount,
@@ -57,6 +59,7 @@ class LeaderboardEntryEntity extends Equatable {
   List<Object?> get props => [
         userId,
         displayName,
+        nickname,
         photoUrl,
         totalScore,
         workoutCount,
@@ -68,6 +71,7 @@ class LeaderboardEntryEntity extends Equatable {
   LeaderboardEntryEntity copyWith({
     String? userId,
     String? displayName,
+    String? nickname,
     String? photoUrl,
     int? totalScore,
     int? workoutCount,
@@ -78,6 +82,7 @@ class LeaderboardEntryEntity extends Equatable {
     return LeaderboardEntryEntity(
       userId: userId ?? this.userId,
       displayName: displayName ?? this.displayName,
+      nickname: nickname ?? this.nickname,
       photoUrl: photoUrl ?? this.photoUrl,
       totalScore: totalScore ?? this.totalScore,
       workoutCount: workoutCount ?? this.workoutCount,

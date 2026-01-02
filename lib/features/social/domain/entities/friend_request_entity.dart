@@ -21,6 +21,7 @@ class FriendRequestEntity extends Equatable {
 
   // 보낸 사람의 정보 (UI 표시용)
   final String? senderName;
+  final String? senderNickname;
   final String? senderEmail;
   final String? senderPhotoUrl;
 
@@ -32,6 +33,7 @@ class FriendRequestEntity extends Equatable {
     required this.createdAt,
     this.respondedAt,
     this.senderName,
+    this.senderNickname,
     this.senderEmail,
     this.senderPhotoUrl,
   });
@@ -45,6 +47,7 @@ class FriendRequestEntity extends Equatable {
         createdAt,
         respondedAt,
         senderName,
+        senderNickname,
         senderEmail,
         senderPhotoUrl,
       ];
@@ -57,6 +60,7 @@ class FriendRequestEntity extends Equatable {
     DateTime? createdAt,
     DateTime? respondedAt,
     String? senderName,
+    String? senderNickname,
     String? senderEmail,
     String? senderPhotoUrl,
   }) {
@@ -68,6 +72,7 @@ class FriendRequestEntity extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       respondedAt: respondedAt ?? this.respondedAt,
       senderName: senderName ?? this.senderName,
+      senderNickname: senderNickname ?? this.senderNickname,
       senderEmail: senderEmail ?? this.senderEmail,
       senderPhotoUrl: senderPhotoUrl ?? this.senderPhotoUrl,
     );

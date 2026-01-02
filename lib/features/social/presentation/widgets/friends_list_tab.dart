@@ -117,7 +117,8 @@ class FriendsListTab extends StatelessWidget {
               // 친구 목록 셀
               final friendIndex = requestCount > 0 ? index - 1 : index;
               final friend = friends[friendIndex];
-              final friendNickname = friend.friendNickname ?? friend.friendName ?? '알 수 없음';
+              // nickname 우선, 없으면 displayName 사용
+              final displayName = friend.friendNickname ?? friend.friendName ?? '알 수 없음';
               return Card(
                 margin: const EdgeInsets.symmetric(
                   horizontal: AppConstants.defaultPadding,
@@ -129,10 +130,10 @@ class FriendsListTab extends StatelessWidget {
                         ? NetworkImage(friend.friendPhotoUrl!)
                         : null,
                     child: friend.friendPhotoUrl == null
-                        ? Text(friendNickname.isNotEmpty ? friendNickname[0].toUpperCase() : '?')
+                        ? Text(displayName.isNotEmpty ? displayName[0].toUpperCase() : '?')
                         : null,
                   ),
-                  title: Text(friendNickname),
+                  title: Text(displayName),
                   onTap: () {
                     Navigator.push(
                       context,

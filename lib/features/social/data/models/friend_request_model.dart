@@ -15,6 +15,7 @@ class FriendRequestModel extends FriendRequestEntity {
     required super.createdAt,
     super.respondedAt,
     super.senderName,
+    super.senderNickname,
     super.senderEmail,
     super.senderPhotoUrl,
   });
@@ -60,6 +61,7 @@ class FriendRequestModel extends FriendRequestEntity {
           ? (data['respondedAt'] as Timestamp).toDate()
           : null,
       senderName: senderData['displayName'] as String?,
+      senderNickname: senderData['nickname'] as String?,
       senderEmail: senderData['email'] as String?,
       senderPhotoUrl: senderData['photoUrl'] as String?,
     );
@@ -85,6 +87,7 @@ class FriendRequestModel extends FriendRequestEntity {
       createdAt: entity.createdAt,
       respondedAt: entity.respondedAt,
       senderName: entity.senderName,
+      senderNickname: entity.senderNickname,
       senderEmail: entity.senderEmail,
       senderPhotoUrl: entity.senderPhotoUrl,
     );
@@ -99,6 +102,7 @@ class FriendRequestModel extends FriendRequestEntity {
     DateTime? createdAt,
     DateTime? respondedAt,
     String? senderName,
+    String? senderNickname,
     String? senderEmail,
     String? senderPhotoUrl,
   }) {
@@ -110,6 +114,7 @@ class FriendRequestModel extends FriendRequestEntity {
       createdAt: createdAt ?? this.createdAt,
       respondedAt: respondedAt ?? this.respondedAt,
       senderName: senderName ?? this.senderName,
+      senderNickname: senderNickname ?? this.senderNickname,
       senderEmail: senderEmail ?? this.senderEmail,
       senderPhotoUrl: senderPhotoUrl ?? this.senderPhotoUrl,
     );

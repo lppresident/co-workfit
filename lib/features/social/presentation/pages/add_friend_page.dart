@@ -185,6 +185,9 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
                         );
                       }
 
+                      // nickname 우선, 없으면 displayName 사용
+                      final displayName = user.nickname ?? user.displayName;
+
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 8),
                         child: ListTile(
@@ -193,11 +196,10 @@ class _AddFriendPageState extends BasePageState<AddFriendPage> {
                                 ? NetworkImage(user.photoUrl!)
                                 : null,
                             child: user.photoUrl == null
-                                ? Text(user.displayName[0].toUpperCase())
+                                ? Text(displayName.isNotEmpty ? displayName[0].toUpperCase() : '?')
                                 : null,
                           ),
-                          title: Text(user.displayName),
-                          subtitle: Text('@${user.nickname}'),
+                          title: Text(displayName),
                           trailing: trailingWidget,
                         ),
                       );
