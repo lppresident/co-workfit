@@ -347,81 +347,89 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           final themeColor = challenge.isRunning ? Colors.brown : Colors.blueGrey;
           final unitName = challenge.challengeType.unitName;
 
-          return Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      themeColor.withValues(alpha: 0.2),
-                      themeColor.withValues(alpha: 0.1),
-                    ],
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        themeColor.withValues(alpha: 0.2),
+                        themeColor.withValues(alpha: 0.1),
+                      ],
+                    ),
                   ),
-                ),
-                child: Column(
-                  children: [
-                    // 챌린지 타입 표시
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+                  child: Column(
+                    children: [
+                      // 챌린지 타입 표시
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            challenge.challengeType.emoji,
+                            style: const TextStyle(fontSize: 20),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${challenge.challengeType.displayName} 챌린지',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: themeColor,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (challenge.isCompleted) ...[
+                        const Icon(Icons.emoji_events, size: 48, color: Colors.amber),
+                        const SizedBox(height: 8),
+                        Text('챌린지 완료!', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      ] else ...[
                         Text(
-                          challenge.challengeType.emoji,
-                          style: const TextStyle(fontSize: 20),
+                          challenge.isRunning ? '남은 거리' : '남은 점수',
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 8),
                         Text(
-                          '${challenge.challengeType.displayName} 챌린지',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
+                          '${challenge.remainingWeight.toStringAsFixed(1)} $unitName',
+                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
                                 color: themeColor,
                               ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (challenge.isCompleted) ...[
-                      const Icon(Icons.emoji_events, size: 48, color: Colors.amber),
-                      const SizedBox(height: 8),
-                      Text('챌린지 완료!', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                    ] else ...[
-                      Text(
-                        challenge.isRunning ? '남은 거리' : '남은 점수',
-                        style: Theme.of(context).textTheme.titleMedium,
+                      const SizedBox(height: 16),
+                      LinearProgressIndicator(
+                        value: challenge.progress.clamp(0.0, 1.0),
+                        minHeight: 12,
+                        backgroundColor: themeColor.withValues(alpha: 0.2),
+                        valueColor: AlwaysStoppedAnimation<Color>(themeColor),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        '${challenge.remainingWeight.toStringAsFixed(1)} $unitName',
-                        style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: themeColor,
-                            ),
-                      ),
+                      Text('${(challenge.progress * 100).clamp(0, 100).toStringAsFixed(0)}% 완료'),
                     ],
-                    const SizedBox(height: 16),
-                    LinearProgressIndicator(
-                      value: challenge.progress.clamp(0.0, 1.0),
-                      minHeight: 12,
-                      backgroundColor: themeColor.withValues(alpha: 0.2),
-                      valueColor: AlwaysStoppedAnimation<Color>(themeColor),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('${(challenge.progress * 100).clamp(0, 100).toStringAsFixed(0)}% 완료'),
-                  ],
+                  ),
                 ),
               ),
               // 시상대 (참가자가 있을 때만 표시)
               if (rankings.isNotEmpty)
-                PodiumWidget(rankings: rankings),
+                SliverToBoxAdapter(
+                  child: PodiumWidget(rankings: rankings),
+                ),
               // 완료된 챌린지면 점수 표시
               if (challenge.isCompleted && challenge.awardedScores.isNotEmpty)
-                _buildScoreSection(context, challenge.awardedScores, contributions),
-              Expanded(child: ContributionFeedWidget(
-                contributions: contributions,
-                challengeId: widget.challengeId,
-              )),
+                SliverToBoxAdapter(
+                  child: _buildScoreSection(context, challenge.awardedScores, contributions),
+                ),
+              SliverToBoxAdapter(
+                child: ContributionFeedWidget(
+                  contributions: contributions,
+                  challengeId: widget.challengeId,
+                ),
+              ),
             ],
           );
         }
