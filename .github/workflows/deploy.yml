@@ -134,6 +134,16 @@ jobs:
           name: prepared-source
           path: .
 
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
       - name: Build Android
         uses: ./.github/actions/build-android
         with:
@@ -199,6 +209,16 @@ jobs:
         with:
           name: prepared-source
           path: .
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
 
       - name: Setup iOS Ruby
         uses: ./.github/actions/setup-ios-ruby
