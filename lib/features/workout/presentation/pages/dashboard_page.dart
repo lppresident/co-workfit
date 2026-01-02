@@ -4,6 +4,8 @@ import 'package:co_workfit/features/workout/presentation/pages/workout_list_page
 import 'package:co_workfit/features/profile/presentation/screens/profile_screen.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,6 +31,7 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    _pageController.addListener(_onPageChanged);
     _pages = [
       const WorkoutListPage(),
       LogRunPage(key: LogRunPage.globalKey),
@@ -38,6 +41,21 @@ class _DashboardPageState extends State<DashboardPage> {
         child: const ProfileScreen(),
       ),
     ];
+  }
+
+  void _onPageChanged() {
+    if (!_pageController.hasClients) return;
+    final page = _pageController.page?.round();
+    if (page == null) return;
+
+    // 프로필 탭(index 3)으로 전환될 때 AuthBloc 새로고침
+    if (page == 3 && _selectedIndex != 3) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<AuthBloc>().add(const AuthRefreshUserRequested());
+        }
+      });
+    }
   }
 
   @override
