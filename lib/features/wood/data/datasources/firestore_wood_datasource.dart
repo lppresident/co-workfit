@@ -66,12 +66,13 @@ class FirestoreWoodDataSource {
   Future<void> addWood(String userId, int amount, String settlementDate) async {
     try {
       final userRef = firestore.collection(_usersCollection).doc(userId);
-      
-      await userRef.update({
+
+      // set with merge: true를 사용하여 필드가 없을 경우 생성
+      await userRef.set({
         'woodAmount': FieldValue.increment(amount),
         'woodLifetimeEarned': FieldValue.increment(amount),
         'lastWoodSettlementDate': settlementDate,
-      });
+      }, SetOptions(merge: true));
 
       AppLogger.info(
         'FirestoreWoodDataSource',
@@ -121,12 +122,13 @@ class FirestoreWoodDataSource {
   Future<void> addIron(String userId, int amount, String settlementDate) async {
     try {
       final userRef = firestore.collection(_usersCollection).doc(userId);
-      
-      await userRef.update({
+
+      // set with merge: true를 사용하여 필드가 없을 경우 생성
+      await userRef.set({
         'ironAmount': FieldValue.increment(amount),
         'ironLifetimeEarned': FieldValue.increment(amount),
         'lastIronSettlementDate': settlementDate,
-      });
+      }, SetOptions(merge: true));
 
       AppLogger.info(
         'FirestoreWoodDataSource',
