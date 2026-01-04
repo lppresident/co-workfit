@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:co_workfit/features/log_run/data/models/log_run_challenge_model.dart';
 import 'package:co_workfit/features/log_run/data/models/log_run_contribution_model.dart';
+import 'package:co_workfit/features/log_run/data/models/participant_stats_model.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/participant_stats_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.dart';
+import 'package:co_workfit/features/log_run/domain/utils/workout_converter.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
@@ -21,7 +24,7 @@ class FirestoreLogRunDataSource {
     required double targetWeight,
     required DateTime challengeDate,
     int? maxParticipants,
-    ChallengeType challengeType = ChallengeType.running,
+    ChallengeType challengeType = ChallengeType.running, // 기존 호환성 유지 (무시됨)
   }) async {
     final now = DateTime.now();
     final challengeRef = firestore.collection(_challengesCollection).doc();
@@ -55,13 +58,12 @@ class FirestoreLogRunDataSource {
     await challengeRef.set({
       'createdBy': userId,
       'creatorNickname': userNickname,
-      'challengeType': challengeType.toFirestore(),
       'targetWeight': targetWeight,
-      'targetDistance': targetWeight,
-      'currentDistance': 0.0,
+      'currentWeight': 0.0,
       'remainingWeight': targetWeight,
       'participants': [userId],
       'participantNicknames': {userId: userNickname},
+      'participantStats': {}, // 빈 Map으로 초기화
       'status': ChallengeStatus.active.toFirestore(),
       'createdAt': Timestamp.fromDate(now),
       'startDate': Timestamp.fromDate(startDate),
@@ -103,10 +105,7 @@ class FirestoreLogRunDataSource {
     required String challengeId,
     required String userId,
     required String userNickname,
-    required String workoutId,
-    required double distance,
-    required String workoutType,
-    required DateTime workoutDate,
+    required WorkoutEntity workout,
   }) async {
     return await firestore.runTransaction<LogRunContributionModel>((transaction) async {
       final challengeRef = firestore.collection(_challengesCollection).doc(challengeId);
@@ -119,7 +118,7 @@ class FirestoreLogRunDataSource {
       final existingContributions = await challengeRef
           .collection(_contributionsSubcollection)
           .where('userId', isEqualTo: userId)
-          .where('workoutId', isEqualTo: workoutId)
+          .where('workoutId', isEqualTo: workout.id)
           .limit(1)
           .get();
 
@@ -128,7 +127,7 @@ class FirestoreLogRunDataSource {
       }
 
       // 기간 검증: 운동 날짜가 시작일~종료일 사이인지 확인
-      if (!challenge.isWorkoutDateValid(workoutDate)) {
+      if (!challenge.isWorkoutDateValid(workout.startTime)) {
         throw Exception('해당 운동은 챌린지 기간(${_formatDate(challenge.startDate)} ~ ${_formatDate(challenge.endDate)}) 내의 기록이 아닙니다');
       }
 
@@ -142,15 +141,32 @@ class FirestoreLogRunDataSource {
         throw Exception('챌린지 기간이 종료되었습니다');
       }
 
-      final newCurrentDistance = challenge.currentDistance + distance;
-      final newRemainingWeight = (challenge.targetWeight - newCurrentDistance).clamp(0.0, challenge.targetWeight);
-      final percentage = distance / challenge.targetDistance;
-      final isNowCompleted = newCurrentDistance >= challenge.targetDistance;
+      // WorkoutConverter를 사용하여 kg 변환
+      final contributionKg = WorkoutConverter.fromWorkout(workout);
+      final isRunning = workout.type == WorkoutType.running;
+
+      // 현재 무게 업데이트
+      final newCurrentWeight = challenge.currentWeight + contributionKg;
+      final newRemainingWeight = (challenge.targetWeight - newCurrentWeight).clamp(0.0, challenge.targetWeight);
+      final percentage = contributionKg / challenge.targetWeight;
+      final isNowCompleted = newCurrentWeight >= challenge.targetWeight;
+
+      // ParticipantStats 업데이트
+      final currentStats = challenge.participantStats[userId] ?? ParticipantStatsEntity.empty(userId);
+      final updatedStats = currentStats.addContribution(
+        contributionKg: contributionKg,
+        isRunning: isRunning,
+      );
+      final updatedStatsMap = Map<String, Map<String, dynamic>>.from(
+        challenge.participantStats.map((key, value) => MapEntry(key, ParticipantStatsModel.fromEntity(value).toJson())),
+      );
+      updatedStatsMap[userId] = ParticipantStatsModel.fromEntity(updatedStats).toJson();
 
       // 챌린지 업데이트
       final updateData = <String, dynamic>{
-        'currentDistance': newCurrentDistance,
+        'currentWeight': newCurrentWeight,
         'remainingWeight': newRemainingWeight,
+        'participantStats': updatedStatsMap,
       };
 
       if (isNowCompleted) {
@@ -171,25 +187,25 @@ class FirestoreLogRunDataSource {
         'challengeId': challengeId,
         'userId': userId,
         'userNickname': userNickname,
-        'workoutId': workoutId,
-        'distance': distance,
-        'workoutType': workoutType,
-        'workoutDate': Timestamp.fromDate(workoutDate),
+        'workoutId': workout.id,
+        'contributionKg': contributionKg,
+        'workoutType': workout.type.toString().split('.').last,
+        'workoutDate': Timestamp.fromDate(workout.startTime),
         'submittedAt': Timestamp.fromDate(now),
         'percentage': percentage,
       });
 
-      // 완료 시 통나무 재화는 앱 실행 시 정산 시스템에서 처리됨
+      // 완료 시 재화는 앱 실행 시 정산 시스템에서 처리됨
 
       return LogRunContributionModel(
         id: contributionRef.id,
         challengeId: challengeId,
         userId: userId,
         userNickname: userNickname,
-        workoutId: workoutId,
-        distance: distance,
-        workoutType: _parseWorkoutType(workoutType),
-        workoutDate: workoutDate,
+        workoutId: workout.id,
+        distance: contributionKg, // 호환성을 위해 distance 필드에 kg 저장
+        workoutType: workout.type,
+        workoutDate: workout.startTime,
         submittedAt: now,
         percentage: percentage,
       );
@@ -225,12 +241,12 @@ class FirestoreLogRunDataSource {
         throw Exception('완료된 챌린지의 기록은 삭제할 수 없습니다');
       }
 
-      // 챌린지 거리 업데이트
-      final newCurrentDistance = (challenge.currentDistance - contribution.distance).clamp(0.0, double.infinity);
-      final newRemainingWeight = challenge.targetWeight - newCurrentDistance;
+      // 챌린지 무게 업데이트
+      final newCurrentWeight = (challenge.currentWeight - contribution.distance).clamp(0.0, double.infinity);
+      final newRemainingWeight = challenge.targetWeight - newCurrentWeight;
 
       transaction.update(challengeRef, {
-        'currentDistance': newCurrentDistance,
+        'currentWeight': newCurrentWeight,
         'remainingWeight': newRemainingWeight,
       });
 

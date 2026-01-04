@@ -1,18 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:co_workfit/features/log_run/data/models/participant_stats_model.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
-import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
+import 'package:co_workfit/features/log_run/domain/entities/participant_stats_entity.dart';
 
 /// 챌린지 모델
 class LogRunChallengeModel extends LogRunChallengeEntity {
   const LogRunChallengeModel({
     required super.id,
     required super.createdBy,
-    super.challengeType,
     required super.targetWeight,
-    required super.targetDistance,
-    required super.currentDistance,
+    required super.currentWeight,
     required super.remainingWeight,
     required super.participants,
+    super.participantStats,
     required super.status,
     required super.createdAt,
     required super.startDate,
@@ -30,15 +30,27 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
     final data = doc.data() as Map<String, dynamic>;
     final createdAt = (data['createdAt'] as Timestamp).toDate();
 
+    // participantStats 파싱
+    Map<String, ParticipantStatsEntity> participantStats = {};
+    if (data['participantStats'] != null) {
+      final statsData = data['participantStats'] as Map<String, dynamic>;
+      participantStats = statsData.map(
+        (key, value) => MapEntry(
+          key,
+          ParticipantStatsModel.fromJson(value as Map<String, dynamic>),
+        ),
+      );
+    }
+
     return LogRunChallengeModel(
       id: doc.id,
       createdBy: data['createdBy'] as String,
-      challengeType: ChallengeTypeExtension.fromFirestore(data['challengeType'] as String? ?? data['workoutType'] as String?),
       targetWeight: (data['targetWeight'] as num).toDouble(),
-      targetDistance: (data['targetDistance'] as num).toDouble(),
-      currentDistance: (data['currentDistance'] as num?)?.toDouble() ?? 0.0,
+      currentWeight: (data['currentWeight'] as num?)?.toDouble() ??
+                     (data['currentDistance'] as num?)?.toDouble() ?? 0.0, // 기존 데이터 호환
       remainingWeight: (data['remainingWeight'] as num?)?.toDouble() ?? (data['targetWeight'] as num).toDouble(),
       participants: List<String>.from(data['participants'] as List),
+      participantStats: participantStats,
       status: ChallengeStatusExtension.fromFirestore(data['status'] as String),
       createdAt: createdAt,
       startDate: data['startDate'] != null
@@ -70,12 +82,13 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
   Map<String, dynamic> toFirestore() {
     return {
       'createdBy': createdBy,
-      'challengeType': challengeType.toFirestore(),
       'targetWeight': targetWeight,
-      'targetDistance': targetDistance,
-      'currentDistance': currentDistance,
+      'currentWeight': currentWeight,
       'remainingWeight': remainingWeight,
       'participants': participants,
+      'participantStats': participantStats.map(
+        (key, value) => MapEntry(key, ParticipantStatsModel.fromEntity(value).toJson()),
+      ),
       'status': status.toFirestore(),
       'createdAt': Timestamp.fromDate(createdAt),
       'startDate': Timestamp.fromDate(startDate),
@@ -94,12 +107,11 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
     return LogRunChallengeModel(
       id: entity.id,
       createdBy: entity.createdBy,
-      challengeType: entity.challengeType,
       targetWeight: entity.targetWeight,
-      targetDistance: entity.targetDistance,
-      currentDistance: entity.currentDistance,
+      currentWeight: entity.currentWeight,
       remainingWeight: entity.remainingWeight,
       participants: entity.participants,
+      participantStats: entity.participantStats,
       status: entity.status,
       createdAt: entity.createdAt,
       startDate: entity.startDate,
@@ -117,12 +129,11 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
   LogRunChallengeModel copyWith({
     String? id,
     String? createdBy,
-    ChallengeType? challengeType,
     double? targetWeight,
-    double? targetDistance,
-    double? currentDistance,
+    double? currentWeight,
     double? remainingWeight,
     List<String>? participants,
+    Map<String, ParticipantStatsEntity>? participantStats,
     ChallengeStatus? status,
     DateTime? createdAt,
     DateTime? startDate,
@@ -137,12 +148,11 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
     return LogRunChallengeModel(
       id: id ?? this.id,
       createdBy: createdBy ?? this.createdBy,
-      challengeType: challengeType ?? this.challengeType,
       targetWeight: targetWeight ?? this.targetWeight,
-      targetDistance: targetDistance ?? this.targetDistance,
-      currentDistance: currentDistance ?? this.currentDistance,
+      currentWeight: currentWeight ?? this.currentWeight,
       remainingWeight: remainingWeight ?? this.remainingWeight,
       participants: participants ?? this.participants,
+      participantStats: participantStats ?? this.participantStats,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       startDate: startDate ?? this.startDate,

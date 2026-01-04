@@ -3,6 +3,7 @@ import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
+import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
 /// 챌린지 Repository 인터페이스
 abstract class LogRunRepository {
@@ -34,10 +35,7 @@ abstract class LogRunRepository {
     required String challengeId,
     required String userId,
     required String userNickname,
-    required String workoutId,
-    required double distance,
-    required String workoutType,
-    required DateTime workoutDate,
+    required WorkoutEntity workout,
   });
 
   /// 모든 챌린지 목록 조회 (활성, 완료, 만료 모두 포함)

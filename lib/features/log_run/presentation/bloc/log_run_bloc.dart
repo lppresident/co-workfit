@@ -198,10 +198,7 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
         challengeId: event.challengeId,
         userId: event.userId,
         userNickname: event.userNickname,
-        workoutId: event.workoutId,
-        distance: event.distance,
-        workoutType: event.workoutType,
-        workoutDate: event.workoutDate,
+        workout: event.workout,
       ),
     );
 

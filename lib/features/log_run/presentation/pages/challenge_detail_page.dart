@@ -11,7 +11,6 @@ import 'package:co_workfit/features/log_run/presentation/widgets/submit_workout_
 import 'package:co_workfit/features/log_run/presentation/widgets/share_challenge_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/podium_widget.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
-import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
@@ -86,7 +85,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     }).toList();
   }
 
-  void _showSubmitWorkoutSheet(DateTime startDate, DateTime endDate, ChallengeType challengeType) {
+  void _showSubmitWorkoutSheet(DateTime startDate, DateTime endDate) {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) return;
 
@@ -98,17 +97,13 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
         challengeId: widget.challengeId,
         startDate: startDate,
         endDate: endDate,
-        challengeType: challengeType,
-        onSubmit: (workoutId, distance, workoutType, workoutDate) {
+        onSubmit: (workout) {
           context.read<LogRunBloc>().add(
                 SubmitWorkout(
                   challengeId: widget.challengeId,
                   userId: authState.user.id,
                   userNickname: authState.user.nickname,
-                  workoutId: workoutId,
-                  distance: distance,
-                  workoutType: workoutType,
-                  workoutDate: workoutDate,
+                  workout: workout,
                 ),
               );
         },
@@ -254,9 +249,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                     icon: const Icon(Icons.share),
                     onPressed: () => _showShareSheet(
                       challenge.inviteCode,
-                      challenge.isRunning 
-                          ? '${challenge.targetDistance.toStringAsFixed(0)}km 달리기 챌린지'
-                          : '${challenge.targetDistance.toStringAsFixed(0)}점 헬스 챌린지',
+                      '${challenge.targetWeight.toStringAsFixed(0)}kg 통합 챌린지',
                     ),
                     tooltip: '초대 코드 공유',
                   ),
@@ -344,8 +337,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           // 순위 계산
           final rankings = _calculateRankings(contributions);
 
-          final themeColor = challenge.isRunning ? Colors.brown : Colors.blueGrey;
-          final unitName = challenge.challengeType.unitName;
+          final themeColor = Colors.green;
 
           return CustomScrollView(
             slivers: [
@@ -368,13 +360,13 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            challenge.challengeType.emoji,
-                            style: const TextStyle(fontSize: 20),
+                          const Text(
+                            '🏃💪',
+                            style: TextStyle(fontSize: 20),
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '${challenge.challengeType.displayName} 챌린지',
+                            '통합 챌린지',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: themeColor,
@@ -389,12 +381,12 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                         Text('챌린지 완료!', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                       ] else ...[
                         Text(
-                          challenge.isRunning ? '남은 거리' : '남은 점수',
+                          '남은 무게',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${challenge.remainingWeight.toStringAsFixed(1)} $unitName',
+                          '${challenge.remainingWeight.toStringAsFixed(1)} kg',
                           style: Theme.of(context).textTheme.displayMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: themeColor,
@@ -459,11 +451,10 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
             onPressed: () => _showSubmitWorkoutSheet(
               challenge.startDate,
               challenge.endDate,
-              challenge.challengeType,
             ),
-            icon: Icon(challenge.isRunning ? Icons.directions_run : Icons.fitness_center),
-            label: Text(challenge.isRunning ? '운동 기록 제출' : '헬스 기록 제출'),
-            backgroundColor: challenge.isRunning ? Colors.brown : Colors.blueGrey,
+            icon: const Icon(Icons.fitness_center),
+            label: const Text('운동 기록 제출'),
+            backgroundColor: Colors.green,
           );
         }
         return const SizedBox.shrink();

@@ -14,15 +14,13 @@ class SubmitWorkoutBottomSheet extends StatefulWidget {
   final String challengeId;
   final DateTime startDate;
   final DateTime endDate;
-  final ChallengeType challengeType;
-  final Function(String workoutId, double distance, String workoutType, DateTime workoutDate) onSubmit;
+  final Function(WorkoutEntity workout) onSubmit;
 
   const SubmitWorkoutBottomSheet({
     super.key,
     required this.challengeId,
     required this.startDate,
     required this.endDate,
-    this.challengeType = ChallengeType.running,
     required this.onSubmit,
   });
 
@@ -111,8 +109,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                         59,
                       );
 
-                      // 챌린지 타입에 따라 운동 타입 필터링
-                      final isRunningChallenge = widget.challengeType == ChallengeType.running;
+                      // 통합 챌린지: 모든 운동 타입 허용
                       final validWorkouts = state.workouts
                           .where((workout) {
                             // 기간 체크
@@ -120,17 +117,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                                     startOfStartDate.subtract(const Duration(seconds: 1))) &&
                                 workout.startTime.isBefore(
                                     endOfEndDate.add(const Duration(seconds: 1)));
-                            if (!inPeriod) return false;
-
-                            // 운동 타입 체크
-                            if (isRunningChallenge) {
-                              // 달리기 챌린지: 러닝/걷기
-                              return workout.type == WorkoutType.running ||
-                                  workout.type == WorkoutType.walking;
-                            } else {
-                              // 헬스 챌린지: 웨이트 트레이닝
-                              return workout.type == WorkoutType.weightTraining;
-                            }
+                            return inPeriod;
                           })
                           .toList();
 
@@ -161,9 +148,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  isRunningChallenge
-                                      ? '이 기간 내의 러닝/걷기 기록만 제출 가능합니다'
-                                      : '이 기간 내의 웨이트 트레이닝 기록만 제출 가능합니다',
+                                  '이 기간 내의 운동 기록만 제출 가능합니다',
                                   style: TextStyle(
                                     color: Colors.grey[500],
                                     fontSize: 12,
@@ -495,12 +480,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
 
   /// 운동 기록 제출
   void _submitWorkout(double distance) {
-    widget.onSubmit(
-      _selectedWorkout!.id,
-      distance,
-      _selectedWorkout!.type.toString().split('.').last,
-      _selectedWorkout!.startTime,
-    );
+    widget.onSubmit(_selectedWorkout!);
     Navigator.pop(context); // Bottom Sheet 닫기
   }
 }

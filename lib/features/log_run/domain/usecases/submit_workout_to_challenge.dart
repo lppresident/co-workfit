@@ -3,6 +3,7 @@ import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/core/usecases/usecase.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
+import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
 /// 운동 기록을 챌린지에 제출하는 UseCase
 class SubmitWorkoutToChallenge implements UseCase<LogRunContributionEntity, SubmitWorkoutParams> {
@@ -16,10 +17,7 @@ class SubmitWorkoutToChallenge implements UseCase<LogRunContributionEntity, Subm
       challengeId: params.challengeId,
       userId: params.userId,
       userNickname: params.userNickname,
-      workoutId: params.workoutId,
-      distance: params.distance,
-      workoutType: params.workoutType,
-      workoutDate: params.workoutDate,
+      workout: params.workout,
     );
   }
 }
@@ -28,18 +26,12 @@ class SubmitWorkoutParams {
   final String challengeId;
   final String userId;
   final String userNickname;
-  final String workoutId;
-  final double distance;
-  final String workoutType;
-  final DateTime workoutDate;
+  final WorkoutEntity workout;
 
   SubmitWorkoutParams({
     required this.challengeId,
     required this.userId,
     required this.userNickname,
-    required this.workoutId,
-    required this.distance,
-    required this.workoutType,
-    required this.workoutDate,
+    required this.workout,
   });
 }

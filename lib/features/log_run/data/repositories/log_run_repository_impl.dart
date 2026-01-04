@@ -6,6 +6,7 @@ import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution
 import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
 import 'package:co_workfit/features/log_run/data/datasources/firestore_log_run_datasource.dart';
+import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
 class LogRunRepositoryImpl implements LogRunRepository {
   final FirestoreLogRunDataSource dataSource;
@@ -53,14 +54,22 @@ class LogRunRepositoryImpl implements LogRunRepository {
 
   @override
   Future<Either<Failure, LogRunContributionEntity>> submitWorkout({
-    required String challengeId, required String userId, required String userNickname,
-    required String workoutId, required double distance, required String workoutType, required DateTime workoutDate
+    required String challengeId,
+    required String userId,
+    required String userNickname,
+    required WorkoutEntity workout,
   }) async {
     try {
-      final contribution = await dataSource.submitWorkout(challengeId: challengeId, userId: userId, userNickname: userNickname,
-        workoutId: workoutId, distance: distance, workoutType: workoutType, workoutDate: workoutDate);
+      final contribution = await dataSource.submitWorkout(
+        challengeId: challengeId,
+        userId: userId,
+        userNickname: userNickname,
+        workout: workout,
+      );
       return Right(contribution);
-    } catch (e) { return Left(ServerFailure(e.toString())); }
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
   }
 
   @override

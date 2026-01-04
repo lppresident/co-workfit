@@ -45,6 +45,12 @@ extension ChallengeTypeExtension on ChallengeType {
   }
 
   String get unitName {
+    // 통합 챌린지: 모든 단위는 kg
+    return 'kg';
+  }
+
+  /// 원본 단위 이름 (UI 표시용)
+  String get originalUnitName {
     switch (this) {
       case ChallengeType.running:
         return 'km';

@@ -1,9 +1,10 @@
 import 'package:equatable/equatable.dart';
-import 'workout_type.dart';
+import 'participant_stats_entity.dart';
 
 /// 챌린지 엔티티
 ///
-/// 여러 명이 하나의 목표 거리(무게)를 함께 완주하는 팀 챌린지
+/// 여러 명이 하나의 목표 무게(kg)를 함께 완주하는 팀 챌린지
+/// 달리기/헬스 운동 모두 제출 가능하며, 각 운동 비율에 따라 재화 지급
 class LogRunChallengeEntity extends Equatable {
   /// 챌린지 ID
   final String id;
@@ -11,23 +12,22 @@ class LogRunChallengeEntity extends Equatable {
   /// 생성자 ID (userId)
   final String createdBy;
 
-  /// 챌린지 운동 타입 (달리기 or 헬스)
-  final ChallengeType challengeType;
-
-  /// 목표 통나무 무게 (kg) / 헬스 목표 점수
+  /// 목표 무게 (kg)
+  /// - 달리기: 1km = 1kg
+  /// - 헬스: 10점 = 1kg
   final double targetWeight;
 
-  /// 목표 거리 (km) / 헬스 목표 점수 - targetWeight와 동일
-  final double targetDistance;
+  /// 현재 달성 무게 (kg)
+  final double currentWeight;
 
-  /// 현재까지 완주한 거리 (km) / 현재 점수
-  final double currentDistance;
-
-  /// 남은 무게 (kg) / 남은 점수
+  /// 남은 무게 (kg)
   final double remainingWeight;
 
   /// 참가자 ID 목록 (userId 배열)
   final List<String> participants;
+
+  /// 참가자별 기여 통계 (userId -> ParticipantStats)
+  final Map<String, ParticipantStatsEntity> participantStats;
 
   /// 챌린지 상태
   final ChallengeStatus status;
@@ -62,12 +62,11 @@ class LogRunChallengeEntity extends Equatable {
   const LogRunChallengeEntity({
     required this.id,
     required this.createdBy,
-    this.challengeType = ChallengeType.running,
     required this.targetWeight,
-    required this.targetDistance,
-    required this.currentDistance,
+    required this.currentWeight,
     required this.remainingWeight,
     required this.participants,
+    this.participantStats = const {},
     required this.status,
     required this.createdAt,
     required this.startDate,
@@ -81,7 +80,7 @@ class LogRunChallengeEntity extends Equatable {
   });
 
   /// 진행률 (0.0 ~ 1.0)
-  double get progress => targetDistance > 0 ? currentDistance / targetDistance : 0.0;
+  double get progress => targetWeight > 0 ? currentWeight / targetWeight : 0.0;
 
   /// 완료 여부
   bool get isCompleted => status == ChallengeStatus.completed;
@@ -126,28 +125,26 @@ class LogRunChallengeEntity extends Equatable {
     return participants.length >= maxParticipants!;
   }
 
-  /// 달리기 챌린지인지 확인
-  bool get isRunning => challengeType == ChallengeType.running;
+  /// 목표 단위 표시 (kg)
+  String get targetUnitDisplay => '${targetWeight.toStringAsFixed(0)}kg';
 
-  /// 헬스 챌린지인지 확인
-  bool get isStrengthTraining => challengeType == ChallengeType.strengthTraining;
+  /// 현재 진행 단위 표시 (kg)
+  String get currentUnitDisplay => '${currentWeight.toStringAsFixed(1)}kg';
 
-  /// 목표 단위 표시 (km or 점)
-  String get targetUnitDisplay => '${targetWeight.toStringAsFixed(0)}${challengeType.unitName}';
-
-  /// 현재 진행 단위 표시
-  String get currentUnitDisplay => '${currentDistance.toStringAsFixed(1)}${challengeType.unitName}';
+  /// 특정 참가자의 통계 가져오기
+  ParticipantStatsEntity? getParticipantStats(String userId) {
+    return participantStats[userId];
+  }
 
   @override
   List<Object?> get props => [
         id,
         createdBy,
-        challengeType,
         targetWeight,
-        targetDistance,
-        currentDistance,
+        currentWeight,
         remainingWeight,
         participants,
+        participantStats,
         status,
         createdAt,
         startDate,

@@ -1,4 +1,5 @@
 import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
+import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:equatable/equatable.dart';
 
 /// 챌린지 BLoC 이벤트
@@ -99,19 +100,13 @@ class SubmitWorkout extends LogRunEvent {
   final String challengeId;
   final String userId;
   final String userNickname;
-  final String workoutId;
-  final double distance;
-  final String workoutType;
-  final DateTime workoutDate;
+  final WorkoutEntity workout;
 
   const SubmitWorkout({
     required this.challengeId,
     required this.userId,
     required this.userNickname,
-    required this.workoutId,
-    required this.distance,
-    required this.workoutType,
-    required this.workoutDate,
+    required this.workout,
   });
 
   @override
@@ -119,10 +114,7 @@ class SubmitWorkout extends LogRunEvent {
         challengeId,
         userId,
         userNickname,
-        workoutId,
-        distance,
-        workoutType,
-        workoutDate,
+        workout,
       ];
 }
 

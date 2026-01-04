@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
-import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 
 /// 챌린지 카드 위젯
 class ChallengeCardWidget extends StatelessWidget {
@@ -14,14 +13,13 @@ class ChallengeCardWidget extends StatelessWidget {
   });
 
   Color get _themeColor {
-    return challenge.isRunning ? Colors.brown : Colors.blueGrey;
+    return Colors.green; // 통합 챌린지 색상
   }
 
   @override
   Widget build(BuildContext context) {
     final progress = challenge.progress;
     final remainingWeight = challenge.remainingWeight;
-    final unitName = challenge.challengeType.unitName;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -64,22 +62,22 @@ class ChallengeCardWidget extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    challenge.challengeType.emoji,
-                    style: const TextStyle(fontSize: 28),
+                  const Text(
+                    '🏃💪',
+                    style: TextStyle(fontSize: 28),
                   ),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        challenge.isRunning ? '남은 거리' : '남은 점수',
+                        '남은 무게',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.grey[600],
                             ),
                       ),
                       Text(
-                        '${remainingWeight.toStringAsFixed(1)} $unitName',
+                        '${remainingWeight.toStringAsFixed(1)} kg',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: _themeColor,
@@ -89,7 +87,7 @@ class ChallengeCardWidget extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    '${challenge.currentDistance.toStringAsFixed(1)} / ${challenge.targetDistance.toStringAsFixed(1)} $unitName',
+                    '${challenge.currentWeight.toStringAsFixed(1)} / ${challenge.targetWeight.toStringAsFixed(1)} kg',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.grey[700],
                         ),
@@ -125,13 +123,13 @@ class ChallengeCardWidget extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      Text(
-                        challenge.challengeType.currencyEmoji,
-                        style: const TextStyle(fontSize: 14),
+                      const Text(
+                        '🪵🔩',
+                        style: TextStyle(fontSize: 14),
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        challenge.challengeType.currencyName,
+                        '혼합 보상',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.grey[600],
                             ),
@@ -158,13 +156,13 @@ class ChallengeCardWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            challenge.challengeType.emoji,
-            style: const TextStyle(fontSize: 12),
+          const Text(
+            '🏃💪',
+            style: TextStyle(fontSize: 12),
           ),
           const SizedBox(width: 4),
           Text(
-            challenge.challengeType.displayName,
+            '통합 챌린지',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
