@@ -126,3 +126,4 @@ class CurrencyBloc extends Bloc<CurrencyEvent, CurrencyState> {
   }
 }
 
+

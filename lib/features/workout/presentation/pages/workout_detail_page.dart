@@ -6,10 +6,13 @@ import 'package:intl/intl.dart';
 /// 운동 상세보기 페이지
 class WorkoutDetailPage extends StatefulWidget {
   final WorkoutEntity workout;
+  /// 본인의 운동인지 여부 (false면 수정/삭제 버튼 숨김)
+  final bool isOwner;
 
   const WorkoutDetailPage({
     super.key,
     required this.workout,
+    this.isOwner = true, // 기본값 true (기존 동작 유지)
   });
 
   @override
@@ -56,7 +59,8 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
       appBar: AppBar(
         title: const Text('운동 상세'),
         actions: [
-          if (workout.distance != null)
+          // 본인 운동일 때만 수정 버튼 표시
+          if (widget.isOwner && workout.distance != null)
             IconButton(
               icon: Icon(
                 workout.hasDistanceCorrection ? Icons.edit : Icons.edit_outlined,

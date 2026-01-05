@@ -138,3 +138,4 @@ class CurrencyBalanceWidget extends StatelessWidget {
   }
 }
 
+
