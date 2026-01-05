@@ -6,13 +6,11 @@ import 'package:intl/intl.dart';
 class WorkoutListItem extends StatelessWidget {
   final WorkoutEntity workout;
   final VoidCallback? onTap;
-  final VoidCallback? onEditDistance;
 
   const WorkoutListItem({
     super.key,
     required this.workout,
     this.onTap,
-    this.onEditDistance,
   });
 
   /// 페이스 표시 대상 운동 타입인지 확인
@@ -25,7 +23,7 @@ class WorkoutListItem extends StatelessWidget {
   /// 페이스 계산 (분'초"/km 형식)
   /// 초 단위로 정확하게 계산, 거리가 0이거나 없으면 null 반환
   String? get _pace {
-    final distance = workout.effectiveDistance;
+    final distance = workout.distance;
     if (distance == null || distance <= 0) return null;
     if (workout.durationSeconds <= 0) return null;
 
@@ -109,8 +107,13 @@ class WorkoutListItem extends StatelessWidget {
                       '${workout.calories}',
                       '칼로리',
                     ),
-                  if (workout.effectiveDistance != null)
-                    _buildDistanceStatItem(context),
+                  if (workout.distance != null)
+                    _buildStatItem(
+                      context,
+                      Icons.straighten_outlined,
+                      '${workout.distance!.toStringAsFixed(1)}km',
+                      '거리',
+                    ),
                   // 페이스 표시 (러닝, 걷기, 등산에서만)
                   if (_shouldShowPace && _pace != null)
                     _buildStatItem(
@@ -133,49 +136,6 @@ class WorkoutListItem extends StatelessWidget {
               _buildSourceBadge(context),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDistanceStatItem(BuildContext context) {
-    return InkWell(
-      onTap: onEditDistance,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Column(
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.straighten_outlined, size: 20, color: Colors.grey[600]),
-                if (workout.hasDistanceCorrection) ...[
-                  const SizedBox(width: 2),
-                  const Icon(Icons.edit, size: 12, color: Colors.blue),
-                ],
-                if (onEditDistance != null) ...[
-                  const SizedBox(width: 2),
-                  Icon(Icons.touch_app, size: 12, color: Colors.grey[400]),
-                ],
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${workout.effectiveDistance!.toStringAsFixed(1)}km',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: workout.hasDistanceCorrection ? Colors.blue : null,
-                  ),
-            ),
-            Text(
-              '거리',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                    fontSize: 11,
-                  ),
-            ),
-          ],
         ),
       ),
     );

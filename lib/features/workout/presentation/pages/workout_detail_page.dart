@@ -1,32 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
-import 'package:co_workfit/features/workout/presentation/widgets/edit_distance_dialog.dart';
 import 'package:intl/intl.dart';
 
 /// 운동 상세보기 페이지
-class WorkoutDetailPage extends StatefulWidget {
+/// 
+/// 운동 데이터는 Firestore 등록 시점에만 수정 가능하며,
+/// 등록 이후에는 읽기 전용으로 표시됩니다.
+class WorkoutDetailPage extends StatelessWidget {
   final WorkoutEntity workout;
-  /// 본인의 운동인지 여부 (false면 수정/삭제 버튼 숨김)
-  final bool isOwner;
 
   const WorkoutDetailPage({
     super.key,
     required this.workout,
-    this.isOwner = true, // 기본값 true (기존 동작 유지)
   });
-
-  @override
-  State<WorkoutDetailPage> createState() => _WorkoutDetailPageState();
-}
-
-class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
-  late WorkoutEntity workout;
-
-  @override
-  void initState() {
-    super.initState();
-    workout = widget.workout;
-  }
 
   /// 페이스 표시 대상 운동 타입인지 확인
   bool get _shouldShowPace {
@@ -38,7 +24,7 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
   /// 페이스 계산 (분'초"/km 형식)
   /// 초 단위로 정확하게 계산
   String? get _pace {
-    final distance = workout.effectiveDistance;
+    final distance = workout.distance;
     if (distance == null || distance <= 0) return null;
     if (workout.durationSeconds <= 0) return null;
 
@@ -59,16 +45,6 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
       appBar: AppBar(
         title: const Text('운동 상세'),
         actions: [
-          // 본인 운동일 때만 수정 버튼 표시
-          if (widget.isOwner && workout.distance != null)
-            IconButton(
-              icon: Icon(
-                workout.hasDistanceCorrection ? Icons.edit : Icons.edit_outlined,
-                color: workout.hasDistanceCorrection ? Colors.blue : null,
-              ),
-              onPressed: _showEditDistanceDialog,
-              tooltip: '거리 수정',
-            ),
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
@@ -193,9 +169,14 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
                 '${workout.calories} kcal',
               ),
             ],
-            if (workout.effectiveDistance != null) ...[
+            if (workout.distance != null) ...[
               const Divider(height: 24),
-              _buildDistanceInfoRow(context),
+              _buildInfoRow(
+                context,
+                Icons.straighten,
+                '거리',
+                '${workout.distance!.toStringAsFixed(2)} km',
+              ),
             ],
             // 페이스 표시 (러닝, 걷기, 등산)
             if (_shouldShowPace && _pace != null) ...[
@@ -445,61 +426,5 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
 
   String _formatDateTime(DateTime dateTime) {
     return DateFormat('yyyy년 MM월 dd일 HH:mm').format(dateTime);
-  }
-
-  Widget _buildDistanceInfoRow(BuildContext context) {
-    return Row(
-      children: [
-        Icon(Icons.straighten, size: 24, color: Colors.grey[600]),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Row(
-            children: [
-              Text(
-                '거리',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[700],
-                    ),
-              ),
-              if (workout.hasDistanceCorrection) ...[
-                const SizedBox(width: 4),
-                const Icon(Icons.edit, size: 14, color: Colors.blue),
-                const SizedBox(width: 2),
-                const Text(
-                  '(수정됨)',
-                  style: TextStyle(fontSize: 10, color: Colors.blue),
-                ),
-              ],
-            ],
-          ),
-        ),
-        Text(
-          '${workout.effectiveDistance!.toStringAsFixed(2)} km',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: workout.hasDistanceCorrection ? Colors.blue : null,
-              ),
-        ),
-      ],
-    );
-  }
-
-  void _showEditDistanceDialog() {
-    EditDistanceDialog.show(
-      context: context,
-      workout: workout,
-      onDistanceUpdated: () {
-        // BLoC 상태에서 업데이트된 workout을 가져오기 위해 새로고침
-        // 상세 페이지에서는 로컬 상태도 업데이트 필요
-        setState(() {
-          // workout은 BLoC에서 업데이트됨 - 페이지 닫고 다시 열면 반영됨
-        });
-      },
-      onDistanceReset: () {
-        setState(() {
-          workout = workout.copyWith(clearCorrectedDistance: true);
-        });
-      },
-    );
   }
 }

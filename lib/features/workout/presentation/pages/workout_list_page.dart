@@ -4,7 +4,6 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart'
 import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/workout_list_item.dart';
-import 'package:co_workfit/features/workout/presentation/widgets/edit_distance_dialog.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/register_workout_bottom_sheet.dart';
 import 'package:co_workfit/features/workout/presentation/pages/workout_detail_page.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/filter_bottom_sheet.dart';
@@ -474,9 +473,6 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                               ),
                             );
                           },
-                          onEditDistance: workout.distance != null
-                              ? () => _showEditDistanceDialog(workout)
-                              : null,
                         );
                       })),
                     ],
@@ -567,14 +563,6 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
     } else {
       return DateFormat('yyyy년 MM월 dd일').format(dateTime);
     }
-  }
-
-  /// 거리 수정 다이얼로그 표시
-  void _showEditDistanceDialog(WorkoutEntity workout) {
-    EditDistanceDialog.show(
-      context: context,
-      workout: workout,
-    );
   }
 
   /// 현재 필터 타입 이름 가져오기

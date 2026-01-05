@@ -294,9 +294,6 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
               final isSelected = _selectedWorkout?.id == workout.id;
               final isAlreadySubmitted = _submittedWorkoutIds.contains(workout.id);
 
-              // Garmin 데이터인지 확인
-              final isGarminData = workout.source == WorkoutSource.garmin;
-
               // 헬스 운동인 경우 점수 계산
               final isStrengthWorkout = workout.type == WorkoutType.weightTraining;
               String valueDisplay;
@@ -309,7 +306,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                     WorkoutIntensityExtension.fromHeartRate(workout.averageHeartRate);
                 valueDisplay = '${strengthScore.toStringAsFixed(1)}점 (${intensity.displayName})';
               } else {
-                valueDisplay = '${(workout.effectiveDistance ?? 0.0).toStringAsFixed(2)} km';
+                valueDisplay = '${(workout.distance ?? 0.0).toStringAsFixed(2)} km';
               }
 
               return ListTile(
@@ -350,31 +347,6 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                         ),
                       ),
                     ],
-                    if (!isAlreadySubmitted && isGarminData && !isStrengthWorkout) ...[
-                      const SizedBox(width: 8),
-                      Tooltip(
-                        message: '거리 데이터가 부정확할 수 있습니다.\n제출 시 확인해주세요.',
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
-                            border: Border.all(color: Colors.orange, width: 1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.warning_amber, size: 12, color: Colors.orange),
-                              SizedBox(width: 4),
-                              Text(
-                                'Garmin',
-                                style: TextStyle(fontSize: 10, color: Colors.orange),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
                 subtitle: Row(
@@ -385,10 +357,6 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                         color: isAlreadySubmitted ? Colors.grey : null,
                       ),
                     ),
-                    if (!isStrengthWorkout && workout.hasDistanceCorrection) ...[
-                      const SizedBox(width: 4),
-                      const Icon(Icons.edit, size: 12, color: Colors.blue),
-                    ],
                     if (isStrengthWorkout) ...[
                       const SizedBox(width: 4),
                       Text(
@@ -487,25 +455,14 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
       return;
     }
 
-    // 달리기 운동의 경우 기존 로직
-    // 이미 수정된 거리가 있으면 바로 제출
-    if (workout.hasDistanceCorrection) {
-      _submitWorkout(workout.effectiveDistance ?? 0.0);
-      return;
-    }
-
-    // Garmin 데이터이면서 수정되지 않은 경우 거리 보정 다이얼로그 표시
-    final isGarminData = workout.source == WorkoutSource.garmin;
-    if (isGarminData) {
-      _showDistanceCorrectionDialog();
-    } else {
-      // 일반 데이터는 바로 제출
-      _submitWorkout(workout.effectiveDistance ?? 0.0);
-    }
+    // 달리기 운동의 경우 거리 확인 다이얼로그 표시
+    // (등록 시점에만 수정 가능, 이후에는 수정 불가)
+    _showDistanceConfirmDialog();
   }
 
-  /// 거리 보정 다이얼로그 표시 (Garmin 데이터)
-  void _showDistanceCorrectionDialog() {
+  /// 거리 확인 다이얼로그 표시
+  /// 등록 시점에만 거리 수정이 가능하며, 이후에는 수정할 수 없습니다.
+  void _showDistanceConfirmDialog() {
     final originalDistance = _selectedWorkout!.distance ?? 0.0;
     _distanceController.text = originalDistance.toStringAsFixed(2);
 
@@ -514,23 +471,34 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
       builder: (context) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.warning_amber, color: Colors.orange),
+            Icon(Icons.straighten, color: Colors.blue),
             SizedBox(width: 8),
-            Text('거리 확인 필요'),
+            Text('거리 확인'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Garmin 데이터는 거리가 부정확할 수 있습니다.',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Garmin Connect 앱에서 실제 거리를 확인하고\n정확한 거리를 입력해주세요.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '등록 후에는 거리를 수정할 수 없습니다.\n정확한 거리를 입력해주세요.',
+                      style: TextStyle(fontSize: 12, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -540,11 +508,11 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                 FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
               ],
               decoration: InputDecoration(
-                labelText: '정확한 거리 (km)',
+                labelText: '거리 (km)',
                 hintText: '예: 5.63',
                 suffixText: 'km',
                 border: const OutlineInputBorder(),
-                helperText: '원래 값: ${originalDistance.toStringAsFixed(2)} km',
+                helperText: '기기 기록: ${originalDistance.toStringAsFixed(2)} km',
               ),
               autofocus: true,
             ),
@@ -590,7 +558,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
               }
 
               Navigator.pop(context); // 다이얼로그 닫기
-              _submitWorkout(distance);
+              _submitWorkoutWithDistance(distance);
             },
             child: const Text('제출'),
           ),
@@ -599,8 +567,8 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     );
   }
 
-  /// 운동 기록 제출 (Firestore 등록 + 챌린지 제출)
-  Future<void> _submitWorkout(double distance) async {
+  /// 운동 기록 제출 (헬스 운동용 - 점수 기반)
+  Future<void> _submitWorkout(double score) async {
     if (_selectedWorkout == null) return;
 
     final workout = _selectedWorkout!;
@@ -637,6 +605,71 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
 
       // 챌린지에 제출
       widget.onSubmit(workout);
+
+      // 운동 탭 새로고침을 위해 이벤트 발생
+      if (mounted) {
+        context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
+      }
+
+      if (mounted) {
+        Navigator.pop(context); // Bottom Sheet 닫기
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('제출 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  /// 운동 기록 제출 (달리기 운동용 - 거리 기반, 수정된 거리 포함)
+  Future<void> _submitWorkoutWithDistance(double distance) async {
+    if (_selectedWorkout == null) return;
+
+    final workout = _selectedWorkout!;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // 사용자가 입력한 거리로 workout 업데이트
+      final workoutWithDistance = workout.copyWith(distance: distance);
+
+      // Firestore에 운동 등록 (수정된 거리 포함)
+      final result = await _registerSelectedWorkoutsUseCase([workoutWithDistance]);
+
+      final failed = result.fold(
+        (failure) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('운동 등록 실패: ${failure.message}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return true;
+        },
+        (count) => false,
+      );
+
+      if (failed) {
+        setState(() {
+          _isSubmitting = false;
+        });
+        return;
+      }
+
+      // 챌린지에 제출 (수정된 거리 포함)
+      widget.onSubmit(workoutWithDistance);
 
       // 운동 탭 새로고침을 위해 이벤트 발생
       if (mounted) {

@@ -91,11 +91,6 @@ class _ContributionItem extends StatelessWidget {
 
   /// 운동 상세 페이지로 이동
   Future<void> _navigateToWorkoutDetail(BuildContext context) async {
-    // 현재 사용자 확인
-    final authState = context.read<AuthBloc>().state;
-    final currentUserId = authState is Authenticated ? authState.user.id : null;
-    final isOwner = currentUserId != null && currentUserId == contribution.userId;
-
     // 로딩 표시
     showDialog(
       context: context,
@@ -134,10 +129,7 @@ class _ContributionItem extends StatelessWidget {
 
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => WorkoutDetailPage(
-                workout: workout,
-                isOwner: isOwner,
-              ),
+              builder: (context) => WorkoutDetailPage(workout: workout),
             ),
           );
         },
