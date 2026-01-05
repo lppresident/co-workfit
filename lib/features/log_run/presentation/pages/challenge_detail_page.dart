@@ -11,6 +11,7 @@ import 'package:co_workfit/features/log_run/presentation/widgets/submit_workout_
 import 'package:co_workfit/features/log_run/presentation/widgets/share_challenge_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/podium_widget.dart';
 import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
@@ -192,10 +193,10 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
   }
 
   /// 참가자 목록 섹션 빌드
-  Widget _buildParticipantsSection(BuildContext context, dynamic challenge) {
-    final participants = challenge.participants as List<String>;
-    final participantNicknames = challenge.participantNicknames as Map<String, String>;
-    final createdBy = challenge.createdBy as String;
+  Widget _buildParticipantsSection(BuildContext context, ChallengeEntity challenge) {
+    final participants = challenge.participants;
+    final participantNicknames = challenge.participantNicknames;
+    final createdBy = challenge.createdBy;
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -239,8 +240,8 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
             children: participants.map((userId) {
               final nickname = participantNicknames[userId] ?? '알 수 없음';
               final isCreator = userId == createdBy;
-              final stats = challenge.participantStats[userId];
-              final totalContribution = stats?.totalContributionKg ?? 0.0;
+              final stats = challenge.getParticipantStats(userId);
+              final totalContributionValue = stats?.totalContribution ?? 0.0;
 
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -275,7 +276,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                                 : null,
                           ),
                     ),
-                    if (totalContribution > 0) ...[
+                    if (totalContributionValue > 0) ...[
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -284,7 +285,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '${totalContribution.toStringAsFixed(1)}kg',
+                          '${totalContributionValue.toStringAsFixed(1)}kg',
                           style: const TextStyle(
                             fontSize: 10,
                             color: Colors.green,
