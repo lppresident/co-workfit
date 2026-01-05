@@ -245,9 +245,23 @@ class FirestoreChallengeDataSource {
       final newCurrentWeight = (challenge.currentWeight - contribution.contributionValue).clamp(0.0, double.infinity);
       final newRemainingWeight = challenge.targetWeight - newCurrentWeight;
 
+      // ParticipantStats 업데이트
+      final contributorId = contribution.userId;
+      final isRunning = contribution.workoutType == WorkoutType.running;
+      final currentStats = challenge.participantStats[contributorId] ?? ParticipantStatsEntity.empty(contributorId);
+      final updatedStats = currentStats.removeContribution(
+        contributionKg: contribution.contributionValue,
+        isRunning: isRunning,
+      );
+      final updatedStatsMap = Map<String, Map<String, dynamic>>.from(
+        challenge.participantStats.map((key, value) => MapEntry(key, ParticipantStatsModel.fromEntity(value).toJson())),
+      );
+      updatedStatsMap[contributorId] = ParticipantStatsModel.fromEntity(updatedStats).toJson();
+
       transaction.update(challengeRef, {
         'currentWeight': newCurrentWeight,
         'remainingWeight': newRemainingWeight,
+        'participantStats': updatedStatsMap,
       });
 
       // 기여 기록 삭제

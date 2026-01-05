@@ -107,6 +107,25 @@ class ParticipantStatsEntity extends Equatable {
     );
   }
 
+  /// 기여를 제거하여 통계 업데이트
+  ParticipantStatsEntity removeContribution({
+    required double contributionKg,
+    required bool isRunning,
+  }) {
+    return ParticipantStatsEntity(
+      userId: userId,
+      totalContribution: (totalContribution - contributionKg).clamp(0.0, double.infinity),
+      runningContribution: isRunning
+          ? (runningContribution - contributionKg).clamp(0.0, double.infinity)
+          : runningContribution,
+      strengthContribution: !isRunning
+          ? (strengthContribution - contributionKg).clamp(0.0, double.infinity)
+          : strengthContribution,
+      runningCount: isRunning ? (runningCount - 1).clamp(0, runningCount) : runningCount,
+      strengthCount: !isRunning ? (strengthCount - 1).clamp(0, strengthCount) : strengthCount,
+    );
+  }
+
   /// 빈 통계 (초기값)
   static ParticipantStatsEntity empty(String userId) {
     return ParticipantStatsEntity(userId: userId);
