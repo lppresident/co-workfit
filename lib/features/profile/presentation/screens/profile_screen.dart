@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
@@ -757,26 +758,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showAppInfoDialog(BuildContext context) {
+  void _showAppInfoDialog(BuildContext context) async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    
+    if (!context.mounted) return;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
+        title: const Row(
           children: [
-            const Text('🏃', style: TextStyle(fontSize: 24)),
-            const SizedBox(width: 8),
-            const Text('Co-Workfit'),
+            Text('🏃', style: TextStyle(fontSize: 24)),
+            SizedBox(width: 8),
+            Text('Co-Workfit'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('버전: 1.0.0', style: TextStyle(color: Colors.grey[600])),
+            Text(
+              '버전: ${packageInfo.version} (${packageInfo.buildNumber})',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
             const SizedBox(height: 8),
             Text(
-              '함께 운동하고, 통나무를 모아 캐릭터를 꾸며보세요!',
+              '함께 운동하고, 재화를 모아 캐릭터를 꾸며보세요!',
               style: TextStyle(color: Colors.grey[700]),
             ),
           ],
