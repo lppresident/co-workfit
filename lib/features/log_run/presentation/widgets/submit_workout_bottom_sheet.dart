@@ -464,6 +464,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     final workout = _selectedWorkout!;
     final isStrengthWorkout = workout.type == WorkoutType.weightTraining;
     final isAlreadyRegistered = workout.syncedAt != null; // Firestore에 등록된 운동인지 확인
+    final isGarminData = workout.source == WorkoutSource.garmin; // 가민 데이터인지 확인
 
     // 웨이트 트레이닝: 점수로 바로 제출
     if (isStrengthWorkout) {
@@ -475,22 +476,33 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
       return;
     }
 
-    // 이미 Firestore에 등록된 운동: 거리 수정 없이 바로 제출
-    // (등록 시점에 이미 거리가 확정됨)
+    // 이미 Firestore에 등록된 운동
     if (isAlreadyRegistered) {
+      // 가민 데이터이고 아직 거리 수정이 안된 경우만 수정 다이얼로그 표시
+      if (isGarminData && !workout.hasDistanceCorrection) {
+        _showDistanceConfirmDialog();
+        return;
+      }
+      // 그 외: 바로 제출
       _submitWorkoutDirectly();
       return;
     }
 
-    // 기기에서 가져온 운동 (미등록): 거리 확인 다이얼로그 표시
-    // (등록 시점에만 수정 가능)
-    _showDistanceConfirmDialog();
+    // 기기에서 가져온 운동 (미등록)
+    // 가민 데이터만 거리 확인 다이얼로그 표시
+    if (isGarminData) {
+      _showDistanceConfirmDialog();
+      return;
+    }
+
+    // 가민 외 데이터: 바로 등록 후 제출
+    _submitWorkoutWithDistance(workout.distance ?? 0.0);
   }
 
-  /// 거리 확인 다이얼로그 표시
-  /// 등록 시점에만 거리 수정이 가능하며, 이후에는 수정할 수 없습니다.
+  /// 거리 확인 다이얼로그 표시 (가민 데이터 전용)
+  /// 가민 데이터는 GPS 오차로 인해 거리 수정이 필요할 수 있습니다.
   void _showDistanceConfirmDialog() {
-    final originalDistance = _selectedWorkout!.distance ?? 0.0;
+    final originalDistance = _selectedWorkout!.effectiveDistance ?? _selectedWorkout!.distance ?? 0.0;
     _distanceController.text = originalDistance.toStringAsFixed(2);
 
     showDialog(
@@ -498,9 +510,9 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
       builder: (context) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.straighten, color: Colors.blue),
+            Icon(Icons.watch, color: Colors.blue),
             SizedBox(width: 8),
-            Text('거리 확인'),
+            Text('가민 거리 확인'),
           ],
         ),
         content: Column(
@@ -510,18 +522,18 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  Icon(Icons.info_outline, color: Colors.blue, size: 20),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '등록 후에는 거리를 수정할 수 없습니다.\n정확한 거리를 입력해주세요.',
-                      style: TextStyle(fontSize: 12, color: Colors.orange),
+                      '가민 GPS 데이터의 거리를 확인해주세요.\n필요시 수정할 수 있습니다.',
+                      style: TextStyle(fontSize: 12, color: Colors.blue),
                     ),
                   ),
                 ],
@@ -539,7 +551,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                 hintText: '예: 5.63',
                 suffixText: 'km',
                 border: const OutlineInputBorder(),
-                helperText: '기기 기록: ${originalDistance.toStringAsFixed(2)} km',
+                helperText: '가민 기록: ${originalDistance.toStringAsFixed(2)} km',
               ),
               autofocus: true,
             ),

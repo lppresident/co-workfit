@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
@@ -7,14 +6,13 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/features/workout/domain/usecases/register_selected_workouts.dart';
-import 'package:co_workfit/features/workout/domain/utils/strength_score_calculator.dart';
 import 'package:intl/intl.dart';
 
 /// 운동 선택 및 등록 Bottom Sheet
 /// 
 /// 이 위젯은 Health 데이터를 직접 로드하여 로컬 상태로 관리합니다.
 /// 여러 운동을 선택하여 한번에 등록할 수 있습니다.
-/// 등록 시 각 운동의 거리/점수를 확인하고 수정할 수 있습니다.
+/// 거리 수정은 등록 후 운동 상세에서 가능합니다 (가민 데이터만).
 class RegisterWorkoutBottomSheet extends StatefulWidget {
   const RegisterWorkoutBottomSheet({super.key});
 
@@ -30,8 +28,6 @@ class _RegisterWorkoutBottomSheetState extends State<RegisterWorkoutBottomSheet>
   bool _isLoading = true;
   String? _errorMessage;
   bool _isRegistering = false;
-  
-  final TextEditingController _valueController = TextEditingController();
 
   late final WorkoutRepository _workoutRepository;
   late final RegisterSelectedWorkouts _registerSelectedWorkoutsUseCase;
@@ -42,12 +38,6 @@ class _RegisterWorkoutBottomSheetState extends State<RegisterWorkoutBottomSheet>
     _workoutRepository = GetIt.I<WorkoutRepository>();
     _registerSelectedWorkoutsUseCase = GetIt.I<RegisterSelectedWorkouts>();
     _loadHealthWorkouts();
-  }
-
-  @override
-  void dispose() {
-    _valueController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadHealthWorkouts() async {
@@ -488,34 +478,16 @@ class _RegisterWorkoutBottomSheetState extends State<RegisterWorkoutBottomSheet>
   }
 
   /// 등록 확인 다이얼로그 표시
+  /// 운동 등록은 수정 없이 원본 데이터로 바로 등록
+  /// 거리 수정이 필요하면 등록 후 운동 상세에서 수정 (가민 데이터만)
   void _showRegisterConfirmDialog() {
     if (_selectedWorkoutIds.isEmpty) return;
 
     final selectedWorkouts = _selectedWorkouts;
-    
-    // 단일 선택인 경우 기존 로직 (거리/점수 확인)
-    if (selectedWorkouts.length == 1) {
-      final workout = selectedWorkouts.first;
-      final isStrengthWorkout = workout.type == WorkoutType.weightTraining;
-
-      if (isStrengthWorkout) {
-        // 웨이트 트레이닝: 점수 확인
-        final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
-          durationMinutes: workout.durationMinutes,
-          avgHeartRate: workout.averageHeartRate,
-        );
-        _showStrengthConfirmDialog(strengthScore, workout);
-      } else {
-        // 유산소 운동: 거리 확인
-        _showDistanceConfirmDialog(workout);
-      }
-    } else {
-      // 다중 선택인 경우 일괄 등록 확인
-      _showBatchRegisterConfirmDialog(selectedWorkouts);
-    }
+    _showBatchRegisterConfirmDialog(selectedWorkouts);
   }
   
-  /// 다중 운동 일괄 등록 확인 다이얼로그
+  /// 운동 등록 확인 다이얼로그 (단일/다중 공통)
   void _showBatchRegisterConfirmDialog(List<WorkoutEntity> workouts) {
     final cardioCount = workouts.where((w) => 
       w.type != WorkoutType.weightTraining && 
@@ -525,15 +497,16 @@ class _RegisterWorkoutBottomSheetState extends State<RegisterWorkoutBottomSheet>
       w.type == WorkoutType.weightTraining || 
       w.type == WorkoutType.yoga
     ).length;
+    final garminCount = workouts.where((w) => w.source == WorkoutSource.garmin).length;
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.cloud_upload, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('운동 일괄 등록'),
+            const Icon(Icons.cloud_upload, color: Colors.blue),
+            const SizedBox(width: 8),
+            Text(workouts.length == 1 ? '운동 등록' : '운동 일괄 등록'),
           ],
         ),
         content: Column(
@@ -549,28 +522,29 @@ class _RegisterWorkoutBottomSheetState extends State<RegisterWorkoutBottomSheet>
               Text('• 유산소 운동: $cardioCount개'),
             if (strengthCount > 0)
               Text('• 근력 운동: $strengthCount개'),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '일괄 등록 시 거리는 원본 데이터로 등록됩니다.\n'
-                      '거리 수정이 필요하면 등록 후 운동 상세에서 수정하세요.',
-                      style: TextStyle(fontSize: 12, color: Colors.orange),
+            if (garminCount > 0) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '가민 데이터는 등록 후 운동 상세에서 거리를 수정할 수 있습니다.',
+                        style: TextStyle(fontSize: 12, color: Colors.blue),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ],
         ),
         actions: [
@@ -582,174 +556,6 @@ class _RegisterWorkoutBottomSheetState extends State<RegisterWorkoutBottomSheet>
             onPressed: () {
               Navigator.pop(context);
               _registerWorkouts(workouts);
-            },
-            child: const Text('등록'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 웨이트 트레이닝 점수 확인 다이얼로그
-  void _showStrengthConfirmDialog(double score, WorkoutEntity workout) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.fitness_center, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('운동 점수 확인'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${_getWorkoutTypeName(workout.type)} - ${workout.durationMinutes}분',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.star, color: Colors.orange, size: 28),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${score.toStringAsFixed(1)} 점',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '운동 시간과 심박수를 기반으로 계산된 점수입니다.',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _registerWorkouts([workout]);
-            },
-            child: const Text('등록'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 거리 확인/수정 다이얼로그
-  void _showDistanceConfirmDialog(WorkoutEntity workout) {
-    final originalDistance = workout.distance ?? 0.0;
-    _valueController.text = originalDistance.toStringAsFixed(2);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.straighten, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('거리 확인'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${_getWorkoutTypeName(workout.type)} - ${workout.durationMinutes}분',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '거리를 확인하고 필요 시 수정해주세요.',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '등록 후에도 운동 상세에서 수정할 수 있습니다.',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _valueController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-              ],
-              decoration: InputDecoration(
-                labelText: '거리 (km)',
-                hintText: '예: 5.63',
-                suffixText: 'km',
-                border: const OutlineInputBorder(),
-                helperText: '원래 값: ${originalDistance.toStringAsFixed(2)} km',
-              ),
-              autofocus: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final input = _valueController.text.trim();
-              if (input.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('거리를 입력해주세요.'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              final distance = double.tryParse(input);
-              if (distance == null || distance <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('올바른 거리를 입력해주세요. (0보다 큰 숫자)'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              if (distance > 100) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('거리가 너무 큽니다. (100km 이하로 입력해주세요)'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              Navigator.pop(context);
-              _registerWorkoutWithDistance(workout, distance);
             },
             child: const Text('등록'),
           ),
@@ -795,69 +601,6 @@ class _RegisterWorkoutBottomSheetState extends State<RegisterWorkoutBottomSheet>
         }
       },
     );
-  }
-
-  /// 운동 등록 (거리 수정 포함 - 단일 운동)
-  Future<void> _registerWorkoutWithDistance(WorkoutEntity workout, double distance) async {
-    setState(() {
-      _isRegistering = true;
-    });
-
-    try {
-      // 수정된 거리를 포함한 운동 엔티티 생성
-      // correctedDistance 필드에 수정된 거리를 저장
-      final workoutToRegister = workout.copyWith(
-        correctedDistance: distance,
-      );
-
-      // 수정된 거리가 포함된 운동을 바로 등록
-      final result = await _registerSelectedWorkoutsUseCase([workoutToRegister]);
-
-      final failed = result.fold(
-        (failure) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('등록 실패: ${failure.message}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return true;
-        },
-        (count) => false,
-      );
-
-      if (failed) {
-        setState(() {
-          _isRegistering = false;
-        });
-        return;
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('운동이 등록되었습니다'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-        context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('등록 중 오류가 발생했습니다: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isRegistering = false;
-        });
-      }
-    }
   }
 
   IconData _getWorkoutIcon(WorkoutType type) {

@@ -69,9 +69,12 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
   /// 수정 버튼 표시 여부
   /// - 본인 운동이고
   /// - 챌린지에서 진입하지 않은 경우
+  /// - 가민 데이터인 경우만
   /// - 거리 데이터가 있는 운동 (러닝, 걷기, 등산, 사이클링)
   bool get _showEditButton {
     if (!widget.isOwner || widget.isFromChallenge) return false;
+    // 가민 데이터만 수정 가능
+    if (_currentWorkout.source != WorkoutSource.garmin) return false;
     return _currentWorkout.type == WorkoutType.running ||
         _currentWorkout.type == WorkoutType.walking ||
         _currentWorkout.type == WorkoutType.hiking ||
