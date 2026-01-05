@@ -13,7 +13,7 @@ class FirestoreWoodDataSource {
   // Collection 경로
   static const String _usersCollection = 'users';
   static const String _woodSettlementsCollection = 'wood_settlements';
-  static const String _challengesCollection = 'log_run_challenges';
+  static const String _challengesCollection = 'challenges';
   static const String _contributionsSubcollection = 'contributions';
   static const String _workoutsCollection = 'workouts';
 
