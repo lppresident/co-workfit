@@ -672,76 +672,36 @@ class _RegisterWorkoutBottomSheetState extends State<RegisterWorkoutBottomSheet>
       _isRegistering = true;
     });
 
-    WorkoutEntity workoutToRegister = _selectedWorkout!;
-
     try {
-      // 거리가 수정된 경우 먼저 Firestore에 업데이트
-      if (workoutToRegister.distance != distance) {
-        // 먼저 운동을 등록
-        final registerResult = await _registerSelectedWorkoutsUseCase([workoutToRegister]);
-        
-        final failedRegistration = registerResult.fold(
-          (failure) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('등록 실패: ${failure.message}'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            return true;
-          },
-          (count) => false,
-        );
+      // 수정된 거리를 포함한 운동 엔티티 생성
+      // correctedDistance 필드에 수정된 거리를 저장
+      final workoutToRegister = _selectedWorkout!.copyWith(
+        correctedDistance: distance,
+      );
 
-        if (failedRegistration) {
-          setState(() {
-            _isRegistering = false;
-          });
-          return;
-        }
+      // 수정된 거리가 포함된 운동을 바로 등록
+      final result = await _registerSelectedWorkoutsUseCase([workoutToRegister]);
 
-        // 등록 후 거리 수정
-        final updateResult = await _workoutRepository.updateWorkoutDistance(
-          workoutId: workoutToRegister.id,
-          correctedDistance: distance,
-        );
+      final failed = result.fold(
+        (failure) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('등록 실패: ${failure.message}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return true;
+        },
+        (count) => false,
+      );
 
-        updateResult.fold(
-          (error) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('거리 수정 실패: $error'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-          },
-          (_) {},
-        );
-      } else {
-        // 거리 수정 없이 등록
-        final result = await _registerSelectedWorkoutsUseCase([workoutToRegister]);
-
-        result.fold(
-          (failure) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('등록 실패: ${failure.message}'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            setState(() {
-              _isRegistering = false;
-            });
-            return;
-          },
-          (count) {},
-        );
+      if (failed) {
+        setState(() {
+          _isRegistering = false;
+        });
+        return;
       }
 
       if (mounted) {

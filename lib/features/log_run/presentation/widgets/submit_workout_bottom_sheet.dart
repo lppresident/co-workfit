@@ -640,8 +640,9 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     });
 
     try {
-      // 사용자가 입력한 거리로 workout 업데이트
-      final workoutWithDistance = workout.copyWith(distance: distance);
+      // 사용자가 입력한 거리를 correctedDistance로 저장
+      // (원본 distance는 유지, correctedDistance에 수정된 값 저장)
+      final workoutWithDistance = workout.copyWith(correctedDistance: distance);
 
       // Firestore에 운동 등록 (수정된 거리 포함)
       final result = await _registerSelectedWorkoutsUseCase([workoutWithDistance]);
