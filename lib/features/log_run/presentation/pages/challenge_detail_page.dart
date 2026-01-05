@@ -16,6 +16,7 @@ import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
 import 'package:co_workfit/features/craft/domain/usecases/get_equipped_items.dart';
+import 'package:co_workfit/features/social/presentation/pages/user_profile_page.dart';
 
 class ChallengeDetailPage extends BasePage {
   final String challengeId;
@@ -192,6 +193,19 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     );
   }
 
+  /// 유저 프로필 페이지로 이동
+  void _navigateToUserProfile(String userId, String nickname) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserProfilePage(
+          userId: userId,
+          nickname: nickname,
+        ),
+      ),
+    );
+  }
+
   /// 참가자 목록 섹션 빌드
   Widget _buildParticipantsSection(BuildContext context, ChallengeEntity challenge) {
     final participants = challenge.participants;
@@ -243,58 +257,61 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
               final stats = challenge.getParticipantStats(userId);
               final totalContributionValue = stats?.totalContribution ?? 0.0;
 
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isCreator
-                      ? Theme.of(context).colorScheme.primaryContainer
-                      : Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
+              return GestureDetector(
+                onTap: () => _navigateToUserProfile(userId, nickname),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
                     color: isCreator
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).dividerColor,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isCreator) ...[
-                      Icon(
-                        Icons.star,
-                        size: 14,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                    Text(
-                      nickname,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: isCreator ? FontWeight.bold : FontWeight.normal,
-                            color: isCreator
-                                ? Theme.of(context).colorScheme.onPrimaryContainer
-                                : null,
-                          ),
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isCreator
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).dividerColor,
                     ),
-                    if (totalContributionValue > 0) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isCreator) ...[
+                        Icon(
+                          Icons.star,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
-                        child: Text(
-                          '${totalContributionValue.toStringAsFixed(1)}kg',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        nickname,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: isCreator ? FontWeight.bold : FontWeight.normal,
+                              color: isCreator
+                                  ? Theme.of(context).colorScheme.onPrimaryContainer
+                                  : null,
+                            ),
+                      ),
+                      if (totalContributionValue > 0) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${totalContributionValue.toStringAsFixed(1)}kg',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               );
             }).toList(),
