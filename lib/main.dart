@@ -23,6 +23,8 @@ import 'package:co_workfit/features/currency/currency.dart';
 import 'package:co_workfit/features/craft/presentation/bloc/craft_bloc.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/core/services/deep_link_service.dart';
+import 'package:co_workfit/core/services/version_check_service.dart';
+import 'package:co_workfit/core/widgets/version_check_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,11 +49,20 @@ void main() async {
   // Initialize deep link service
   await DeepLinkService().initialize();
 
-  runApp(const CoWorkFitApp());
+  // Initialize version check service
+  final versionCheckService = VersionCheckService();
+  await versionCheckService.initialize();
+
+  runApp(CoWorkFitApp(versionCheckService: versionCheckService));
 }
 
 class CoWorkFitApp extends StatefulWidget {
-  const CoWorkFitApp({super.key});
+  final VersionCheckService versionCheckService;
+
+  const CoWorkFitApp({
+    super.key,
+    required this.versionCheckService,
+  });
 
   @override
   State<CoWorkFitApp> createState() => _CoWorkFitAppState();
@@ -63,6 +74,7 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
   StreamSubscription<ChallengeState>? _logRunStateSubscription;
   DeepLinkData? _pendingDeepLink;
   bool _isJoiningFromDeepLink = false;
+  bool _hasCheckedVersion = false;
 
   @override
   void initState() {
@@ -225,7 +237,23 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
         home: MultiBlocListener(
           listeners: [
             BlocListener<AuthBloc, AuthState>(
-              listener: (context, state) {
+              listener: (context, state) async {
+                // 버전 체크 (인증 상태 확인 후 한 번만 실행)
+                if (!_hasCheckedVersion) {
+                  _hasCheckedVersion = true;
+                  final result = await widget.versionCheckService.checkVersion();
+
+                  if (result.isUpdateRequired && context.mounted) {
+                    // 업데이트 필수 다이얼로그 표시
+                    VersionCheckDialog.show(
+                      context,
+                      currentVersion: result.currentVersion,
+                      minimumVersion: result.minimumVersion,
+                    );
+                    return; // 더 이상 진행하지 않음
+                  }
+                }
+
                 // 인증 완료 후 대기 중인 딥링크 처리
                 if (state is Authenticated && _pendingDeepLink != null) {
                   final pending = _pendingDeepLink!;
