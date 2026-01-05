@@ -80,3 +80,4 @@ class CurrencySummaryEntity extends Equatable {
   List<Object?> get props => [amounts, lifetimeEarned, lastSettlementDate];
 }
 
+

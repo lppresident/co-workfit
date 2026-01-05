@@ -93,3 +93,4 @@ class CurrencyError extends CurrencyState {
   List<Object?> get props => [message];
 }
 
+

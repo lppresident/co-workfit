@@ -1,8 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_kit_datasource.dart';
@@ -16,6 +14,7 @@ import 'package:co_workfit/core/utils/logger.dart';
 /// WorkoutRepository 구현체
 /// iOS에서는 HealthKit, Android에서는 Health Connect를 사용합니다.
 /// Garmin은 iOS/Android 모두 Garmin Health API를 통해 직접 연동합니다.
+/// 거리 수정 정보는 Firestore에 저장됩니다.
 class WorkoutRepositoryImpl implements WorkoutRepository {
   final HealthKitDataSource _healthKitDataSource;
   final HealthConnectDataSource _healthConnectDataSource;
@@ -23,12 +22,6 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   final HealthDataMapper _healthDataMapper;
   final FirestoreWorkoutDataSource _firestoreDataSource;
   final FirebaseAuth _firebaseAuth;
-
-  // SharedPreferences 키
-  static const String _correctedDistancesKey = 'workout_corrected_distances';
-
-  // 메모리 캐시 (앱 실행 중 빠른 접근용)
-  Map<String, double>? _correctedDistancesCache;
 
   WorkoutRepositoryImpl({
     required HealthKitDataSource healthKitDataSource,
@@ -51,47 +44,6 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       throw Exception('로그인이 필요합니다');
     }
     return user.uid;
-  }
-
-  /// SharedPreferences에서 수정된 거리 정보 로드
-  Future<Map<String, double>> _loadCorrectedDistances() async {
-    if (_correctedDistancesCache != null) {
-      return _correctedDistancesCache!;
-    }
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_correctedDistancesKey);
-      
-      if (jsonString != null) {
-        final Map<String, dynamic> decoded = jsonDecode(jsonString);
-        _correctedDistancesCache = decoded.map(
-          (key, value) => MapEntry(key, (value as num).toDouble()),
-        );
-        AppLogger.debug('WorkoutRepo', '저장된 거리 수정 정보 로드: ${_correctedDistancesCache!.length}개');
-      } else {
-        _correctedDistancesCache = {};
-      }
-    } catch (e) {
-      AppLogger.error('WorkoutRepo', '거리 수정 정보 로드 실패', e);
-      _correctedDistancesCache = {};
-    }
-
-    return _correctedDistancesCache!;
-  }
-
-  /// SharedPreferences에 수정된 거리 정보 저장
-  Future<void> _saveCorrectedDistances() async {
-    if (_correctedDistancesCache == null) return;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = jsonEncode(_correctedDistancesCache);
-      await prefs.setString(_correctedDistancesKey, jsonString);
-      AppLogger.debug('WorkoutRepo', '거리 수정 정보 저장 완료: ${_correctedDistancesCache!.length}개');
-    } catch (e) {
-      AppLogger.error('WorkoutRepo', '거리 수정 정보 저장 실패', e);
-    }
   }
 
   /// 현재 플랫폼이 iOS인지 확인
@@ -236,23 +188,15 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       );
     }
 
-    // 3. 수정된 거리 적용 (로컬 저장소에서 로드)
-    final correctedDistances = await _loadCorrectedDistances();
-    final workoutsWithCorrections = allWorkouts.map((workout) {
-      final correctedDistance = correctedDistances[workout.id];
-      if (correctedDistance != null) {
-        return workout.copyWith(correctedDistance: correctedDistance);
-      }
-      return workout;
-    }).toList();
+    // 3. 시간순 정렬 (최신순)
+    // 참고: correctedDistance는 Firestore에 저장되며, 
+    // getWorkoutsFromFirestore나 getWorkoutById에서 자동으로 적용됨
+    allWorkouts.sort((a, b) => b.startTime.compareTo(a.startTime));
 
-    // 4. 시간순 정렬 (최신순)
-    workoutsWithCorrections.sort((a, b) => b.startTime.compareTo(a.startTime));
+    // 4. 모든 운동 데이터를 그대로 반환 (중복 제거 안 함)
+    AppLogger.info('WorkoutRepo', '총 ${allWorkouts.length}개 운동 데이터 반환');
 
-    // 5. 모든 운동 데이터를 그대로 반환 (중복 제거 안 함)
-    AppLogger.info('WorkoutRepo', '총 ${workoutsWithCorrections.length}개 운동 데이터 반환');
-
-    return Right(workoutsWithCorrections);
+    return Right(allWorkouts);
   }
 
   /// HealthKit에서 운동 데이터 가져오기 (iOS)
@@ -403,31 +347,24 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     try {
       AppLogger.info('WorkoutRepo', '운동 거리 수정: $workoutId -> ${correctedDistance}km');
 
-      // 로컬 저장소에 수정된 거리 저장 (영구 저장)
-      final correctedDistances = await _loadCorrectedDistances();
-      correctedDistances[workoutId] = correctedDistance;
-      _correctedDistancesCache = correctedDistances;
-      await _saveCorrectedDistances();
-
-      // 현재 운동 데이터 조회 (최근 30일)
-      final now = DateTime.now();
-      final startDate = now.subtract(const Duration(days: 30));
-      final workoutsResult = await getWorkouts(
-        startDate: startDate,
-        endDate: now,
+      // Firestore에 수정된 거리 저장
+      await _firestoreDataSource.updateWorkoutDistance(
+        userId: _userId,
+        workoutId: workoutId,
+        correctedDistance: correctedDistance,
       );
 
-      return workoutsResult.fold(
-        (error) => Left('운동 데이터 조회 실패: $error'),
-        (workouts) {
-          // 수정한 운동 찾기
-          final updatedWorkout = workouts.firstWhere(
-            (w) => w.id == workoutId,
-            orElse: () => throw Exception('운동 기록을 찾을 수 없습니다.'),
-          );
+      // 업데이트된 운동 데이터 조회
+      final workoutResult = await getWorkoutById(workoutId);
 
-          AppLogger.info('WorkoutRepo', '거리 수정 완료 (로컬 저장): ${updatedWorkout.effectiveDistance}km');
-          return Right(updatedWorkout);
+      return workoutResult.fold(
+        (error) => Left('운동 데이터 조회 실패: $error'),
+        (workout) {
+          if (workout == null) {
+            return Left('운동 기록을 찾을 수 없습니다.');
+          }
+          AppLogger.info('WorkoutRepo', '거리 수정 완료 (Firestore): ${workout.effectiveDistance}km');
+          return Right(workout);
         },
       );
     } catch (e, stackTrace) {
@@ -443,30 +380,23 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     try {
       AppLogger.info('WorkoutRepo', '운동 거리 초기화: $workoutId');
 
-      // 로컬 저장소에서 수정된 거리 제거
-      final correctedDistances = await _loadCorrectedDistances();
-      correctedDistances.remove(workoutId);
-      _correctedDistancesCache = correctedDistances;
-      await _saveCorrectedDistances();
-
-      // 현재 운동 데이터 조회 (최근 30일)
-      final now = DateTime.now();
-      final startDate = now.subtract(const Duration(days: 30));
-      final workoutsResult = await getWorkouts(
-        startDate: startDate,
-        endDate: now,
+      // Firestore에서 수정된 거리 제거
+      await _firestoreDataSource.resetWorkoutDistance(
+        userId: _userId,
+        workoutId: workoutId,
       );
 
-      return workoutsResult.fold(
-        (error) => Left('운동 데이터 조회 실패: $error'),
-        (workouts) {
-          final resetWorkout = workouts.firstWhere(
-            (w) => w.id == workoutId,
-            orElse: () => throw Exception('운동 기록을 찾을 수 없습니다.'),
-          );
+      // 업데이트된 운동 데이터 조회
+      final workoutResult = await getWorkoutById(workoutId);
 
-          AppLogger.info('WorkoutRepo', '거리 초기화 완료: ${resetWorkout.distance}km (원래 값)');
-          return Right(resetWorkout);
+      return workoutResult.fold(
+        (error) => Left('운동 데이터 조회 실패: $error'),
+        (workout) {
+          if (workout == null) {
+            return Left('운동 기록을 찾을 수 없습니다.');
+          }
+          AppLogger.info('WorkoutRepo', '거리 초기화 완료: ${workout.distance}km (원래 값)');
+          return Right(workout);
         },
       );
     } catch (e, stackTrace) {
@@ -549,20 +479,11 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
         endDate: endDate,
       );
 
+      // Firestore에 correctedDistance가 저장되어 있으므로 별도 처리 불필요
       final entities = models.map((m) => m.toEntity()).toList();
 
-      // 수정된 거리 적용
-      final correctedDistances = await _loadCorrectedDistances();
-      final workoutsWithCorrections = entities.map((workout) {
-        final correctedDistance = correctedDistances[workout.id];
-        if (correctedDistance != null) {
-          return workout.copyWith(correctedDistance: correctedDistance);
-        }
-        return workout;
-      }).toList();
-
-      AppLogger.info('WorkoutRepo', 'Firestore에서 ${workoutsWithCorrections.length}개 조회');
-      return Right(workoutsWithCorrections);
+      AppLogger.info('WorkoutRepo', 'Firestore에서 ${entities.length}개 조회');
+      return Right(entities);
     } catch (e) {
       AppLogger.error('WorkoutRepo', 'Firestore 조회 실패', e);
       return Left('Firestore 조회 실패: $e');
@@ -692,16 +613,8 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
         return const Right(null);
       }
 
-      // 수정된 거리 적용
-      final correctedDistances = await _loadCorrectedDistances();
-      final correctedDistance = correctedDistances[workoutId];
-      
-      var entity = model.toEntity();
-      if (correctedDistance != null) {
-        entity = entity.copyWith(correctedDistance: correctedDistance);
-      }
-
-      return Right(entity);
+      // Firestore에 correctedDistance가 저장되어 있으므로 별도 처리 불필요
+      return Right(model.toEntity());
     } catch (e) {
       AppLogger.error('WorkoutRepo', 'getWorkoutById 실패', e);
       return Left('운동 조회 실패: $e');
@@ -715,16 +628,8 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     try {
       final models = await _firestoreDataSource.getWorkoutsByIds(workoutIds);
       
-      // 수정된 거리 적용
-      final correctedDistances = await _loadCorrectedDistances();
-      final entities = models.map((model) {
-        var entity = model.toEntity();
-        final correctedDistance = correctedDistances[entity.id];
-        if (correctedDistance != null) {
-          entity = entity.copyWith(correctedDistance: correctedDistance);
-        }
-        return entity;
-      }).toList();
+      // Firestore에 correctedDistance가 저장되어 있으므로 별도 처리 불필요
+      final entities = models.map((model) => model.toEntity()).toList();
 
       AppLogger.info('WorkoutRepo', 'getWorkoutsByIds: ${entities.length}개 조회');
       return Right(entities);

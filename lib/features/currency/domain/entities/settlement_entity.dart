@@ -167,3 +167,4 @@ class SoloWorkoutReward extends Equatable {
   List<Object?> get props => [currencyType, value, unit, total];
 }
 
+

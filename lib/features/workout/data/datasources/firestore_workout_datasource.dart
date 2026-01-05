@@ -245,6 +245,61 @@ class FirestoreWorkoutDataSource {
     }
   }
 
+  /// 운동 거리 수정 (Firestore에 저장)
+  Future<void> updateWorkoutDistance({
+    required String userId,
+    required String workoutId,
+    required double correctedDistance,
+  }) async {
+    try {
+      // 소유자 확인
+      final doc = await _workoutsRef.doc(workoutId).get();
+      if (!doc.exists) {
+        throw Exception('존재하지 않는 운동입니다');
+      }
+      if (doc.data()?['userId'] != userId) {
+        throw Exception('본인의 운동만 수정할 수 있습니다');
+      }
+
+      await _workoutsRef.doc(workoutId).update({
+        'correctedDistance': correctedDistance,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      AppLogger.info('FirestoreWorkoutDS', 'Workout distance updated: $workoutId -> ${correctedDistance}km');
+    } catch (e) {
+      AppLogger.error('FirestoreWorkoutDS', 'Update workout distance failed', e);
+      rethrow;
+    }
+  }
+
+  /// 운동 거리 초기화 (correctedDistance 필드 삭제)
+  Future<void> resetWorkoutDistance({
+    required String userId,
+    required String workoutId,
+  }) async {
+    try {
+      // 소유자 확인
+      final doc = await _workoutsRef.doc(workoutId).get();
+      if (!doc.exists) {
+        throw Exception('존재하지 않는 운동입니다');
+      }
+      if (doc.data()?['userId'] != userId) {
+        throw Exception('본인의 운동만 수정할 수 있습니다');
+      }
+
+      await _workoutsRef.doc(workoutId).update({
+        'correctedDistance': FieldValue.delete(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      AppLogger.info('FirestoreWorkoutDS', 'Workout distance reset: $workoutId');
+    } catch (e) {
+      AppLogger.error('FirestoreWorkoutDS', 'Reset workout distance failed', e);
+      rethrow;
+    }
+  }
+
   /// Firestore 데이터를 WorkoutModel로 파싱
   WorkoutModel _parseWorkoutModel(Map<String, dynamic> data) {
     // Timestamp를 DateTime으로 변환

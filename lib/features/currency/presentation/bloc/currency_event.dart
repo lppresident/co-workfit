@@ -33,3 +33,4 @@ class DismissSettlementDialogEvent extends CurrencyEvent {
   const DismissSettlementDialogEvent();
 }
 
+
