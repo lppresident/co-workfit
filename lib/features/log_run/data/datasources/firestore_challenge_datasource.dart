@@ -179,6 +179,8 @@ class FirestoreChallengeDataSource {
       transaction.update(challengeRef, updateData);
 
       // 기여 기록 추가
+      // workout 상세는 /workouts/{workoutId}에서 조회 가능
+      // workoutType, workoutDate는 피드 표시용 캐시
       final contributionRef = challengeRef.collection(_contributionsSubcollection).doc();
       final now = DateTime.now();
       transaction.set(contributionRef, {
@@ -186,7 +188,7 @@ class FirestoreChallengeDataSource {
         'userId': userId,
         'userNickname': userNickname,
         'workoutId': workout.id,
-        'contributionKg': contributionKg,
+        'contributionValue': contributionKg,
         'workoutType': workout.type.toString().split('.').last,
         'workoutDate': Timestamp.fromDate(workout.startTime),
         'submittedAt': Timestamp.fromDate(now),
@@ -201,7 +203,7 @@ class FirestoreChallengeDataSource {
         userId: userId,
         userNickname: userNickname,
         workoutId: workout.id,
-        distance: contributionKg, // 호환성을 위해 distance 필드에 kg 저장
+        contributionValue: contributionKg,
         workoutType: workout.type,
         workoutDate: workout.startTime,
         submittedAt: now,
@@ -240,7 +242,7 @@ class FirestoreChallengeDataSource {
       }
 
       // 챌린지 무게 업데이트
-      final newCurrentWeight = (challenge.currentWeight - contribution.distance).clamp(0.0, double.infinity);
+      final newCurrentWeight = (challenge.currentWeight - contribution.contributionValue).clamp(0.0, double.infinity);
       final newRemainingWeight = challenge.targetWeight - newCurrentWeight;
 
       transaction.update(challengeRef, {

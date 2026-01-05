@@ -58,20 +58,20 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     }
   }
 
-  /// 참가자별 총 거리 계산 및 순위 생성
+  /// 참가자별 총 기여량 계산 및 순위 생성
   List<ParticipantRank> _calculateRankings(List<ContributionEntity> contributions) {
-    // 사용자별 총 거리 집계
-    final Map<String, double> userDistances = {};
+    // 사용자별 총 기여량 집계
+    final Map<String, double> userContributions = {};
     final Map<String, String> userNicknames = {};
 
     for (final contribution in contributions) {
-      userDistances[contribution.userId] = 
-          (userDistances[contribution.userId] ?? 0) + contribution.distance;
+      userContributions[contribution.userId] = 
+          (userContributions[contribution.userId] ?? 0) + contribution.contributionValue;
       userNicknames[contribution.userId] = contribution.userNickname;
     }
 
-    // 거리 순으로 정렬
-    final sortedUsers = userDistances.entries.toList()
+    // 기여량 순으로 정렬
+    final sortedUsers = userContributions.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     // ParticipantRank 리스트 생성
@@ -79,7 +79,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
       return ParticipantRank(
         odium: entry.key,
         nickname: userNicknames[entry.key] ?? '알 수 없음',
-        totalDistance: entry.value,
+        totalDistance: entry.value, // totalDistance는 이제 totalContribution을 의미
         equippedItems: _equippedItemsCache[entry.key],
       );
     }).toList();

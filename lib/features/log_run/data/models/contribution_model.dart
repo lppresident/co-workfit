@@ -4,9 +4,16 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 
 class ContributionModel extends ContributionEntity {
   const ContributionModel({
-    required super.id, required super.challengeId, required super.userId, required super.userNickname,
-    required super.workoutId, required super.distance, required super.workoutType,
-    required super.workoutDate, required super.submittedAt, required super.percentage,
+    required super.id,
+    required super.challengeId,
+    required super.userId,
+    required super.userNickname,
+    required super.workoutId,
+    required super.contributionValue,
+    required super.submittedAt,
+    required super.percentage,
+    super.workoutType,
+    super.workoutDate,
   });
 
   factory ContributionModel.fromFirestore(DocumentSnapshot doc) {
@@ -17,29 +24,51 @@ class ContributionModel extends ContributionEntity {
       userId: data['userId'] as String? ?? '',
       userNickname: data['userNickname'] as String? ?? '',
       workoutId: data['workoutId'] as String? ?? '',
-      distance: (data['distance'] as num?)?.toDouble() ?? 0.0,
-      workoutType: _parseWorkoutType(data['workoutType'] as String? ?? 'other'),
-      workoutDate: (data['workoutDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      contributionValue: (data['contributionValue'] as num?)?.toDouble() ?? 
+                         (data['distance'] as num?)?.toDouble() ?? 0.0, // 하위 호환성
       submittedAt: (data['submittedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       percentage: (data['percentage'] as num?)?.toDouble() ?? 0.0,
+      workoutType: data['workoutType'] != null 
+          ? _parseWorkoutType(data['workoutType'] as String) 
+          : null,
+      workoutDate: (data['workoutDate'] as Timestamp?)?.toDate(),
     );
   }
 
   Map<String, dynamic> toFirestore() {
-    return {
-      'challengeId': challengeId, 'userId': userId, 'userNickname': userNickname,
-      'workoutId': workoutId, 'distance': distance,
-      'workoutType': workoutType.toString().split('.').last,
-      'workoutDate': Timestamp.fromDate(workoutDate),
-      'submittedAt': Timestamp.fromDate(submittedAt), 'percentage': percentage,
+    final data = <String, dynamic>{
+      'challengeId': challengeId,
+      'userId': userId,
+      'userNickname': userNickname,
+      'workoutId': workoutId,
+      'contributionValue': contributionValue,
+      'submittedAt': Timestamp.fromDate(submittedAt),
+      'percentage': percentage,
     };
+    
+    // 피드 표시용 캐시 (선택적)
+    if (workoutType != null) {
+      data['workoutType'] = workoutType.toString().split('.').last;
+    }
+    if (workoutDate != null) {
+      data['workoutDate'] = Timestamp.fromDate(workoutDate!);
+    }
+    
+    return data;
   }
 
   factory ContributionModel.fromEntity(ContributionEntity entity) {
     return ContributionModel(
-      id: entity.id, challengeId: entity.challengeId, userId: entity.userId, userNickname: entity.userNickname,
-      workoutId: entity.workoutId, distance: entity.distance, workoutType: entity.workoutType,
-      workoutDate: entity.workoutDate, submittedAt: entity.submittedAt, percentage: entity.percentage,
+      id: entity.id,
+      challengeId: entity.challengeId,
+      userId: entity.userId,
+      userNickname: entity.userNickname,
+      workoutId: entity.workoutId,
+      contributionValue: entity.contributionValue,
+      submittedAt: entity.submittedAt,
+      percentage: entity.percentage,
+      workoutType: entity.workoutType,
+      workoutDate: entity.workoutDate,
     );
   }
 

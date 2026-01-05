@@ -81,4 +81,10 @@ abstract class WorkoutRepository {
     required DateTime startDate,
     required DateTime endDate,
   });
+
+  /// 특정 workout ID로 조회 (다른 사용자의 workout도 조회 가능)
+  Future<Either<String, WorkoutEntity?>> getWorkoutById(String workoutId);
+
+  /// 여러 workout ID로 일괄 조회
+  Future<Either<String, List<WorkoutEntity>>> getWorkoutsByIds(List<String> workoutIds);
 }

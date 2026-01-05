@@ -683,4 +683,54 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       return Left('등록된 운동 ID 조회 실패: $e');
     }
   }
+
+  @override
+  Future<Either<String, WorkoutEntity?>> getWorkoutById(String workoutId) async {
+    try {
+      final model = await _firestoreDataSource.getWorkoutById(workoutId);
+      if (model == null) {
+        return const Right(null);
+      }
+
+      // 수정된 거리 적용
+      final correctedDistances = await _loadCorrectedDistances();
+      final correctedDistance = correctedDistances[workoutId];
+      
+      var entity = model.toEntity();
+      if (correctedDistance != null) {
+        entity = entity.copyWith(correctedDistance: correctedDistance);
+      }
+
+      return Right(entity);
+    } catch (e) {
+      AppLogger.error('WorkoutRepo', 'getWorkoutById 실패', e);
+      return Left('운동 조회 실패: $e');
+    }
+  }
+
+  @override
+  Future<Either<String, List<WorkoutEntity>>> getWorkoutsByIds(
+    List<String> workoutIds,
+  ) async {
+    try {
+      final models = await _firestoreDataSource.getWorkoutsByIds(workoutIds);
+      
+      // 수정된 거리 적용
+      final correctedDistances = await _loadCorrectedDistances();
+      final entities = models.map((model) {
+        var entity = model.toEntity();
+        final correctedDistance = correctedDistances[entity.id];
+        if (correctedDistance != null) {
+          entity = entity.copyWith(correctedDistance: correctedDistance);
+        }
+        return entity;
+      }).toList();
+
+      AppLogger.info('WorkoutRepo', 'getWorkoutsByIds: ${entities.length}개 조회');
+      return Right(entities);
+    } catch (e) {
+      AppLogger.error('WorkoutRepo', 'getWorkoutsByIds 실패', e);
+      return Left('운동 일괄 조회 실패: $e');
+    }
+  }
 }

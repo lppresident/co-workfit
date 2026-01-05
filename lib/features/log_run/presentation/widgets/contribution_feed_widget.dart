@@ -105,7 +105,7 @@ class _ContributionItem extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('기여 기록 삭제'),
-        content: Text('${contribution.distance.toStringAsFixed(1)}km 기록을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.'),
+        content: Text('${contribution.contributionValue.toStringAsFixed(1)}kg 기록을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -148,12 +148,12 @@ class _ContributionItem extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: _getWorkoutColor(contribution.workoutType).withValues(alpha: 0.1),
+                  color: _getWorkoutColor(contribution.workoutType ?? WorkoutType.other).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  _getWorkoutIcon(contribution.workoutType),
-                  color: _getWorkoutColor(contribution.workoutType),
+                  _getWorkoutIcon(contribution.workoutType ?? WorkoutType.other),
+                  color: _getWorkoutColor(contribution.workoutType ?? WorkoutType.other),
                   size: 24,
                 ),
               ),
@@ -174,7 +174,7 @@ class _ContributionItem extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${contribution.distance.toStringAsFixed(1)} km',
+                          '${contribution.contributionValue.toStringAsFixed(1)} kg',
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,
@@ -192,7 +192,9 @@ class _ContributionItem extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _formatDate(contribution.workoutDate),
+                          contribution.workoutDate != null 
+                              ? _formatDate(contribution.workoutDate!)
+                              : '-',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Colors.grey[600],
                               ),
