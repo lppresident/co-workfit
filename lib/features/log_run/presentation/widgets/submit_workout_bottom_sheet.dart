@@ -40,7 +40,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
   @override
   void initState() {
     super.initState();
-    // 최근 30일 운동 기록 로드 (Firestore + Health 병합 데이터)
+    // 최근 30일 등록된 운동 기록만 로드 (Firestore 데이터만)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
     });

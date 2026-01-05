@@ -8,6 +8,7 @@ import 'package:co_workfit/features/workout/domain/usecases/update_workout_dista
 import 'package:co_workfit/features/workout/domain/usecases/reset_workout_distance.dart';
 import 'package:co_workfit/features/workout/domain/usecases/sync_workouts_to_firestore.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_merged_workouts.dart';
+import 'package:co_workfit/features/workout/domain/usecases/get_workouts_from_firestore.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 /// 운동 BLoC
@@ -20,6 +21,7 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
   final ResetWorkoutDistance resetWorkoutDistance;
   final SyncWorkoutsToFirestore syncWorkoutsToFirestore;
   final GetMergedWorkouts getMergedWorkouts;
+  final GetWorkoutsFromFirestore getWorkoutsFromFirestore;
 
   WorkoutBloc({
     required this.requestHealthPermission,
@@ -30,6 +32,7 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     required this.resetWorkoutDistance,
     required this.syncWorkoutsToFirestore,
     required this.getMergedWorkouts,
+    required this.getWorkoutsFromFirestore,
   }) : super(const WorkoutInitial()) {
     on<RequestHealthPermissionEvent>(_onRequestHealthPermission);
     on<FetchTodayWorkoutsEvent>(_onFetchTodayWorkouts);
@@ -385,8 +388,9 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     final now = DateTime.now();
     final startDate = now.subtract(Duration(days: event.days));
 
-    final result = await getMergedWorkouts(
-      GetMergedWorkoutsParams(startDate: startDate, endDate: now),
+    // Firestore에 등록된 데이터만 조회 (Health 데이터는 포함하지 않음)
+    final result = await getWorkoutsFromFirestore(
+      GetWorkoutsFromFirestoreParams(startDate: startDate, endDate: now),
     );
 
     result.fold(
@@ -396,10 +400,10 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
       },
       (workouts) {
         if (workouts.isEmpty) {
-          AppLogger.info('WorkoutBloc', '운동 데이터 없음');
+          AppLogger.info('WorkoutBloc', '등록된 운동 데이터 없음');
           emit(const WorkoutEmpty());
         } else {
-          AppLogger.info('WorkoutBloc', '병합된 운동 데이터 로드 완료: ${workouts.length}개');
+          AppLogger.info('WorkoutBloc', 'Firestore 운동 데이터 로드 완료: ${workouts.length}개');
           emit(WorkoutLoaded.fromWorkouts(workouts));
         }
       },

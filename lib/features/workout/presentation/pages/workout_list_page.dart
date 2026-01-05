@@ -41,7 +41,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   @override
   void initState() {
     super.initState();
-    // 최근 30일 데이터 로드 (Firestore + Health 병합 데이터)
+    // Firestore에 등록된 데이터만 로드 (로컬 Health 데이터는 등록 버튼 클릭 시에만)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
     });
@@ -119,17 +119,19 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
         title: const Text('전체 운동 기록'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.cloud_upload),
-            onPressed: _showSyncConfirmation,
-            tooltip: '운동 등록',
-          ),
-          IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterSheet,
             tooltip: '필터 및 정렬',
           ),
         ],
       ),
+      floatingActionButton: _allWorkouts.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: _showSyncConfirmation,
+              icon: const Icon(Icons.cloud_upload),
+              label: const Text('운동 등록'),
+            )
+          : null,
       body: BlocConsumer<WorkoutBloc, WorkoutState>(
         listener: (context, state) {
           // 운동 등록 상태 처리
@@ -257,29 +259,46 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
 
           if (state is WorkoutEmpty && _allWorkouts.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.fitness_center,
-                    size: 80,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '운동 기록이 없습니다',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.grey[600],
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.fitness_center,
+                      size: 80,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      '등록된 운동 기록이 없습니다',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '기기에 있는 운동 데이터를 등록하고\n챌린지에 참여해보세요!',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[500],
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 40),
+                    ElevatedButton.icon(
+                      onPressed: _showSyncConfirmation,
+                      icon: const Icon(Icons.cloud_upload, size: 24),
+                      label: const Text('운동 등록하기', style: TextStyle(fontSize: 16)),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '첫 운동을 시작해보세요!',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[500],
-                        ),
-                  ),
-                ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -494,7 +513,12 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
               '최근 30일간의 운동 데이터를 등록합니다.',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 12),
+            Text(
+              '기기의 Health 데이터 접근 권한이 필요합니다.',
+              style: TextStyle(fontSize: 13, color: Colors.orange, fontWeight: FontWeight.w500),
+            ),
+            SizedBox(height: 12),
             Text(
               '• 기기를 변경해도 데이터가 유지됩니다\n• 이미 등록된 데이터는 건너뜁니다\n• 챌린지 제출 시 등록된 데이터를 사용합니다',
               style: TextStyle(fontSize: 12, color: Colors.grey),
@@ -507,11 +531,17 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
             child: const Text('취소'),
           ),
           ElevatedButton.icon(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              context.read<WorkoutBloc>().add(
-                    const SyncWorkoutsToFirestoreEvent(days: 30),
-                  );
+              // 먼저 Health 권한 요청
+              context.read<WorkoutBloc>().add(const RequestHealthPermissionEvent());
+              // 권한 요청 후 동기화 (권한이 있어야 Health 데이터를 읽을 수 있음)
+              await Future.delayed(const Duration(milliseconds: 500));
+              if (context.mounted) {
+                context.read<WorkoutBloc>().add(
+                      const SyncWorkoutsToFirestoreEvent(days: 30),
+                    );
+              }
             },
             icon: const Icon(Icons.cloud_upload),
             label: const Text('등록'),

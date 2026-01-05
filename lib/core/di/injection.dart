@@ -21,6 +21,7 @@ import 'package:co_workfit/features/workout/domain/usecases/update_workout_dista
 import 'package:co_workfit/features/workout/domain/usecases/reset_workout_distance.dart';
 import 'package:co_workfit/features/workout/domain/usecases/sync_workouts_to_firestore.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_merged_workouts.dart';
+import 'package:co_workfit/features/workout/domain/usecases/get_workouts_from_firestore.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
 
 // Auth
@@ -145,6 +146,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => ResetWorkoutDistance(sl()));
   sl.registerLazySingleton(() => SyncWorkoutsToFirestore(sl()));
   sl.registerLazySingleton(() => GetMergedWorkouts(sl()));
+  sl.registerLazySingleton(() => GetWorkoutsFromFirestore(sl()));
 
   // ========== BLoC ==========
   sl.registerFactory(
@@ -157,6 +159,7 @@ Future<void> initializeDependencies() async {
       resetWorkoutDistance: sl(),
       syncWorkoutsToFirestore: sl(),
       getMergedWorkouts: sl(),
+      getWorkoutsFromFirestore: sl(),
     ),
   );
 
