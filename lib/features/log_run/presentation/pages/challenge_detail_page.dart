@@ -16,7 +16,7 @@ import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
 import 'package:co_workfit/features/craft/domain/usecases/get_equipped_items.dart';
-import 'package:co_workfit/features/social/presentation/pages/user_profile_page.dart';
+import 'package:co_workfit/features/social/presentation/pages/profile_page.dart';
 
 class ChallengeDetailPage extends BasePage {
   final String challengeId;
@@ -198,7 +198,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => UserProfilePage(
+        builder: (context) => ProfilePage(
           userId: userId,
           nickname: nickname,
         ),

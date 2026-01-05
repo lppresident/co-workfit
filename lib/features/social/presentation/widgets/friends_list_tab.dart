@@ -5,7 +5,7 @@ import 'package:co_workfit/features/social/presentation/bloc/social_state.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
-import 'package:co_workfit/features/social/presentation/pages/friend_detail_page.dart';
+import 'package:co_workfit/features/social/presentation/pages/profile_page.dart';
 import 'package:co_workfit/features/social/presentation/pages/received_requests_page.dart';
 import 'package:co_workfit/core/widgets/common_loading_widget.dart';
 import 'package:co_workfit/core/widgets/common_error_widget.dart';
@@ -138,8 +138,9 @@ class FriendsListTab extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => FriendDetailPage(
-                          friend: friend,
+                        builder: (context) => ProfilePage(
+                          userId: friend.friendId,
+                          nickname: friend.friendNickname ?? friend.friendName,
                         ),
                       ),
                     );
