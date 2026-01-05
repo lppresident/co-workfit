@@ -191,6 +191,118 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     );
   }
 
+  /// 참가자 목록 섹션 빌드
+  Widget _buildParticipantsSection(BuildContext context, dynamic challenge) {
+    final participants = challenge.participants as List<String>;
+    final participantNicknames = challenge.participantNicknames as Map<String, String>;
+    final createdBy = challenge.createdBy as String;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.people,
+                size: 20,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '참가자 (${participants.length}명)',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              if (challenge.maxParticipants != null) ...[
+                const SizedBox(width: 4),
+                Text(
+                  '/ ${challenge.maxParticipants}명',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: participants.map((userId) {
+              final nickname = participantNicknames[userId] ?? '알 수 없음';
+              final isCreator = userId == createdBy;
+              final stats = challenge.participantStats[userId];
+              final totalContribution = stats?.totalContributionKg ?? 0.0;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isCreator
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isCreator
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).dividerColor,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isCreator) ...[
+                      Icon(
+                        Icons.star,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    Text(
+                      nickname,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: isCreator ? FontWeight.bold : FontWeight.normal,
+                            color: isCreator
+                                ? Theme.of(context).colorScheme.onPrimaryContainer
+                                : null,
+                          ),
+                    ),
+                    if (totalContribution > 0) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${totalContribution.toStringAsFixed(1)}kg',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showDeleteConfirmation() {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) return;
@@ -402,6 +514,14 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                   contributions: contributions,
                   challengeId: widget.challengeId,
                 ),
+              ),
+              // 참가자 목록
+              SliverToBoxAdapter(
+                child: _buildParticipantsSection(context, challenge),
+              ),
+              // 하단 여백 (FAB와 겹치지 않도록)
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 80),
               ),
             ],
           );

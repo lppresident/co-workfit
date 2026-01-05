@@ -26,6 +26,9 @@ class ChallengeEntity extends Equatable {
   /// 참가자 ID 목록 (userId 배열)
   final List<String> participants;
 
+  /// 참가자별 닉네임 (userId -> nickname)
+  final Map<String, String> participantNicknames;
+
   /// 참가자별 기여 통계 (userId -> ParticipantStats)
   final Map<String, ParticipantStatsEntity> participantStats;
 
@@ -66,6 +69,7 @@ class ChallengeEntity extends Equatable {
     required this.currentWeight,
     required this.remainingWeight,
     required this.participants,
+    this.participantNicknames = const {},
     this.participantStats = const {},
     required this.status,
     required this.createdAt,
@@ -136,6 +140,11 @@ class ChallengeEntity extends Equatable {
     return participantStats[userId];
   }
 
+  /// 참가자 닉네임 가져오기
+  String getParticipantNickname(String userId) {
+    return participantNicknames[userId] ?? '알 수 없음';
+  }
+
   @override
   List<Object?> get props => [
         id,
@@ -144,6 +153,7 @@ class ChallengeEntity extends Equatable {
         currentWeight,
         remainingWeight,
         participants,
+        participantNicknames,
         participantStats,
         status,
         createdAt,

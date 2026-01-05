@@ -12,6 +12,7 @@ class ChallengeModel extends ChallengeEntity {
     required super.currentWeight,
     required super.remainingWeight,
     required super.participants,
+    super.participantNicknames,
     super.participantStats,
     required super.status,
     required super.createdAt,
@@ -41,6 +42,15 @@ class ChallengeModel extends ChallengeEntity {
       );
     }
 
+    // participantNicknames 파싱
+    Map<String, String> participantNicknames = {};
+    if (data['participantNicknames'] != null) {
+      final nicknamesData = data['participantNicknames'] as Map<String, dynamic>;
+      participantNicknames = nicknamesData.map(
+        (key, value) => MapEntry(key, value as String? ?? ''),
+      );
+    }
+
     return ChallengeModel(
       id: doc.id,
       createdBy: data['createdBy'] as String? ?? '',
@@ -48,6 +58,7 @@ class ChallengeModel extends ChallengeEntity {
       currentWeight: (data['currentWeight'] as num?)?.toDouble() ?? 0.0,
       remainingWeight: (data['remainingWeight'] as num?)?.toDouble() ?? 0.0,
       participants: List<String>.from(data['participants'] as List? ?? []),
+      participantNicknames: participantNicknames,
       participantStats: participantStats,
       status: ChallengeStatusExtension.fromFirestore(data['status'] as String? ?? 'active'),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -80,6 +91,7 @@ class ChallengeModel extends ChallengeEntity {
       'currentWeight': currentWeight,
       'remainingWeight': remainingWeight,
       'participants': participants,
+      'participantNicknames': participantNicknames,
       'participantStats': participantStats.map(
         (key, value) => MapEntry(key, ParticipantStatsModel.fromEntity(value).toJson()),
       ),
@@ -105,6 +117,7 @@ class ChallengeModel extends ChallengeEntity {
       currentWeight: entity.currentWeight,
       remainingWeight: entity.remainingWeight,
       participants: entity.participants,
+      participantNicknames: entity.participantNicknames,
       participantStats: entity.participantStats,
       status: entity.status,
       createdAt: entity.createdAt,
@@ -127,6 +140,7 @@ class ChallengeModel extends ChallengeEntity {
     double? currentWeight,
     double? remainingWeight,
     List<String>? participants,
+    Map<String, String>? participantNicknames,
     Map<String, ParticipantStatsEntity>? participantStats,
     ChallengeStatus? status,
     DateTime? createdAt,
@@ -146,6 +160,7 @@ class ChallengeModel extends ChallengeEntity {
       currentWeight: currentWeight ?? this.currentWeight,
       remainingWeight: remainingWeight ?? this.remainingWeight,
       participants: participants ?? this.participants,
+      participantNicknames: participantNicknames ?? this.participantNicknames,
       participantStats: participantStats ?? this.participantStats,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
