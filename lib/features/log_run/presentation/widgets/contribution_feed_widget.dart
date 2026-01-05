@@ -137,7 +137,8 @@ class _ContributionItem extends StatelessWidget {
               builder: (context) => WorkoutDetailPage(
                 workout: workout,
                 isOwner: isOwner,
-                isFromChallenge: true, // 챌린지에서 진입 - 삭제 버튼 숨김
+                challengeId: challengeId,
+                contributionId: contribution.id,
               ),
             ),
           );
