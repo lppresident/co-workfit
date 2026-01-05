@@ -306,7 +306,8 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                     WorkoutIntensityExtension.fromHeartRate(workout.averageHeartRate);
                 valueDisplay = '${strengthScore.toStringAsFixed(1)}점 (${intensity.displayName})';
               } else {
-                valueDisplay = '${(workout.distance ?? 0.0).toStringAsFixed(2)} km';
+                // effectiveDistance 사용 (correctedDistance가 있으면 우선)
+                valueDisplay = '${(workout.effectiveDistance ?? 0.0).toStringAsFixed(2)} km';
               }
 
               return ListTile(
@@ -384,7 +385,8 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                             );
                             _distanceController.text = strengthScore.toStringAsFixed(2);
                           } else {
-                            _distanceController.text = (workout.distance ?? 0.0).toStringAsFixed(2);
+                            // effectiveDistance 사용 (correctedDistance가 있으면 우선)
+                            _distanceController.text = (workout.effectiveDistance ?? 0.0).toStringAsFixed(2);
                           }
                         });
                       },

@@ -47,8 +47,9 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
 
   /// 페이스 계산 (분'초"/km 형식)
   /// 초 단위로 정확하게 계산
+  /// correctedDistance가 있으면 우선 사용
   String? get _pace {
-    final distance = workout.distance;
+    final distance = workout.effectiveDistance;
     if (distance == null || distance <= 0) return null;
     if (workout.durationSeconds <= 0) return null;
 
@@ -313,13 +314,13 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
                 '${workout.calories} kcal',
               ),
             ],
-            if (workout.distance != null) ...[
+            if (workout.effectiveDistance != null) ...[
               const Divider(height: 24),
               _buildInfoRow(
                 context,
                 Icons.straighten,
                 '거리',
-                '${workout.distance!.toStringAsFixed(2)} km',
+                '${workout.effectiveDistance!.toStringAsFixed(2)} km${workout.hasDistanceCorrection ? ' (수정됨)' : ''}',
               ),
             ],
             // 페이스 표시 (러닝, 걷기, 등산)

@@ -22,8 +22,9 @@ class WorkoutListItem extends StatelessWidget {
 
   /// 페이스 계산 (분'초"/km 형식)
   /// 초 단위로 정확하게 계산, 거리가 0이거나 없으면 null 반환
+  /// correctedDistance가 있으면 우선 사용
   String? get _pace {
-    final distance = workout.distance;
+    final distance = workout.effectiveDistance;
     if (distance == null || distance <= 0) return null;
     if (workout.durationSeconds <= 0) return null;
 
@@ -107,11 +108,11 @@ class WorkoutListItem extends StatelessWidget {
                       '${workout.calories}',
                       '칼로리',
                     ),
-                  if (workout.distance != null)
+                  if (workout.effectiveDistance != null)
                     _buildStatItem(
                       context,
                       Icons.straighten_outlined,
-                      '${workout.distance!.toStringAsFixed(1)}km',
+                      '${workout.effectiveDistance!.toStringAsFixed(1)}km',
                       '거리',
                     ),
                   // 페이스 표시 (러닝, 걷기, 등산에서만)
