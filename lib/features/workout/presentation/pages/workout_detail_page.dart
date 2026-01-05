@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
@@ -48,6 +49,12 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
   bool _isDeleting = false;
   bool _isCheckingChallenges = false;
   bool _isCancellingContribution = false;
+  bool _isCheckingForEdit = false;
+  
+  /// 현재 표시 중인 운동 (수정 시 업데이트됨)
+  late WorkoutEntity _currentWorkout;
+  
+  final TextEditingController _distanceController = TextEditingController();
 
   /// 삭제 버튼 표시 여부
   /// - 본인 운동이고
@@ -58,15 +65,34 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
   /// - 본인 운동이고
   /// - 챌린지에서 진입한 경우에만 표시
   bool get _showCancelContributionButton => widget.isOwner && widget.isFromChallenge;
+  
+  /// 수정 버튼 표시 여부
+  /// - 본인 운동이고
+  /// - 챌린지에서 진입하지 않은 경우
+  /// - 거리 데이터가 있는 운동 (러닝, 걷기, 등산, 사이클링)
+  bool get _showEditButton {
+    if (!widget.isOwner || widget.isFromChallenge) return false;
+    return _currentWorkout.type == WorkoutType.running ||
+        _currentWorkout.type == WorkoutType.walking ||
+        _currentWorkout.type == WorkoutType.hiking ||
+        _currentWorkout.type == WorkoutType.cycling;
+  }
 
   @override
   void initState() {
     super.initState();
     _workoutRepository = GetIt.I<WorkoutRepository>();
     _challengeRepository = GetIt.I<ChallengeRepository>();
+    _currentWorkout = widget.workout;
+  }
+  
+  @override
+  void dispose() {
+    _distanceController.dispose();
+    super.dispose();
   }
 
-  WorkoutEntity get workout => widget.workout;
+  WorkoutEntity get workout => _currentWorkout;
 
   /// 페이스 표시 대상 운동 타입인지 확인
   bool get _shouldShowPace {
@@ -110,6 +136,18 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
             },
             tooltip: '공유',
           ),
+          if (_showEditButton)
+            IconButton(
+              icon: _isCheckingForEdit
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.edit_outlined),
+              onPressed: _isCheckingForEdit ? null : _onEditPressed,
+              tooltip: '거리 수정',
+            ),
           if (_showDeleteButton)
             IconButton(
               icon: (_isDeleting || _isCheckingChallenges)
@@ -152,6 +190,300 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
           ],
         ),
       ),
+    );
+  }
+
+  /// 수정 버튼 클릭 시 처리
+  /// 챌린지 제출 여부 확인 후 수정 다이얼로그 표시
+  Future<void> _onEditPressed() async {
+    setState(() {
+      _isCheckingForEdit = true;
+    });
+
+    try {
+      // 이 운동이 제출된 챌린지가 있는지 확인
+      final result = await _challengeRepository.getChallengesByWorkoutId(workout.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isCheckingForEdit = false;
+      });
+
+      result.fold(
+        (failure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('챌린지 확인 실패: ${failure.message}'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        },
+        (challengeIds) {
+          if (challengeIds.isNotEmpty) {
+            // 챌린지에 제출된 운동 - 수정 불가 안내
+            _showCannotEditDialog(challengeIds.length);
+          } else {
+            // 챌린지에 제출되지 않은 운동 - 수정 가능
+            _showEditDistanceDialog();
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isCheckingForEdit = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 챌린지에 제출된 운동은 수정할 수 없음을 안내
+  void _showCannotEditDialog(int challengeCount) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.block, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('수정 불가'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_getWorkoutTypeName(workout.type)} - ${workout.durationMinutes}분',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '이 운동은 $challengeCount개의 챌린지에 제출되어 있습니다.\n\n'
+                      '수정하려면 먼저 해당 챌린지에서 이 운동 기록을 제거해주세요.',
+                      style: const TextStyle(fontSize: 13, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 거리 수정 다이얼로그 표시
+  void _showEditDistanceDialog() {
+    final currentDistance = workout.effectiveDistance ?? 0.0;
+    _distanceController.text = currentDistance.toStringAsFixed(2);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.edit, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('거리 수정'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_getWorkoutTypeName(workout.type)} - ${workout.durationMinutes}분',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              DateFormat('yyyy년 MM월 dd일 HH:mm').format(workout.startTime),
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _distanceController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+              ],
+              decoration: InputDecoration(
+                labelText: '거리 (km)',
+                hintText: '예: 5.63',
+                suffixText: 'km',
+                border: const OutlineInputBorder(),
+                helperText: workout.distance != null
+                    ? '원본 거리: ${workout.distance!.toStringAsFixed(2)} km'
+                    : null,
+              ),
+              autofocus: true,
+            ),
+            if (workout.hasDistanceCorrection) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.info_outline, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    '현재 수정된 거리가 적용되어 있습니다.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          if (workout.hasDistanceCorrection)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _resetDistance();
+              },
+              child: const Text('원본으로 복원'),
+            ),
+          ElevatedButton(
+            onPressed: () {
+              final input = _distanceController.text.trim();
+              if (input.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('거리를 입력해주세요.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              final distance = double.tryParse(input);
+              if (distance == null || distance <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('올바른 거리를 입력해주세요. (0보다 큰 숫자)'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              if (distance > 100) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('거리가 너무 큽니다. (100km 이하로 입력해주세요)'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              Navigator.pop(dialogContext);
+              _updateDistance(distance);
+            },
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 거리 업데이트 실행
+  Future<void> _updateDistance(double newDistance) async {
+    final result = await _workoutRepository.updateWorkoutDistance(
+      workoutId: workout.id,
+      correctedDistance: newDistance,
+    );
+
+    if (!mounted) return;
+
+    result.fold(
+      (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('수정 실패: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      },
+      (_) {
+        // 로컬 상태 업데이트
+        setState(() {
+          _currentWorkout = _currentWorkout.copyWith(correctedDistance: newDistance);
+        });
+        
+        // 운동 목록 새로고침
+        context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('거리가 수정되었습니다'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      },
+    );
+  }
+
+  /// 거리 원본으로 복원
+  Future<void> _resetDistance() async {
+    final result = await _workoutRepository.resetWorkoutDistance(workoutId: workout.id);
+
+    if (!mounted) return;
+
+    result.fold(
+      (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('복원 실패: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      },
+      (_) {
+        // 로컬 상태 업데이트 - correctedDistance를 null로
+        setState(() {
+          _currentWorkout = _currentWorkout.copyWith(clearCorrectedDistance: true);
+        });
+        
+        // 운동 목록 새로고침
+        context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('원본 거리로 복원되었습니다'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      },
     );
   }
 
