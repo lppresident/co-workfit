@@ -14,23 +14,20 @@ import 'package:intl/intl.dart';
 /// 등록 이후에는 읽기 전용으로 표시됩니다.
 /// 본인의 운동만 삭제 가능합니다.
 /// 
-/// 챌린지에서 진입한 경우 [challengeId]와 [contributionId]를 전달하면
-/// 운동 삭제 시 해당 챌린지의 contribution도 함께 삭제됩니다.
+/// 챌린지에서 진입한 경우 삭제 버튼이 표시되지 않습니다.
+/// (혼란 방지: 챌린지에서 contribution 제거는 챌린지 상세에서 처리)
 class WorkoutDetailPage extends StatefulWidget {
   final WorkoutEntity workout;
   final bool isOwner;
   
-  /// 챌린지에서 진입한 경우 챌린지 ID (null이면 운동탭에서 진입)
-  final String? challengeId;
-  /// 챌린지에서 진입한 경우 contribution ID
-  final String? contributionId;
+  /// 챌린지에서 진입한 경우 true (삭제 버튼 숨김)
+  final bool isFromChallenge;
 
   const WorkoutDetailPage({
     super.key,
     required this.workout,
     this.isOwner = false,
-    this.challengeId,
-    this.contributionId,
+    this.isFromChallenge = false,
   });
 
   @override
@@ -42,6 +39,11 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
   late final ChallengeRepository _challengeRepository;
   bool _isDeleting = false;
   bool _isCheckingChallenges = false;
+
+  /// 삭제 버튼 표시 여부
+  /// - 본인 운동이고
+  /// - 챌린지에서 진입하지 않은 경우에만 표시
+  bool get _showDeleteButton => widget.isOwner && !widget.isFromChallenge;
 
   @override
   void initState() {
@@ -94,7 +96,7 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
             },
             tooltip: '공유',
           ),
-          if (widget.isOwner)
+          if (_showDeleteButton)
             IconButton(
               icon: (_isDeleting || _isCheckingChallenges)
                   ? const SizedBox(
@@ -128,16 +130,9 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
   }
 
   /// 삭제 버튼 클릭 시 처리
-  /// - 챌린지에서 진입한 경우: 해당 챌린지의 contribution과 함께 삭제
-  /// - 운동탭에서 진입한 경우: 다른 챌린지에 제출되어 있으면 삭제 불가
+  /// 운동탭에서 진입한 경우에만 호출됨 (챌린지에서는 삭제 버튼 숨김)
   Future<void> _onDeletePressed() async {
-    // 챌린지에서 진입한 경우 - 해당 챌린지 contribution과 함께 삭제
-    if (widget.challengeId != null && widget.contributionId != null) {
-      _showDeleteWithContributionDialog();
-      return;
-    }
-
-    // 운동탭에서 진입한 경우 - 다른 챌린지 제출 여부 확인
+    // 다른 챌린지 제출 여부 확인
     setState(() {
       _isCheckingChallenges = true;
     });
@@ -180,178 +175,6 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('오류가 발생했습니다: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  /// 챌린지에서 진입한 경우 - contribution과 함께 삭제 확인 다이얼로그
-  void _showDeleteWithContributionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('운동 기록 삭제'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${_getWorkoutTypeName(workout.type)} - ${workout.durationMinutes}분',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              DateFormat('yyyy년 MM월 dd일 HH:mm').format(workout.startTime),
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.red, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '이 챌린지의 기여 기록과 운동 기록이 모두 삭제됩니다.\n삭제된 기록은 복구할 수 없습니다.',
-                      style: TextStyle(fontSize: 12, color: Colors.red),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteWorkoutWithContribution();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 챌린지 contribution과 운동 기록 함께 삭제
-  Future<void> _deleteWorkoutWithContribution() async {
-    setState(() {
-      _isDeleting = true;
-    });
-
-    try {
-      // 1. 먼저 챌린지에서 contribution 삭제
-      final contributionResult = await _challengeRepository.deleteContribution(
-        challengeId: widget.challengeId!,
-        contributionId: widget.contributionId!,
-        userId: workout.userId,
-      );
-
-      final contributionFailed = contributionResult.fold(
-        (failure) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('챌린지 기여 삭제 실패: ${failure.message}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return true;
-        },
-        (_) => false,
-      );
-
-      if (contributionFailed) {
-        setState(() {
-          _isDeleting = false;
-        });
-        return;
-      }
-
-      // 2. 다른 챌린지에도 제출되어 있는지 확인
-      final otherChallengesResult = await _challengeRepository.getChallengesByWorkoutId(workout.id);
-
-      final hasOtherChallenges = otherChallengesResult.fold(
-        (failure) => false, // 확인 실패 시 안전하게 삭제 진행
-        (challengeIds) => challengeIds.isNotEmpty,
-      );
-
-      if (hasOtherChallenges) {
-        // 다른 챌린지에도 제출되어 있으면 운동은 유지
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('챌린지 기여가 삭제되었습니다. (다른 챌린지에도 제출되어 있어 운동 기록은 유지됩니다)'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context, true);
-        }
-        return;
-      }
-
-      // 3. 다른 챌린지에 제출되어 있지 않으면 운동도 삭제
-      final workoutResult = await _workoutRepository.deleteWorkout(workout.id);
-
-      workoutResult.fold(
-        (error) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('운동 삭제 실패: $error (챌린지 기여는 삭제됨)'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-        },
-        (success) {
-          if (mounted) {
-            context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('운동 기록이 삭제되었습니다'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        },
-      );
-
-      if (mounted) {
-        Navigator.pop(context, true);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isDeleting = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('삭제 중 오류가 발생했습니다: $e'),
             backgroundColor: Colors.red,
           ),
         );
