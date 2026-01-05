@@ -26,6 +26,13 @@ class FirestoreSocialDataSource {
   /// Firebase 초기화 여부 확인
   bool get isInitialized => _initialized;
 
+  /// 친구 관계의 복합 Document ID 생성
+  /// 두 사용자 ID를 정렬하여 항상 같은 ID 생성
+  String _getFriendshipDocId(String userId1, String userId2) {
+    final ids = [userId1, userId2]..sort();
+    return '${ids[0]}_${ids[1]}';
+  }
+
   // ========== 친구 요청 관련 ==========
 
   /// 친구 요청 보내기
@@ -54,17 +61,16 @@ class FirestoreSocialDataSource {
             .where('receiverId', isEqualTo: senderId)
             .where('status', isEqualTo: FriendRequestStatus.pending.name)
             .get(),
-        // 3. 이미 친구인지 확인
+        // 3. 이미 친구인지 확인 (Composite ID 사용)
         _firestore
             .collection(FirebaseConfig.friendsCollection)
-            .where('userId', isEqualTo: senderId)
-            .where('friendId', isEqualTo: receiverId)
+            .doc(_getFriendshipDocId(senderId, receiverId))
             .get(),
       ]);
 
-      final mySentRequest = results[0];
-      final theirSentRequest = results[1];
-      final friendship = results[2];
+      final mySentRequest = results[0] as QuerySnapshot;
+      final theirSentRequest = results[1] as QuerySnapshot;
+      final friendship = results[2] as DocumentSnapshot;
 
       if (mySentRequest.docs.isNotEmpty) {
         return const Left('이미 친구 요청을 보냈습니다.');
@@ -80,20 +86,16 @@ class FirestoreSocialDataSource {
         // 친구 요청 삭제
         batch.delete(requestDoc.reference);
 
-        // 양방향 친구 관계 생성
-        final senderFriendship =
-            _firestore.collection(FirebaseConfig.friendsCollection).doc();
-        batch.set(senderFriendship, {
-          'userId': receiverId, // 원래 요청을 보낸 사람
-          'friendId': senderId, // 내가 요청을 보내려던 사람
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        // 단일 친구 관계 문서 생성 (Composite ID 사용)
+        final friendshipDocId = _getFriendshipDocId(senderId, receiverId);
+        final friendshipRef = _firestore
+            .collection(FirebaseConfig.friendsCollection)
+            .doc(friendshipDocId);
 
-        final receiverFriendship =
-            _firestore.collection(FirebaseConfig.friendsCollection).doc();
-        batch.set(receiverFriendship, {
-          'userId': senderId,
-          'friendId': receiverId,
+        batch.set(friendshipRef, {
+          'user1': senderId.compareTo(receiverId) < 0 ? senderId : receiverId,
+          'user2': senderId.compareTo(receiverId) < 0 ? receiverId : senderId,
+          'users': [senderId, receiverId],
           'createdAt': FieldValue.serverTimestamp(),
         });
 
@@ -102,7 +104,7 @@ class FirestoreSocialDataSource {
         return const Right(null); // 자동 수락 완료
       }
 
-      if (friendship.docs.isNotEmpty) {
+      if (friendship.exists) {
         return const Left('이미 친구입니다.');
       }
 
@@ -198,29 +200,26 @@ class FirestoreSocialDataSource {
 
       final request = FriendRequestModel.fromFirestore(requestDoc);
 
-      // 양방향 친구 관계 생성 + 친구 요청 삭제를 batch로 처리
+      // 단일 친구 관계 문서 생성 + 친구 요청 삭제를 batch로 처리
       final batch = _firestore.batch();
 
       // 친구 요청 삭제 (accepted 상태로 유지할 필요 없음)
       batch.delete(requestDoc.reference);
 
-      // 보낸 사람 -> 받은 사람
-      final senderFriendship =
-          _firestore.collection(FirebaseConfig.friendsCollection).doc();
+      // 단일 친구 관계 문서 생성 (Composite ID 사용)
+      final friendshipDocId = _getFriendshipDocId(request.senderId, request.receiverId);
+      final friendshipRef = _firestore
+          .collection(FirebaseConfig.friendsCollection)
+          .doc(friendshipDocId);
 
-      batch.set(senderFriendship, {
-        'userId': request.senderId,
-        'friendId': request.receiverId,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      // 받은 사람 -> 보낸 사람
-      final receiverFriendship =
-          _firestore.collection(FirebaseConfig.friendsCollection).doc();
-
-      batch.set(receiverFriendship, {
-        'userId': request.receiverId,
-        'friendId': request.senderId,
+      batch.set(friendshipRef, {
+        'user1': request.senderId.compareTo(request.receiverId) < 0
+            ? request.senderId
+            : request.receiverId,
+        'user2': request.senderId.compareTo(request.receiverId) < 0
+            ? request.receiverId
+            : request.senderId,
+        'users': [request.senderId, request.receiverId],
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -285,10 +284,10 @@ class FirestoreSocialDataSource {
 
       // 두 쿼리를 병렬로 실행
       final results = await Future.wait([
-        // 1. 친구 목록 조회
+        // 1. 친구 목록 조회 (users 배열 필드 사용)
         _firestore
             .collection(FirebaseConfig.friendsCollection)
-            .where('userId', isEqualTo: userId)
+            .where('users', arrayContains: userId)
             .orderBy('createdAt', descending: true)
             .get(),
         // 2. 받은 친구 요청 조회 (pending만)
@@ -307,9 +306,17 @@ class FirestoreSocialDataSource {
       AppLogger.info('FirestoreSocialDataSource', 'requests 개수: ${requestsSnapshot.docs.length}');
 
       // 친구들과 요청자들의 userId 수집
-      final friendIds = friendsSnapshot.docs
-          .map((doc) => doc.data()['friendId'] as String)
-          .toList();
+      final friendIds = <String>[];
+      for (final doc in friendsSnapshot.docs) {
+        final data = doc.data();
+        final users = data['users'] as List<dynamic>;
+        // users 배열에서 현재 사용자가 아닌 다른 사용자 ID 찾기
+        final friendId = users.firstWhere((id) => id != userId, orElse: () => '');
+        if (friendId.isNotEmpty) {
+          friendIds.add(friendId as String);
+        }
+      }
+
       final senderIds = requestsSnapshot.docs
           .map((doc) => doc.data()['senderId'] as String)
           .toList();
@@ -334,22 +341,27 @@ class FirestoreSocialDataSource {
       }
 
       // Friends 파싱 (사용자 정보 포함)
-      final friends = friendsSnapshot.docs.map((doc) {
+      final friends = <FriendshipEntity>[];
+      for (final doc in friendsSnapshot.docs) {
         final data = doc.data();
-        final friendId = data['friendId'] as String;
+        final users = data['users'] as List<dynamic>;
+        // users 배열에서 현재 사용자가 아닌 다른 사용자 ID 찾기
+        final friendId = users.firstWhere((id) => id != userId, orElse: () => '') as String;
+        if (friendId.isEmpty) continue;
+
         final friendData = usersMap[friendId];
 
-        return FriendshipEntity(
+        friends.add(FriendshipEntity(
           id: doc.id,
-          userId: data['userId'] as String,
+          userId: userId,
           friendId: friendId,
           createdAt: (data['createdAt'] as Timestamp).toDate(),
           friendName: friendData?['displayName'] as String?,
           friendNickname: friendData?['nickname'] as String?,
           friendEmail: friendData?['email'] as String?,
           friendPhotoUrl: friendData?['photoUrl'] as String?,
-        );
-      }).toList();
+        ));
+      }
 
       // Requests 파싱 (보낸 사람 정보 포함)
       final requests = requestsSnapshot.docs.map((doc) {
@@ -380,7 +392,7 @@ class FirestoreSocialDataSource {
     try {
       final snapshot = await _firestore
           .collection(FirebaseConfig.friendsCollection)
-          .where('userId', isEqualTo: userId)
+          .where('users', arrayContains: userId)
           .orderBy('createdAt', descending: true)
           .get();
 
@@ -389,9 +401,16 @@ class FirestoreSocialDataSource {
       }
 
       // 친구들의 userId 수집
-      final friendIds = snapshot.docs
-          .map((doc) => doc.data()['friendId'] as String)
-          .toList();
+      final friendIds = <String>[];
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final users = data['users'] as List<dynamic>;
+        // users 배열에서 현재 사용자가 아닌 다른 사용자 ID 찾기
+        final friendId = users.firstWhere((id) => id != userId, orElse: () => '');
+        if (friendId.isNotEmpty) {
+          friendIds.add(friendId as String);
+        }
+      }
 
       // 사용자 정보 조회 (10개씩 배치 - Firestore 제한)
       final Map<String, Map<String, dynamic>> usersMap = {};
@@ -409,22 +428,27 @@ class FirestoreSocialDataSource {
         }
       }
 
-      final friends = snapshot.docs.map((doc) {
+      final friends = <FriendshipEntity>[];
+      for (final doc in snapshot.docs) {
         final data = doc.data();
-        final friendId = data['friendId'] as String;
+        final users = data['users'] as List<dynamic>;
+        // users 배열에서 현재 사용자가 아닌 다른 사용자 ID 찾기
+        final friendId = users.firstWhere((id) => id != userId, orElse: () => '') as String;
+        if (friendId.isEmpty) continue;
+
         final friendData = usersMap[friendId];
 
-        return FriendshipEntity(
+        friends.add(FriendshipEntity(
           id: doc.id,
-          userId: data['userId'] as String,
+          userId: userId,
           friendId: friendId,
           createdAt: (data['createdAt'] as Timestamp).toDate(),
           friendName: friendData?['displayName'] as String?,
           friendNickname: friendData?['nickname'] as String?,
           friendEmail: friendData?['email'] as String?,
           friendPhotoUrl: friendData?['photoUrl'] as String?,
-        );
-      }).toList();
+        ));
+      }
 
       return Right(friends);
     } catch (e) {
@@ -442,32 +466,13 @@ class FirestoreSocialDataSource {
     }
 
     try {
-      // 양방향 친구 관계 삭제
-      final batch = _firestore.batch();
+      // Composite ID로 단일 문서 삭제
+      final friendshipDocId = _getFriendshipDocId(userId, friendId);
 
-      // userId -> friendId 관계 삭제
-      final friendship1 = await _firestore
+      await _firestore
           .collection(FirebaseConfig.friendsCollection)
-          .where('userId', isEqualTo: userId)
-          .where('friendId', isEqualTo: friendId)
-          .get();
-
-      for (final doc in friendship1.docs) {
-        batch.delete(doc.reference);
-      }
-
-      // friendId -> userId 관계 삭제
-      final friendship2 = await _firestore
-          .collection(FirebaseConfig.friendsCollection)
-          .where('userId', isEqualTo: friendId)
-          .where('friendId', isEqualTo: userId)
-          .get();
-
-      for (final doc in friendship2.docs) {
-        batch.delete(doc.reference);
-      }
-
-      await batch.commit();
+          .doc(friendshipDocId)
+          .delete();
 
       return const Right(null);
     } catch (e) {
