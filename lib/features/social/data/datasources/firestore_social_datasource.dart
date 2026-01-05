@@ -38,24 +38,69 @@ class FirestoreSocialDataSource {
     }
 
     try {
-      // 이미 친구 요청이 있는지 확인
-      final existingRequest = await _firestore
-          .collection(FirebaseConfig.friendRequestsCollection)
-          .where('senderId', isEqualTo: senderId)
-          .where('receiverId', isEqualTo: receiverId)
-          .where('status', isEqualTo: FriendRequestStatus.pending.name)
-          .get();
+      // 병렬로 중복 체크 쿼리 실행
+      final results = await Future.wait([
+        // 1. 내가 보낸 요청이 있는지 확인
+        _firestore
+            .collection(FirebaseConfig.friendRequestsCollection)
+            .where('senderId', isEqualTo: senderId)
+            .where('receiverId', isEqualTo: receiverId)
+            .where('status', isEqualTo: FriendRequestStatus.pending.name)
+            .get(),
+        // 2. 상대방이 나에게 보낸 요청이 있는지 확인
+        _firestore
+            .collection(FirebaseConfig.friendRequestsCollection)
+            .where('senderId', isEqualTo: receiverId)
+            .where('receiverId', isEqualTo: senderId)
+            .where('status', isEqualTo: FriendRequestStatus.pending.name)
+            .get(),
+        // 3. 이미 친구인지 확인
+        _firestore
+            .collection(FirebaseConfig.friendsCollection)
+            .where('userId', isEqualTo: senderId)
+            .where('friendId', isEqualTo: receiverId)
+            .get(),
+      ]);
 
-      if (existingRequest.docs.isNotEmpty) {
+      final mySentRequest = results[0];
+      final theirSentRequest = results[1];
+      final friendship = results[2];
+
+      if (mySentRequest.docs.isNotEmpty) {
         return const Left('이미 친구 요청을 보냈습니다.');
       }
 
-      // 이미 친구인지 확인
-      final friendship = await _firestore
-          .collection(FirebaseConfig.friendsCollection)
-          .where('userId', isEqualTo: senderId)
-          .where('friendId', isEqualTo: receiverId)
-          .get();
+      if (theirSentRequest.docs.isNotEmpty) {
+        // 상대방이 나에게 요청을 보낸 상태 - 자동으로 수락 처리
+        final requestDoc = theirSentRequest.docs.first;
+
+        // acceptFriendRequest 로직 재사용
+        final batch = _firestore.batch();
+
+        // 친구 요청 삭제
+        batch.delete(requestDoc.reference);
+
+        // 양방향 친구 관계 생성
+        final senderFriendship =
+            _firestore.collection(FirebaseConfig.friendsCollection).doc();
+        batch.set(senderFriendship, {
+          'userId': receiverId, // 원래 요청을 보낸 사람
+          'friendId': senderId, // 내가 요청을 보내려던 사람
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        final receiverFriendship =
+            _firestore.collection(FirebaseConfig.friendsCollection).doc();
+        batch.set(receiverFriendship, {
+          'userId': senderId,
+          'friendId': receiverId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        await batch.commit();
+
+        return const Right(null); // 자동 수락 완료
+      }
 
       if (friendship.docs.isNotEmpty) {
         return const Left('이미 친구입니다.');

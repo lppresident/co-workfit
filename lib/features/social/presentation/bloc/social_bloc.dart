@@ -249,6 +249,7 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
               friendId: acceptedRequest.senderId,
               createdAt: DateTime.now(),
               friendName: acceptedRequest.senderName,
+              friendNickname: acceptedRequest.senderNickname,
               friendEmail: acceptedRequest.senderEmail,
               friendPhotoUrl: acceptedRequest.senderPhotoUrl,
             );
