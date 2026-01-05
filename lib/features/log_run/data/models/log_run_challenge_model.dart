@@ -43,17 +43,17 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
 
     return LogRunChallengeModel(
       id: doc.id,
-      createdBy: data['createdBy'] as String,
-      targetWeight: (data['targetWeight'] as num).toDouble(),
-      currentWeight: (data['currentWeight'] as num).toDouble(),
-      remainingWeight: (data['remainingWeight'] as num).toDouble(),
-      participants: List<String>.from(data['participants'] as List),
+      createdBy: data['createdBy'] as String? ?? '',
+      targetWeight: (data['targetWeight'] as num?)?.toDouble() ?? 0.0,
+      currentWeight: (data['currentWeight'] as num?)?.toDouble() ?? 0.0,
+      remainingWeight: (data['remainingWeight'] as num?)?.toDouble() ?? 0.0,
+      participants: List<String>.from(data['participants'] as List? ?? []),
       participantStats: participantStats,
-      status: ChallengeStatusExtension.fromFirestore(data['status'] as String),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      startDate: (data['startDate'] as Timestamp).toDate(),
-      endDate: (data['endDate'] as Timestamp).toDate(),
-      inviteCode: data['inviteCode'] as String,
+      status: ChallengeStatusExtension.fromFirestore(data['status'] as String? ?? 'active'),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      startDate: (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      endDate: (data['endDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      inviteCode: data['inviteCode'] as String? ?? '',
       completedAt: data['completedAt'] != null
           ? (data['completedAt'] as Timestamp).toDate()
           : null,
@@ -65,7 +65,7 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       awardedScores: data['awardedScores'] != null
           ? Map<String, int>.from(
               (data['awardedScores'] as Map<String, dynamic>).map(
-                (key, value) => MapEntry(key, (value as num).toInt()),
+                (key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0),
               ),
             )
           : const {},

@@ -12,13 +12,16 @@ class LogRunContributionModel extends LogRunContributionEntity {
   factory LogRunContributionModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return LogRunContributionModel(
-      id: doc.id, challengeId: data['challengeId'] as String, userId: data['userId'] as String,
-      userNickname: data['userNickname'] as String, workoutId: data['workoutId'] as String,
-      distance: (data['distance'] as num).toDouble(),
-      workoutType: _parseWorkoutType(data['workoutType'] as String),
-      workoutDate: (data['workoutDate'] as Timestamp).toDate(),
-      submittedAt: (data['submittedAt'] as Timestamp).toDate(),
-      percentage: (data['percentage'] as num).toDouble(),
+      id: doc.id,
+      challengeId: data['challengeId'] as String? ?? '',
+      userId: data['userId'] as String? ?? '',
+      userNickname: data['userNickname'] as String? ?? '',
+      workoutId: data['workoutId'] as String? ?? '',
+      distance: (data['distance'] as num?)?.toDouble() ?? 0.0,
+      workoutType: _parseWorkoutType(data['workoutType'] as String? ?? 'other'),
+      workoutDate: (data['workoutDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      submittedAt: (data['submittedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      percentage: (data['percentage'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
