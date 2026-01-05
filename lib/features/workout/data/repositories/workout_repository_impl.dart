@@ -457,9 +457,6 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
               uploadedCount = modelsToUpload.length;
             }
 
-            // 4. 마지막 동기화 시간 업데이트
-            await _firestoreDataSource.updateLastSyncTime(_userId, DateTime.now());
-
             AppLogger.info('WorkoutRepo', 'Firestore 동기화 완료: $uploadedCount개');
             return Right(uploadedCount);
           } catch (e) {
@@ -541,16 +538,6 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
-  Future<DateTime?> getLastSyncTime() async {
-    try {
-      return await _firestoreDataSource.getLastSyncTime(_userId);
-    } catch (e) {
-      AppLogger.error('WorkoutRepo', 'getLastSyncTime 실패', e);
-      return null;
-    }
-  }
-
-  @override
   Future<Either<String, int>> registerSelectedWorkouts(
     List<WorkoutEntity> workouts,
   ) async {
@@ -576,9 +563,6 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       if (modelsToUpload.isNotEmpty) {
         await _firestoreDataSource.uploadWorkouts(_userId, modelsToUpload);
       }
-
-      // 마지막 동기화 시간 업데이트
-      await _firestoreDataSource.updateLastSyncTime(_userId, DateTime.now());
 
       AppLogger.info(
         'WorkoutRepo',

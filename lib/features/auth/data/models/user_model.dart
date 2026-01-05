@@ -18,10 +18,8 @@ class UserModel extends UserEntity {
     super.lastActiveAt,
     super.woodAmount,
     super.woodLifetimeEarned,
-    super.lastWoodSettlementDate,
     super.ironAmount,
     super.ironLifetimeEarned,
-    super.lastIronSettlementDate,
   });
 
   /// JSON으로부터 UserModel 생성
@@ -54,10 +52,8 @@ class UserModel extends UserEntity {
           : null,
       woodAmount: (data['woodAmount'] as num?)?.toInt() ?? 0,
       woodLifetimeEarned: (data['woodLifetimeEarned'] as num?)?.toInt() ?? 0,
-      lastWoodSettlementDate: data['lastWoodSettlementDate'] as String?,
       ironAmount: (data['ironAmount'] as num?)?.toInt() ?? 0,
       ironLifetimeEarned: (data['ironLifetimeEarned'] as num?)?.toInt() ?? 0,
-      lastIronSettlementDate: data['lastIronSettlementDate'] as String?,
     );
   }
 
@@ -74,10 +70,8 @@ class UserModel extends UserEntity {
           lastActiveAt != null ? Timestamp.fromDate(lastActiveAt!) : null,
       'woodAmount': woodAmount,
       'woodLifetimeEarned': woodLifetimeEarned,
-      'lastWoodSettlementDate': lastWoodSettlementDate,
       'ironAmount': ironAmount,
       'ironLifetimeEarned': ironLifetimeEarned,
-      'lastIronSettlementDate': lastIronSettlementDate,
     };
   }
 
@@ -94,10 +88,8 @@ class UserModel extends UserEntity {
       lastActiveAt: entity.lastActiveAt,
       woodAmount: entity.woodAmount,
       woodLifetimeEarned: entity.woodLifetimeEarned,
-      lastWoodSettlementDate: entity.lastWoodSettlementDate,
       ironAmount: entity.ironAmount,
       ironLifetimeEarned: entity.ironLifetimeEarned,
-      lastIronSettlementDate: entity.lastIronSettlementDate,
     );
   }
 
@@ -121,10 +113,8 @@ class UserModel extends UserEntity {
       lastActiveAt: DateTime.now(),
       woodAmount: 0,
       woodLifetimeEarned: 0,
-      lastWoodSettlementDate: null,
       ironAmount: 0,
       ironLifetimeEarned: 0,
-      lastIronSettlementDate: null,
     );
   }
 
@@ -140,10 +130,8 @@ class UserModel extends UserEntity {
     DateTime? lastActiveAt,
     int? woodAmount,
     int? woodLifetimeEarned,
-    String? lastWoodSettlementDate,
     int? ironAmount,
     int? ironLifetimeEarned,
-    String? lastIronSettlementDate,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -156,10 +144,8 @@ class UserModel extends UserEntity {
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
       woodAmount: woodAmount ?? this.woodAmount,
       woodLifetimeEarned: woodLifetimeEarned ?? this.woodLifetimeEarned,
-      lastWoodSettlementDate: lastWoodSettlementDate ?? this.lastWoodSettlementDate,
       ironAmount: ironAmount ?? this.ironAmount,
       ironLifetimeEarned: ironLifetimeEarned ?? this.ironLifetimeEarned,
-      lastIronSettlementDate: lastIronSettlementDate ?? this.lastIronSettlementDate,
     );
   }
 }

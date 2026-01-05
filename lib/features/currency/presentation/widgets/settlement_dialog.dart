@@ -170,8 +170,8 @@ class SettlementDialog extends StatelessWidget {
           );
         }),
 
-        // 개인 운동 보상
-        ...settlement.soloWorkoutRewards.map((reward) {
+        // 운동 보상
+        ...settlement.workoutRewards.map((reward) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Row(

@@ -15,22 +15,22 @@ class SettlementEntity extends Equatable {
   /// 재화별 획득량
   final Map<CurrencyType, int> rewards;
 
-  /// 재화별 선택된 챌린지 ID
-  final Map<CurrencyType, String?> selectedChallengeIds;
+  /// 선택된 챌린지 ID (1개만)
+  final String? selectedChallengeId;
 
   /// 챌린지별 보상 상세
   final List<ChallengeReward> challengeRewards;
 
-  /// 개인 운동 보상 상세
-  final List<SoloWorkoutReward> soloWorkoutRewards;
+  /// 운동별 보상 상세
+  final List<SoloWorkoutReward> workoutRewards;
 
   const SettlementEntity({
     required this.settlementDate,
     required this.settledAt,
     required this.rewards,
-    required this.selectedChallengeIds,
+    this.selectedChallengeId,
     required this.challengeRewards,
-    required this.soloWorkoutRewards,
+    required this.workoutRewards,
   });
 
   /// 특정 재화 획득량
@@ -42,12 +42,11 @@ class SettlementEntity extends Equatable {
   /// 보상이 있는지 확인
   bool get hasRewards => rewards.values.any((v) => v > 0);
 
-  /// 특정 재화의 선택된 챌린지
-  ChallengeReward? getSelectedChallenge(CurrencyType type) {
-    final challengeId = selectedChallengeIds[type];
-    if (challengeId == null) return null;
+  /// 선택된 챌린지
+  ChallengeReward? get selectedChallenge {
+    if (selectedChallengeId == null) return null;
     try {
-      return challengeRewards.firstWhere((c) => c.challengeId == challengeId);
+      return challengeRewards.firstWhere((c) => c.challengeId == selectedChallengeId);
     } catch (_) {
       return null;
     }
@@ -63,9 +62,9 @@ class SettlementEntity extends Equatable {
         settlementDate,
         settledAt,
         rewards,
-        selectedChallengeIds,
+        selectedChallengeId,
         challengeRewards,
-        soloWorkoutRewards,
+        workoutRewards,
       ];
 }
 
@@ -83,13 +82,7 @@ class ChallengeReward extends Equatable {
   /// 챌린지 성공 여부
   final bool isSuccess;
 
-  /// 개인 운동 보상
-  final int personalReward;
-
-  /// 챌린지 기여 보상
-  final int contributionReward;
-
-  /// 성공 보너스
+  /// 성공 보너스 (완료 + MVP + 협력 + 마일스톤)
   final int successBonus;
 
   /// 총 보상
@@ -109,8 +102,6 @@ class ChallengeReward extends Equatable {
     required this.challengeName,
     required this.currencyType,
     required this.isSuccess,
-    required this.personalReward,
-    required this.contributionReward,
     required this.successBonus,
     required this.total,
     required this.selected,
@@ -124,8 +115,6 @@ class ChallengeReward extends Equatable {
         challengeName,
         currencyType,
         isSuccess,
-        personalReward,
-        contributionReward,
         successBonus,
         total,
         selected,

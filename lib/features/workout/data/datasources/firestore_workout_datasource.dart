@@ -192,36 +192,6 @@ class FirestoreWorkoutDataSource {
     }
   }
 
-  /// 마지막 동기화 시간 조회
-  Future<DateTime?> getLastSyncTime(String userId) async {
-    try {
-      final doc = await firestore.collection(_usersCollection).doc(userId).get();
-      if (!doc.exists) return null;
-
-      final data = doc.data();
-      if (data == null || data['lastWorkoutSyncAt'] == null) return null;
-
-      final timestamp = data['lastWorkoutSyncAt'] as Timestamp;
-      return timestamp.toDate();
-    } catch (e) {
-      AppLogger.error('FirestoreWorkoutDS', 'Get last sync time failed', e);
-      return null;
-    }
-  }
-
-  /// 마지막 동기화 시간 업데이트
-  Future<void> updateLastSyncTime(String userId, DateTime syncTime) async {
-    try {
-      await firestore.collection(_usersCollection).doc(userId).set({
-        'lastWorkoutSyncAt': Timestamp.fromDate(syncTime),
-      }, SetOptions(merge: true));
-      AppLogger.info('FirestoreWorkoutDS', 'Last sync time updated');
-    } catch (e) {
-      AppLogger.error('FirestoreWorkoutDS', 'Update last sync time failed', e);
-      rethrow;
-    }
-  }
-
   /// 특정 기간의 등록된 운동 ID 목록 조회
   Future<Set<String>> getRegisteredWorkoutIds({
     required String userId,

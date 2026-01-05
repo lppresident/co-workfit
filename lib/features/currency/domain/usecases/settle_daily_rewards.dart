@@ -6,11 +6,9 @@ import 'package:co_workfit/features/currency/domain/usecases/calculate_reward.da
 /// 통합 일일 정산 UseCase
 ///
 /// 정산 로직:
-/// 1. 해당 날짜에 종료된 모든 챌린지 조회
-/// 2. 각 재화 타입별로 챌린지 분류
-/// 3. 각 재화별로 가장 높은 보상 챌린지 1개 선택
-/// 4. 챌린지 보상이 없는 재화는 개인 운동 기록 확인 → 기본 보상 지급
-/// 5. 모든 재화 한 번에 정산
+/// 1. 해당 날짜의 모든 운동 기록 조회 → 운동별 기본 보상 지급
+/// 2. 해당 날짜에 종료된 성공한 챌린지 중 최고 성공 보너스 1개 선택
+/// 3. 모든 재화 한 번에 정산
 class SettleDailyRewards {
   final CurrencyRepository _repository;
   final RewardCalculator _calculator;
@@ -36,69 +34,76 @@ class SettleDailyRewards {
     }
 
     final now = DateTime.now();
-
-    // 2. 해당 날짜에 종료된 챌린지 조회
-    final challenges =
-        await _repository.getChallengesEndedOn(userId, settlementDate);
-
-    // 3. 유효한 챌린지만 필터링 (7일 이내)
-    final validChallenges = challenges.where((challenge) {
-      final daysSinceEnd = now.difference(challenge.endDate).inDays;
-      return daysSinceEnd <= 7;
-    }).toList();
-
-    // 4. 재화별로 챌린지 분류 및 보상 계산
-    final Map<CurrencyType, List<ChallengeReward>> rewardsByType = {};
-    final List<ChallengeReward> allChallengeRewards = [];
-
-    for (final challenge in validChallenges) {
-      final currencyType = challenge.currencyType;
-
-      final reward = _calculator.calculateChallengeReward(
-        challengeData: challenge,
-      );
-
-      allChallengeRewards.add(reward);
-      rewardsByType.putIfAbsent(currencyType, () => []).add(reward);
-    }
-
-    // 5. 각 재화별 최고 보상 선택
-    final Map<CurrencyType, String?> selectedChallengeIds = {};
     final Map<CurrencyType, int> rewards = {};
 
+    // 2. 모든 운동 기록에 대한 기본 보상 계산
+    final List<SoloWorkoutReward> workoutRewards = [];
+
     for (final type in CurrencyType.values) {
-      final typeRewards = rewardsByType[type] ?? [];
-      if (typeRewards.isNotEmpty) {
-        typeRewards.sort((a, b) => b.total.compareTo(a.total));
-        final best = typeRewards.first;
-        if (best.total > 0) {
-          selectedChallengeIds[type] = best.challengeId;
-          rewards[type] = best.total;
+      final workoutData = await _repository.getSoloWorkoutData(
+        userId,
+        settlementDate,
+        type,
+      );
+
+      if (workoutData != null && workoutData.hasData) {
+        final workoutReward = _calculator.calculateSoloWorkoutReward(
+          workoutData: workoutData,
+        );
+
+        if (workoutReward.total > 0) {
+          workoutRewards.add(workoutReward);
+          rewards[type] = (rewards[type] ?? 0) + workoutReward.total;
         }
       }
     }
 
-    // 6. 챌린지 보상이 없는 재화는 개인 운동 확인
-    final List<SoloWorkoutReward> soloWorkoutRewards = [];
+    // 3. 해당 날짜에 종료된 챌린지 조회
+    final challenges =
+        await _repository.getChallengesEndedOn(userId, settlementDate);
 
-    for (final type in CurrencyType.values) {
-      if (selectedChallengeIds[type] == null) {
-        final soloData = await _repository.getSoloWorkoutData(
-          userId,
-          settlementDate,
-          type,
+    // 4. 유효한 성공 챌린지만 필터링 (7일 이내 + 성공)
+    final validChallenges = challenges.where((challenge) {
+      final daysSinceEnd = now.difference(challenge.endDate).inDays;
+      return daysSinceEnd <= 7 && challenge.isSuccess;
+    }).toList();
+
+    // 5. 모든 챌린지의 성공 보너스 계산
+    final List<ChallengeReward> allChallengeRewards = [];
+
+    for (final challenge in validChallenges) {
+      final reward = _calculator.calculateChallengeSuccessBonus(
+        challengeData: challenge,
+      );
+
+      allChallengeRewards.add(reward);
+    }
+
+    // 6. 가장 높은 성공 보너스 챌린지 1개 선택
+    String? selectedChallengeId;
+    ChallengeReward? selectedChallenge;
+
+    if (allChallengeRewards.isNotEmpty) {
+      allChallengeRewards.sort((a, b) => b.total.compareTo(a.total));
+      final best = allChallengeRewards.first;
+
+      if (best.total > 0) {
+        selectedChallengeId = best.challengeId;
+        selectedChallenge = ChallengeReward(
+          challengeId: best.challengeId,
+          challengeName: best.challengeName,
+          currencyType: best.currencyType,
+          isSuccess: best.isSuccess,
+          successBonus: best.successBonus,
+          total: best.total,
+          selected: true,
+          isMvp: best.isMvp,
+          milestoneName: best.milestoneName,
         );
 
-        if (soloData != null && soloData.hasData) {
-          final soloReward = _calculator.calculateSoloWorkoutReward(
-            workoutData: soloData,
-          );
-
-          if (soloReward.total > 0) {
-            soloWorkoutRewards.add(soloReward);
-            rewards[type] = (rewards[type] ?? 0) + soloReward.total;
-          }
-        }
+        // 선택된 챌린지의 재화에 보너스 추가
+        final type = best.currencyType;
+        rewards[type] = (rewards[type] ?? 0) + best.total;
       }
     }
 
@@ -108,23 +113,10 @@ class SettleDailyRewards {
       return null;
     }
 
-    // 8. 선택된 챌린지 표시
+    // 8. 선택되지 않은 챌린지 표시
     final finalChallengeRewards = allChallengeRewards.map((r) {
-      final isSelected = selectedChallengeIds[r.currencyType] == r.challengeId;
-      if (isSelected) {
-        return ChallengeReward(
-          challengeId: r.challengeId,
-          challengeName: r.challengeName,
-          currencyType: r.currencyType,
-          isSuccess: r.isSuccess,
-          personalReward: r.personalReward,
-          contributionReward: r.contributionReward,
-          successBonus: r.successBonus,
-          total: r.total,
-          selected: true,
-          isMvp: r.isMvp,
-          milestoneName: r.milestoneName,
-        );
+      if (r.challengeId == selectedChallengeId) {
+        return selectedChallenge!;
       }
       return r;
     }).toList();
@@ -134,9 +126,9 @@ class SettleDailyRewards {
       settlementDate: settlementDate,
       settledAt: now,
       rewards: rewards,
-      selectedChallengeIds: selectedChallengeIds,
+      selectedChallengeId: selectedChallengeId,
       challengeRewards: finalChallengeRewards,
-      soloWorkoutRewards: soloWorkoutRewards,
+      workoutRewards: workoutRewards,
     );
 
     // 10. 재화 지급 및 정산 기록 저장

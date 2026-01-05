@@ -4,12 +4,48 @@ import 'package:co_workfit/features/currency/domain/entities/settlement_entity.d
 import 'package:co_workfit/features/currency/domain/entities/challenge_settlement_data.dart';
 
 /// 통합 보상 계산기
-/// 
+///
 /// 모든 재화 타입에 대해 동일한 로직으로 보상 계산
 class RewardCalculator {
   const RewardCalculator();
 
-  /// 챌린지 보상 계산
+  /// 챌린지 성공 보너스 계산 (새 로직)
+  ///
+  /// 챌린지 성공 시에만 보너스 지급 (완료 + MVP + 협력 + 마일스톤)
+  ChallengeReward calculateChallengeSuccessBonus({
+    required ChallengeSettlementData challengeData,
+  }) {
+    final currencyType = challengeData.currencyType;
+    final config = CurrencyConfigRegistry.getConfig(currencyType);
+
+    // 성공 보너스만 계산
+    final successBonus = _calculateSuccessBonus(
+      config: config,
+      isSuccess: challengeData.isSuccess,
+      isMvp: challengeData.isUserMvp,
+      participantCount: challengeData.participantCount,
+      targetValue: challengeData.targetValue,
+    );
+
+    final milestoneName = challengeData.isSuccess
+        ? config.getMilestoneName(challengeData.targetValue)
+        : null;
+
+    return ChallengeReward(
+      challengeId: challengeData.challengeId,
+      challengeName: challengeData.challengeName,
+      currencyType: currencyType,
+      isSuccess: challengeData.isSuccess,
+      successBonus: successBonus,
+      total: successBonus,
+      selected: false, // 정산 시 결정
+      isMvp: challengeData.isUserMvp,
+      milestoneName: milestoneName,
+    );
+  }
+
+  /// 챌린지 보상 계산 (구 로직 - 호환성 유지)
+  @Deprecated('Use calculateChallengeSuccessBonus instead')
   ChallengeReward calculateChallengeReward({
     required ChallengeSettlementData challengeData,
   }) {
@@ -39,8 +75,8 @@ class RewardCalculator {
     );
 
     final total = personalReward + contributionReward + successBonus;
-    final milestoneName = challengeData.isSuccess 
-        ? config.getMilestoneName(challengeData.targetValue) 
+    final milestoneName = challengeData.isSuccess
+        ? config.getMilestoneName(challengeData.targetValue)
         : null;
 
     return ChallengeReward(
@@ -48,8 +84,6 @@ class RewardCalculator {
       challengeName: challengeData.challengeName,
       currencyType: currencyType,
       isSuccess: challengeData.isSuccess,
-      personalReward: personalReward,
-      contributionReward: contributionReward,
       successBonus: successBonus,
       total: total,
       selected: false, // 정산 시 결정

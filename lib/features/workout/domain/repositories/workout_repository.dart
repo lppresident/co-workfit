@@ -68,9 +68,6 @@ abstract class WorkoutRepository {
     required DateTime endDate,
   });
 
-  /// 마지막 동기화 시간 조회
-  Future<DateTime?> getLastSyncTime();
-
   /// 선택된 운동만 Firestore에 등록
   Future<Either<String, int>> registerSelectedWorkouts(
     List<WorkoutEntity> workouts,

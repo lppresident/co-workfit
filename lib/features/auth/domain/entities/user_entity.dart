@@ -14,12 +14,10 @@ class UserEntity extends Equatable {
   // 통나무(Wood) 재화 정보
   final int woodAmount; // 현재 보유 통나무
   final int woodLifetimeEarned; // 누적 획득 통나무
-  final String? lastWoodSettlementDate; // 마지막 정산 날짜 (yyyy-MM-dd)
 
   // 쇠(Iron) 재화 정보
   final int ironAmount; // 현재 보유 쇠
   final int ironLifetimeEarned; // 누적 획득 쇠
-  final String? lastIronSettlementDate; // 마지막 정산 날짜 (yyyy-MM-dd)
 
   const UserEntity({
     required this.id,
@@ -32,10 +30,8 @@ class UserEntity extends Equatable {
     this.lastActiveAt,
     this.woodAmount = 0,
     this.woodLifetimeEarned = 0,
-    this.lastWoodSettlementDate,
     this.ironAmount = 0,
     this.ironLifetimeEarned = 0,
-    this.lastIronSettlementDate,
   });
 
   @override
@@ -50,10 +46,8 @@ class UserEntity extends Equatable {
         lastActiveAt,
         woodAmount,
         woodLifetimeEarned,
-        lastWoodSettlementDate,
         ironAmount,
         ironLifetimeEarned,
-        lastIronSettlementDate,
       ];
 
   UserEntity copyWith({
@@ -67,10 +61,8 @@ class UserEntity extends Equatable {
     DateTime? lastActiveAt,
     int? woodAmount,
     int? woodLifetimeEarned,
-    String? lastWoodSettlementDate,
     int? ironAmount,
     int? ironLifetimeEarned,
-    String? lastIronSettlementDate,
   }) {
     return UserEntity(
       id: id ?? this.id,
@@ -83,10 +75,8 @@ class UserEntity extends Equatable {
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
       woodAmount: woodAmount ?? this.woodAmount,
       woodLifetimeEarned: woodLifetimeEarned ?? this.woodLifetimeEarned,
-      lastWoodSettlementDate: lastWoodSettlementDate ?? this.lastWoodSettlementDate,
       ironAmount: ironAmount ?? this.ironAmount,
       ironLifetimeEarned: ironLifetimeEarned ?? this.ironLifetimeEarned,
-      lastIronSettlementDate: lastIronSettlementDate ?? this.lastIronSettlementDate,
     );
   }
 }

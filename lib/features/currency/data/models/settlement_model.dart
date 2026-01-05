@@ -7,17 +7,17 @@ class SettlementModel {
   final String settlementDate;
   final DateTime settledAt;
   final Map<CurrencyType, int> rewards;
-  final Map<CurrencyType, String?> selectedChallengeIds;
+  final String? selectedChallengeId;
   final List<ChallengeRewardModel> challengeRewards;
-  final List<SoloWorkoutRewardModel> soloWorkoutRewards;
+  final List<SoloWorkoutRewardModel> workoutRewards;
 
   const SettlementModel({
     required this.settlementDate,
     required this.settledAt,
     required this.rewards,
-    required this.selectedChallengeIds,
+    this.selectedChallengeId,
     required this.challengeRewards,
-    required this.soloWorkoutRewards,
+    required this.workoutRewards,
   });
 
   factory SettlementModel.fromFirestore(Map<String, dynamic> data) {
@@ -28,20 +28,15 @@ class SettlementModel {
       rewards[type] = (rewardsData[type.name] as int?) ?? 0;
     }
 
-    // selectedChallengeIds 파싱
-    final selectedIds = <CurrencyType, String?>{};
-    final selectedData = data['selectedChallengeIds'] as Map<String, dynamic>? ?? {};
-    for (final type in CurrencyType.values) {
-      selectedIds[type] = selectedData[type.name] as String?;
-    }
-
     // challengeRewards 파싱
     final challengeRewardsList = (data['challengeRewards'] as List<dynamic>? ?? [])
         .map((e) => ChallengeRewardModel.fromFirestore(e as Map<String, dynamic>))
         .toList();
 
-    // soloWorkoutRewards 파싱
-    final soloRewardsList = (data['soloWorkoutRewards'] as List<dynamic>? ?? [])
+    // workoutRewards 파싱 (하위 호환성: soloWorkoutRewards도 지원)
+    final workoutRewardsList = (data['workoutRewards'] as List<dynamic>? ??
+            data['soloWorkoutRewards'] as List<dynamic>? ??
+            [])
         .map((e) => SoloWorkoutRewardModel.fromFirestore(e as Map<String, dynamic>))
         .toList();
 
@@ -60,9 +55,9 @@ class SettlementModel {
       settlementDate: data['settlementDate'] as String,
       settledAt: settledAt,
       rewards: rewards,
-      selectedChallengeIds: selectedIds,
+      selectedChallengeId: data['selectedChallengeId'] as String?,
       challengeRewards: challengeRewardsList,
-      soloWorkoutRewards: soloRewardsList,
+      workoutRewards: workoutRewardsList,
     );
   }
 
@@ -73,12 +68,9 @@ class SettlementModel {
       'rewards': {
         for (final entry in rewards.entries) entry.key.name: entry.value,
       },
-      'selectedChallengeIds': {
-        for (final entry in selectedChallengeIds.entries)
-          entry.key.name: entry.value,
-      },
+      'selectedChallengeId': selectedChallengeId,
       'challengeRewards': challengeRewards.map((e) => e.toFirestore()).toList(),
-      'soloWorkoutRewards': soloWorkoutRewards.map((e) => e.toFirestore()).toList(),
+      'workoutRewards': workoutRewards.map((e) => e.toFirestore()).toList(),
     };
   }
 
@@ -87,9 +79,9 @@ class SettlementModel {
       settlementDate: settlementDate,
       settledAt: settledAt,
       rewards: rewards,
-      selectedChallengeIds: selectedChallengeIds,
+      selectedChallengeId: selectedChallengeId,
       challengeRewards: challengeRewards.map((e) => e.toEntity()).toList(),
-      soloWorkoutRewards: soloWorkoutRewards.map((e) => e.toEntity()).toList(),
+      workoutRewards: workoutRewards.map((e) => e.toEntity()).toList(),
     );
   }
 
@@ -98,11 +90,11 @@ class SettlementModel {
       settlementDate: entity.settlementDate,
       settledAt: entity.settledAt,
       rewards: entity.rewards,
-      selectedChallengeIds: entity.selectedChallengeIds,
+      selectedChallengeId: entity.selectedChallengeId,
       challengeRewards: entity.challengeRewards
           .map((e) => ChallengeRewardModel.fromEntity(e))
           .toList(),
-      soloWorkoutRewards: entity.soloWorkoutRewards
+      workoutRewards: entity.workoutRewards
           .map((e) => SoloWorkoutRewardModel.fromEntity(e))
           .toList(),
     );
@@ -114,8 +106,6 @@ class ChallengeRewardModel {
   final String challengeName;
   final CurrencyType currencyType;
   final bool isSuccess;
-  final int personalReward;
-  final int contributionReward;
   final int successBonus;
   final int total;
   final bool selected;
@@ -127,8 +117,6 @@ class ChallengeRewardModel {
     required this.challengeName,
     required this.currencyType,
     required this.isSuccess,
-    required this.personalReward,
-    required this.contributionReward,
     required this.successBonus,
     required this.total,
     required this.selected,
@@ -145,8 +133,6 @@ class ChallengeRewardModel {
         orElse: () => CurrencyType.wood,
       ),
       isSuccess: data['isSuccess'] as bool? ?? false,
-      personalReward: data['personalReward'] as int? ?? 0,
-      contributionReward: data['contributionReward'] as int? ?? 0,
       successBonus: data['successBonus'] as int? ?? 0,
       total: data['total'] as int? ?? 0,
       selected: data['selected'] as bool? ?? false,
@@ -161,8 +147,6 @@ class ChallengeRewardModel {
       'challengeName': challengeName,
       'currencyType': currencyType.name,
       'isSuccess': isSuccess,
-      'personalReward': personalReward,
-      'contributionReward': contributionReward,
       'successBonus': successBonus,
       'total': total,
       'selected': selected,
@@ -177,8 +161,6 @@ class ChallengeRewardModel {
       challengeName: challengeName,
       currencyType: currencyType,
       isSuccess: isSuccess,
-      personalReward: personalReward,
-      contributionReward: contributionReward,
       successBonus: successBonus,
       total: total,
       selected: selected,
@@ -193,8 +175,6 @@ class ChallengeRewardModel {
       challengeName: entity.challengeName,
       currencyType: entity.currencyType,
       isSuccess: entity.isSuccess,
-      personalReward: entity.personalReward,
-      contributionReward: entity.contributionReward,
       successBonus: entity.successBonus,
       total: entity.total,
       selected: entity.selected,

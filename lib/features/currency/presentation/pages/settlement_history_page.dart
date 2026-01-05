@@ -262,14 +262,14 @@ class _SettlementHistoryPageState extends State<SettlementHistoryPage> {
               }),
             ],
             
-            // 개인 운동 보상
-            if (settlement.soloWorkoutRewards.isNotEmpty) ...[
+            // 운동 보상
+            if (settlement.workoutRewards.isNotEmpty) ...[
               const SizedBox(height: 8),
               const Divider(),
               const SizedBox(height: 8),
-              
+
               Text(
-                '개인 운동 보상',
+                '운동 보상',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
@@ -277,8 +277,8 @@ class _SettlementHistoryPageState extends State<SettlementHistoryPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              
-              ...settlement.soloWorkoutRewards.map((reward) {
+
+              ...settlement.workoutRewards.map((reward) {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
