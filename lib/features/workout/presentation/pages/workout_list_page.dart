@@ -465,13 +465,22 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                       ...((entry['workouts'] as List<WorkoutEntity>).map((workout) {
                         return WorkoutListItem(
                           workout: workout,
-                          onTap: () {
-                            Navigator.push(
+                          onTap: () async {
+                            final deleted = await Navigator.push<bool>(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => WorkoutDetailPage(workout: workout),
+                                builder: (context) => WorkoutDetailPage(
+                                  workout: workout,
+                                  isOwner: true, // 본인의 운동 목록
+                                ),
                               ),
                             );
+                            // 삭제된 경우 목록 새로고침
+                            if (deleted == true && context.mounted) {
+                              context.read<WorkoutBloc>().add(
+                                const FetchWorkoutsFromFirestoreEvent(days: 30),
+                              );
+                            }
                           },
                         );
                       })),

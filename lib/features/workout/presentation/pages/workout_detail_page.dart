@@ -1,18 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
+import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
+import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
+import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
 import 'package:intl/intl.dart';
 
 /// 운동 상세보기 페이지
 /// 
 /// 운동 데이터는 Firestore 등록 시점에만 수정 가능하며,
 /// 등록 이후에는 읽기 전용으로 표시됩니다.
-class WorkoutDetailPage extends StatelessWidget {
+/// 본인의 운동만 삭제 가능합니다.
+class WorkoutDetailPage extends StatefulWidget {
   final WorkoutEntity workout;
+  final bool isOwner;
 
   const WorkoutDetailPage({
     super.key,
     required this.workout,
+    this.isOwner = false,
   });
+
+  @override
+  State<WorkoutDetailPage> createState() => _WorkoutDetailPageState();
+}
+
+class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
+  late final WorkoutRepository _workoutRepository;
+  bool _isDeleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _workoutRepository = GetIt.I<WorkoutRepository>();
+  }
+
+  WorkoutEntity get workout => widget.workout;
 
   /// 페이스 표시 대상 운동 타입인지 확인
   bool get _shouldShowPace {
@@ -55,6 +79,18 @@ class WorkoutDetailPage extends StatelessWidget {
             },
             tooltip: '공유',
           ),
+          if (widget.isOwner)
+            IconButton(
+              icon: _isDeleting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.delete_outline),
+              onPressed: _isDeleting ? null : _showDeleteConfirmDialog,
+              tooltip: '삭제',
+            ),
         ],
       ),
       body: SingleChildScrollView(
@@ -73,6 +109,114 @@ class WorkoutDetailPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// 삭제 확인 다이얼로그 표시
+  void _showDeleteConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('운동 기록 삭제'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_getWorkoutTypeName(workout.type)} - ${workout.durationMinutes}분',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              DateFormat('yyyy년 MM월 dd일 HH:mm').format(workout.startTime),
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.red, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '삭제된 운동 기록은 복구할 수 없습니다.\n챌린지에 제출된 기록도 함께 삭제됩니다.',
+                      style: TextStyle(fontSize: 12, color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteWorkout();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 운동 삭제 실행
+  Future<void> _deleteWorkout() async {
+    setState(() {
+      _isDeleting = true;
+    });
+
+    final result = await _workoutRepository.deleteWorkout(workout.id);
+
+    result.fold(
+      (error) {
+        if (mounted) {
+          setState(() {
+            _isDeleting = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('삭제 실패: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      (success) {
+        if (mounted) {
+          // 운동 목록 새로고침
+          context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('운동 기록이 삭제되었습니다'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true); // true를 반환하여 삭제되었음을 알림
+        }
+      },
     );
   }
 
