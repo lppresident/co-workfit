@@ -3,7 +3,6 @@ import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
-import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
 import 'package:co_workfit/features/log_run/data/datasources/firestore_log_run_datasource.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
@@ -19,7 +18,6 @@ class LogRunRepositoryImpl implements LogRunRepository {
     required double targetWeight,
     required DateTime challengeDate,
     int? maxParticipants,
-    ChallengeType challengeType = ChallengeType.running,
   }) async {
     try {
       final challenge = await dataSource.createChallenge(
@@ -28,7 +26,6 @@ class LogRunRepositoryImpl implements LogRunRepository {
         targetWeight: targetWeight,
         challengeDate: challengeDate,
         maxParticipants: maxParticipants,
-        challengeType: challengeType,
       );
       return Right(challenge);
     } catch (e) {

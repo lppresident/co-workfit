@@ -4,7 +4,6 @@ import 'package:co_workfit/features/log_run/data/models/log_run_contribution_mod
 import 'package:co_workfit/features/log_run/data/models/participant_stats_model.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/participant_stats_entity.dart';
-import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.dart';
 import 'package:co_workfit/features/log_run/domain/utils/workout_converter.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
@@ -12,7 +11,7 @@ import 'package:co_workfit/core/utils/logger.dart';
 
 class FirestoreLogRunDataSource {
   final FirebaseFirestore firestore;
-  static const String _challengesCollection = 'log_run_challenges';
+  static const String _challengesCollection = 'challenges';
   static const String _contributionsSubcollection = 'contributions';
 
   FirestoreLogRunDataSource({required this.firestore});
@@ -24,7 +23,6 @@ class FirestoreLogRunDataSource {
     required double targetWeight,
     required DateTime challengeDate,
     int? maxParticipants,
-    ChallengeType challengeType = ChallengeType.running, // 기존 호환성 유지 (무시됨)
   }) async {
     final now = DateTime.now();
     final challengeRef = firestore.collection(_challengesCollection).doc();
@@ -427,27 +425,5 @@ class FirestoreLogRunDataSource {
   /// 날짜 포맷팅
   String _formatDate(DateTime date) {
     return '${date.year}.${date.month}.${date.day}';
-  }
-
-  /// 운동 타입 파싱
-  WorkoutType _parseWorkoutType(String value) {
-    switch (value) {
-      case 'running':
-        return WorkoutType.running;
-      case 'cycling':
-        return WorkoutType.cycling;
-      case 'walking':
-        return WorkoutType.walking;
-      case 'swimming':
-        return WorkoutType.swimming;
-      case 'weightTraining':
-        return WorkoutType.weightTraining;
-      case 'yoga':
-        return WorkoutType.yoga;
-      case 'hiking':
-        return WorkoutType.hiking;
-      default:
-        return WorkoutType.other;
-    }
   }
 }

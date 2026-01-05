@@ -1,4 +1,3 @@
-import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:equatable/equatable.dart';
 
@@ -27,7 +26,6 @@ class CreateChallenge extends LogRunEvent {
   final double targetWeight;
   final DateTime challengeDate;
   final int? maxParticipants;
-  final ChallengeType challengeType;
 
   const CreateChallenge({
     required this.userId,
@@ -35,7 +33,6 @@ class CreateChallenge extends LogRunEvent {
     required this.targetWeight,
     required this.challengeDate,
     this.maxParticipants,
-    this.challengeType = ChallengeType.running,
   });
 
   @override
@@ -45,7 +42,6 @@ class CreateChallenge extends LogRunEvent {
         targetWeight,
         challengeDate,
         maxParticipants,
-        challengeType,
       ];
 }
 

@@ -28,7 +28,6 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
   /// Firestore 문서에서 모델 생성
   factory LogRunChallengeModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    final createdAt = (data['createdAt'] as Timestamp).toDate();
 
     // participantStats 파싱
     Map<String, ParticipantStatsEntity> participantStats = {};
@@ -46,19 +45,14 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       id: doc.id,
       createdBy: data['createdBy'] as String,
       targetWeight: (data['targetWeight'] as num).toDouble(),
-      currentWeight: (data['currentWeight'] as num?)?.toDouble() ??
-                     (data['currentDistance'] as num?)?.toDouble() ?? 0.0, // 기존 데이터 호환
-      remainingWeight: (data['remainingWeight'] as num?)?.toDouble() ?? (data['targetWeight'] as num).toDouble(),
+      currentWeight: (data['currentWeight'] as num).toDouble(),
+      remainingWeight: (data['remainingWeight'] as num).toDouble(),
       participants: List<String>.from(data['participants'] as List),
       participantStats: participantStats,
       status: ChallengeStatusExtension.fromFirestore(data['status'] as String),
-      createdAt: createdAt,
-      startDate: data['startDate'] != null
-          ? (data['startDate'] as Timestamp).toDate()
-          : createdAt, // 기존 데이터 호환: startDate 없으면 createdAt 사용
-      endDate: data['endDate'] != null
-          ? (data['endDate'] as Timestamp).toDate()
-          : createdAt.add(const Duration(days: 30)), // 기존 데이터 호환: endDate 없으면 30일 후
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      startDate: (data['startDate'] as Timestamp).toDate(),
+      endDate: (data['endDate'] as Timestamp).toDate(),
       inviteCode: data['inviteCode'] as String,
       completedAt: data['completedAt'] != null
           ? (data['completedAt'] as Timestamp).toDate()

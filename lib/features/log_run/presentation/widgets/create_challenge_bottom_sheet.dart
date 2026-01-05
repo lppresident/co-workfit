@@ -1,9 +1,8 @@
-import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class CreateChallengeBottomSheet extends StatefulWidget {
-  final Function(double targetWeight, DateTime challengeDate, int? maxParticipants, ChallengeType challengeType) onCreate;
+  final Function(double targetWeight, DateTime challengeDate, int? maxParticipants) onCreate;
 
   const CreateChallengeBottomSheet({super.key, required this.onCreate});
 
@@ -15,7 +14,6 @@ class _CreateChallengeBottomSheetState extends State<CreateChallengeBottomSheet>
   final _formKey = GlobalKey<FormState>();
   double _targetWeight = 10.0;
   late DateTime _challengeDate;
-  ChallengeType _challengeType = ChallengeType.running;
   final DateFormat _dateFormat = DateFormat('yyyy.MM.dd (E)', 'ko');
 
   @override
@@ -39,24 +37,6 @@ class _CreateChallengeBottomSheetState extends State<CreateChallengeBottomSheet>
     }
   }
 
-  String get _targetLabel {
-    return _challengeType == ChallengeType.running ? '목표 거리 (km)' : '목표 점수';
-  }
-
-  String get _targetSuffix {
-    return _challengeType == ChallengeType.running ? 'km' : '점';
-  }
-
-  String get _description {
-    return _challengeType == ChallengeType.running 
-        ? '목표 거리를 설정하세요 (1kg = 1km)' 
-        : '목표 점수를 설정하세요 (시간 × 강도)';
-  }
-
-  double get _maxTarget {
-    return _challengeType == ChallengeType.running ? 100.0 : 1000.0;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -73,50 +53,41 @@ class _CreateChallengeBottomSheetState extends State<CreateChallengeBottomSheet>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '새 챌린지 만들기',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-
-              // 운동 타입 선택
-              Text(
-                '운동 타입',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  const Text(
+                    '🏃💪',
+                    style: TextStyle(fontSize: 28),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '새 챌린지 만들기',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
-              _buildChallengeTypeSelector(),
-              const SizedBox(height: 8),
               Text(
-                _description,
+                '모든 운동 타입을 지원하는 통합 챌린지입니다',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-                textAlign: TextAlign.center,
               ),
-              
-              // 헬스 챌린지일 때 예시 표시
-              if (_challengeType == ChallengeType.strengthTraining) ...[
-                const SizedBox(height: 12),
-                _buildScoreExamples(),
-              ],
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-              // 목표 입력
+              // 목표 무게 입력
               TextFormField(
-                key: ValueKey(_challengeType), // 운동 타입 변경시 리빌드
-                decoration: InputDecoration(
-                  labelText: _targetLabel,
-                  border: const OutlineInputBorder(),
-                  suffixText: _targetSuffix,
+                decoration: const InputDecoration(
+                  labelText: '목표 무게 (kg)',
+                  border: OutlineInputBorder(),
+                  suffixText: 'kg',
+                  helperText: '달리기: 1km = 1kg, 기타: 100kcal = 1kg',
                 ),
                 keyboardType: TextInputType.number,
-                initialValue: _challengeType == ChallengeType.running ? '10' : '100',
+                initialValue: '10',
                 validator: (value) {
                   if (value == null || value.isEmpty) return '목표를 입력하세요';
                   final target = double.tryParse(value);
                   if (target == null || target <= 0) return '올바른 숫자를 입력하세요';
-                  if (target > _maxTarget) {
-                    return '목표는 ${_maxTarget.toStringAsFixed(0)} 이하로 설정하세요';
-                  }
+                  if (target > 100) return '목표는 100kg 이하로 설정하세요';
                   return null;
                 },
                 onSaved: (value) => _targetWeight = double.parse(value!),
@@ -158,27 +129,25 @@ class _CreateChallengeBottomSheetState extends State<CreateChallengeBottomSheet>
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
-                    widget.onCreate(_targetWeight, _challengeDate, null, _challengeType);
+                    widget.onCreate(_targetWeight, _challengeDate, null);
                     Navigator.pop(context);
                   }
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.all(16),
-                  backgroundColor: _challengeType == ChallengeType.running
-                      ? Colors.brown[600]
-                      : Colors.blueGrey[700],
+                  backgroundColor: Colors.green[700],
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      _challengeType.emoji,
-                      style: const TextStyle(fontSize: 18),
+                      '🏃💪',
+                      style: TextStyle(fontSize: 18),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(
-                      '${_challengeType.displayName} 챌린지 만들기',
-                      style: const TextStyle(fontSize: 16, color: Colors.white),
+                      '통합 챌린지 만들기',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ],
                 ),
@@ -186,181 +155,6 @@ class _CreateChallengeBottomSheetState extends State<CreateChallengeBottomSheet>
               const SizedBox(height: 16),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChallengeTypeSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildTypeOption(
-              challengeType: ChallengeType.running,
-              emoji: '🏃',
-              label: '달리기',
-              subLabel: '거리 기반',
-              color: Colors.brown,
-            ),
-          ),
-          Expanded(
-            child: _buildTypeOption(
-              challengeType: ChallengeType.strengthTraining,
-              emoji: '🏋️',
-              label: '헬스',
-              subLabel: '시간×강도',
-              color: Colors.blueGrey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 헬스 점수 계산 예시
-  Widget _buildScoreExamples() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey[50],
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.blueGrey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.info_outline, size: 16, color: Colors.blueGrey[600]),
-              const SizedBox(width: 6),
-              Text(
-                '점수 계산 예시',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: Colors.blueGrey[700],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildExampleRow('저강도 30분', '30 × 0.5', '15점', '🚶'),
-          _buildExampleRow('중강도 60분', '60 × 0.83', '50점', '🏃'),
-          _buildExampleRow('고강도 60분', '60 × 1.0', '60점', '🔥'),
-          _buildExampleRow('매우 고강도 45분', '45 × 1.3', '59점', '💪'),
-          const SizedBox(height: 8),
-          Text(
-            '※ 강도는 심박수로 자동 측정됩니다',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.blueGrey[500],
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExampleRow(String activity, String formula, String result, String emoji) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 14)),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              activity,
-              style: TextStyle(fontSize: 12, color: Colors.blueGrey[700]),
-            ),
-          ),
-          Text(
-            formula,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.blueGrey[400],
-              fontFamily: 'monospace',
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.blueGrey[100],
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              result,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueGrey[700],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTypeOption({
-    required ChallengeType challengeType,
-    required String emoji,
-    required String label,
-    required String subLabel,
-    required Color color,
-  }) {
-    final isSelected = _challengeType == challengeType;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _challengeType = challengeType;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.all(4),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? color : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 28)),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: isSelected ? Colors.white : Colors.grey[700],
-              ),
-            ),
-            Text(
-              subLabel,
-              style: TextStyle(
-                fontSize: 11,
-                color: isSelected ? Colors.white.withValues(alpha: 0.8) : Colors.grey[500],
-              ),
-            ),
-          ],
         ),
       ),
     );

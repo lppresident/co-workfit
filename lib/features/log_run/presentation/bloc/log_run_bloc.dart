@@ -6,7 +6,6 @@ import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
-import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/create_log_run_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/join_log_run_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/join_challenge_by_invite_code.dart';
@@ -106,14 +105,13 @@ class LogRunBloc extends Bloc<LogRunEvent, LogRunState> {
         targetWeight: event.targetWeight,
         challengeDate: event.challengeDate,
         maxParticipants: event.maxParticipants,
-        challengeType: event.challengeType,
       ),
     );
 
     result.fold(
       (failure) => emit(LogRunError(failure.toString())),
       (challenge) {
-        AppLogger.info('LogRunBloc', 'Challenge created: ${challenge.id}, type: ${event.challengeType.displayName}');
+        AppLogger.info('LogRunBloc', 'Challenge created: ${challenge.id}');
         emit(ChallengeCreated(challenge));
       },
     );

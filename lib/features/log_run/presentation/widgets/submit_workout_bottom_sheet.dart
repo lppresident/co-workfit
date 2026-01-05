@@ -5,7 +5,6 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart'
 import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
-import 'package:co_workfit/features/log_run/domain/entities/workout_type.dart';
 import 'package:co_workfit/features/iron/domain/entities/iron_reward_constants.dart';
 import 'package:intl/intl.dart';
 
