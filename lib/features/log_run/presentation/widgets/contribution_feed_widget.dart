@@ -127,9 +127,17 @@ class _ContributionItem extends StatelessWidget {
             return;
           }
 
+          // 현재 사용자가 운동의 소유자인지 확인
+          final authState = context.read<AuthBloc>().state;
+          final isOwner = authState is Authenticated && 
+              contribution.userId == authState.user.id;
+
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => WorkoutDetailPage(workout: workout),
+              builder: (context) => WorkoutDetailPage(
+                workout: workout,
+                isOwner: isOwner,
+              ),
             ),
           );
         },

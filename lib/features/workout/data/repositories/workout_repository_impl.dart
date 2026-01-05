@@ -335,8 +335,15 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
 
   @override
   Future<Either<String, bool>> deleteWorkout(String workoutId) async {
-    // TODO: 로컬 데이터베이스에서 삭제 구현
-    return Left('삭제 기능 아직 미구현');
+    try {
+      AppLogger.info('WorkoutRepo', '운동 삭제 요청: $workoutId');
+      await _firestoreDataSource.deleteWorkout(_userId, workoutId);
+      AppLogger.info('WorkoutRepo', '운동 삭제 완료: $workoutId');
+      return const Right(true);
+    } catch (e, stackTrace) {
+      AppLogger.error('WorkoutRepo', '운동 삭제 실패', e, stackTrace);
+      return Left('운동 삭제 실패: $e');
+    }
   }
 
   @override
