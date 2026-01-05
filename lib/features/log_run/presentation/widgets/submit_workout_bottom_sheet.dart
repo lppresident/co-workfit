@@ -62,7 +62,8 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     super.dispose();
   }
 
-  /// Health에서 운동 데이터 로드 및 챌린지 기여 내역 확인
+  /// Health + Firestore 병합 데이터 로드 및 챌린지 기여 내역 확인
+  /// Firestore에 등록된 운동은 correctedDistance가 반영된 데이터를 사용
   Future<void> _loadHealthWorkouts() async {
     setState(() {
       _isLoading = true;
@@ -84,8 +85,9 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
       final startDate = widget.startDate.subtract(const Duration(days: 1));
       final endDate = widget.endDate.add(const Duration(days: 1));
 
-      // Health에서 운동 데이터 가져오기
-      final workoutsResult = await _workoutRepository.getWorkouts(
+      // Health + Firestore 병합 데이터 가져오기
+      // Firestore에 등록된 운동은 correctedDistance가 포함된 데이터 사용
+      final workoutsResult = await _workoutRepository.getMergedWorkouts(
         startDate: startDate,
         endDate: endDate,
       );
