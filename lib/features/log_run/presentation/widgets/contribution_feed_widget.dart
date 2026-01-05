@@ -137,6 +137,9 @@ class _ContributionItem extends StatelessWidget {
               builder: (context) => WorkoutDetailPage(
                 workout: workout,
                 isOwner: isOwner,
+                // 챌린지에서 진입 - contribution 정보 전달
+                challengeId: challengeId,
+                contributionId: contribution.id,
               ),
             ),
           );
