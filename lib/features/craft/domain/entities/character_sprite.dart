@@ -106,6 +106,19 @@ enum SpriteType {
   ironGymShorts,    // 철 운동 반바지
   ironTrainingPants,// 강철 트레이닝 바지
   warriorGreaves,   // 전사의 정강이 받침
+  
+  // === 흙 아이템 (기타 운동) ===
+  // 머리
+  flowerCrown,      // 꽃 화관
+  zenHeadband,      // 선(禪) 머리띠
+  
+  // 상체
+  natureRobe,       // 자연의 로브
+  earthPoncho,      // 대지의 판초
+  
+  // 하체
+  comfortPants,     // 편안한 바지
+  meditationSkirt,  // 명상 치마
 }
 
 /// 아이템 스프라이트 레지스트리
@@ -281,6 +294,62 @@ class ItemSpriteRegistry {
       secondaryColor: Color(0xFF263238),
       accentColor: Color(0xFFFFD700), // 금색 장식
       spriteType: SpriteType.warriorGreaves,
+    ),
+    
+    // === 흙 아이템 (기타 운동) ===
+    
+    // 머리 아이템
+    'soil_flower_crown': const ItemSpriteData(
+      itemId: 'soil_flower_crown',
+      slot: ClothingSlot.head,
+      primaryColor: Color(0xFFE91E63), // 핑크
+      secondaryColor: Color(0xFFF48FB1),
+      accentColor: Color(0xFF4CAF50), // 녹색 잎
+      spriteType: SpriteType.flowerCrown,
+    ),
+    'soil_zen_headband': const ItemSpriteData(
+      itemId: 'soil_zen_headband',
+      slot: ClothingSlot.head,
+      primaryColor: Color(0xFF9E9E9E), // 회색
+      secondaryColor: Color(0xFF757575),
+      accentColor: Color(0xFFFFEB3B), // 금색 문양
+      spriteType: SpriteType.zenHeadband,
+    ),
+    
+    // 상체 아이템
+    'soil_nature_robe': const ItemSpriteData(
+      itemId: 'soil_nature_robe',
+      slot: ClothingSlot.body,
+      primaryColor: Color(0xFF8D6E63), // 갈색
+      secondaryColor: Color(0xFFA1887F),
+      accentColor: Color(0xFF4CAF50), // 녹색 띠
+      spriteType: SpriteType.natureRobe,
+    ),
+    'soil_earth_poncho': const ItemSpriteData(
+      itemId: 'soil_earth_poncho',
+      slot: ClothingSlot.body,
+      primaryColor: Color(0xFF795548), // 진한 갈색
+      secondaryColor: Color(0xFF5D4037),
+      accentColor: Color(0xFFFF9800), // 오렌지 문양
+      spriteType: SpriteType.earthPoncho,
+    ),
+    
+    // 하체 아이템
+    'soil_comfort_pants': const ItemSpriteData(
+      itemId: 'soil_comfort_pants',
+      slot: ClothingSlot.legs,
+      primaryColor: Color(0xFF90A4AE), // 밝은 회색
+      secondaryColor: Color(0xFF78909C),
+      accentColor: Color(0xFF4FC3F7), // 하늘색 라인
+      spriteType: SpriteType.comfortPants,
+    ),
+    'soil_meditation_skirt': const ItemSpriteData(
+      itemId: 'soil_meditation_skirt',
+      slot: ClothingSlot.legs,
+      primaryColor: Color(0xFF7E57C2), // 보라색
+      secondaryColor: Color(0xFF5E35B1),
+      accentColor: Color(0xFFFFD700), // 금색 띠
+      spriteType: SpriteType.meditationSkirt,
     ),
   };
 

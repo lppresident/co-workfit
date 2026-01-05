@@ -207,6 +207,13 @@ class CharacterPainter extends CustomPainter {
       case SpriteType.plateArmor:
         _drawPlateArmor(canvas, offsetX, offsetY, spriteData);
         break;
+      // 흙 상체 아이템
+      case SpriteType.natureRobe:
+        _drawNatureRobe(canvas, offsetX, offsetY, spriteData);
+        break;
+      case SpriteType.earthPoncho:
+        _drawEarthPoncho(canvas, offsetX, offsetY, spriteData);
+        break;
       default:
         _drawDefaultBody(canvas, offsetX, offsetY);
     }
@@ -584,6 +591,13 @@ class CharacterPainter extends CustomPainter {
         break;
       case SpriteType.warriorGreaves:
         _drawWarriorGreaves(canvas, offsetX, offsetY, spriteData);
+        break;
+      // 흙 하체 아이템
+      case SpriteType.comfortPants:
+        _drawComfortPants(canvas, offsetX, offsetY, spriteData);
+        break;
+      case SpriteType.meditationSkirt:
+        _drawMeditationSkirt(canvas, offsetX, offsetY, spriteData);
         break;
       default:
         _drawDefaultLegs(canvas, offsetX, offsetY);
@@ -988,6 +1002,13 @@ class CharacterPainter extends CustomPainter {
       case SpriteType.championCrown:
         _drawChampionCrown(canvas, offsetX, offsetY, spriteData);
         break;
+      // 흙 머리 아이템
+      case SpriteType.flowerCrown:
+        _drawFlowerCrown(canvas, offsetX, offsetY, spriteData);
+        break;
+      case SpriteType.zenHeadband:
+        _drawZenHeadband(canvas, offsetX, offsetY, spriteData);
+        break;
       default:
         break;
     }
@@ -1312,6 +1333,281 @@ class CharacterPainter extends CustomPainter {
       _drawPixel(canvas, offsetX, offsetY, 25, y, shine);
       _drawPixel(canvas, offsetX, offsetY, 26, y, gold);
     }
+  }
+
+  // ========== 흙 상체 아이템 ==========
+
+  /// 자연의 로브
+  void _drawNatureRobe(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.15);
+    final accent = Paint()..color = data.accentColor ?? const Color(0xFF4CAF50);
+    
+    // 로브 몸통 (넓고 편안한 느낌)
+    for (int y = 19; y <= 34; y++) {
+      int startX = 7, endX = 24;
+      // 아래로 갈수록 넓어짐
+      if (y >= 30) { startX = 6; endX = 25; }
+      if (y >= 33) { startX = 5; endX = 26; }
+      
+      for (int x = startX; x <= endX; x++) {
+        Paint paint = primary;
+        if (x <= startX + 1 || x >= endX - 1) paint = secondary;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // V넥 칼라
+    for (int y = 18; y <= 22; y++) {
+      final offset = y - 18;
+      _drawPixel(canvas, offsetX, offsetY, 14 - offset, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 17 + offset, y, secondary);
+    }
+    
+    // 녹색 띠 (허리)
+    for (int x = 8; x <= 23; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 27, accent);
+      _drawPixel(canvas, offsetX, offsetY, x, 28, accent);
+    }
+    // 띠 매듭
+    _drawPixel(canvas, offsetX, offsetY, 15, 29, accent);
+    _drawPixel(canvas, offsetX, offsetY, 16, 29, accent);
+    _drawPixel(canvas, offsetX, offsetY, 14, 30, accent);
+    _drawPixel(canvas, offsetX, offsetY, 17, 30, accent);
+    
+    // 소매 (넓음)
+    for (int y = 19; y <= 28; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 5, y, primary);
+      _drawPixel(canvas, offsetX, offsetY, 6, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 25, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 26, y, primary);
+    }
+  }
+
+  /// 대지의 판초
+  void _drawEarthPoncho(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.2);
+    final accent = Paint()..color = data.accentColor ?? const Color(0xFFFF9800);
+    final fringe = Paint()..color = _lighten(data.primaryColor, 0.1);
+    
+    // 판초 본체 (삼각형 느낌)
+    for (int y = 17; y <= 35; y++) {
+      // 위에서 아래로 넓어지는 형태
+      int halfWidth = 4 + (y - 17) ~/ 2;
+      int startX = 16 - halfWidth;
+      int endX = 15 + halfWidth;
+      
+      for (int x = startX; x <= endX; x++) {
+        Paint paint = primary;
+        if (x <= startX + 1 || x >= endX - 1) paint = secondary;
+        // 지그재그 패턴
+        if ((x + y) % 4 == 0 && y >= 22) paint = accent;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 목 구멍
+    for (int y = 17; y <= 19; y++) {
+      for (int x = 14; x <= 17; x++) {
+        // 목 구멍은 그리지 않음 (피부 보임)
+      }
+    }
+    
+    // 하단 술 장식
+    for (int x = 4; x <= 27; x++) {
+      if (x % 2 == 0) {
+        _drawPixel(canvas, offsetX, offsetY, x, 36, fringe);
+        _drawPixel(canvas, offsetX, offsetY, x, 37, fringe);
+      }
+    }
+    
+    // 기하학 문양 (중앙)
+    for (int y = 24; y <= 28; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 15, y, accent);
+      _drawPixel(canvas, offsetX, offsetY, 16, y, accent);
+    }
+    _drawPixel(canvas, offsetX, offsetY, 14, 26, accent);
+    _drawPixel(canvas, offsetX, offsetY, 17, 26, accent);
+  }
+
+  // ========== 흙 하체 아이템 ==========
+
+  /// 편안한 바지
+  void _drawComfortPants(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.15);
+    final accent = Paint()..color = data.accentColor ?? const Color(0xFF4FC3F7);
+    final shoePrimary = Paint()..color = const Color(0xFFBDBDBD);
+    final shoeShadow = Paint()..color = const Color(0xFF9E9E9E);
+    
+    // 편안한 바지 (넓은 실루엣)
+    for (int y = 33; y <= 42; y++) {
+      // 왼쪽 다리 (넓음)
+      for (int x = 9; x <= 15; x++) {
+        Paint paint = primary;
+        if (x == 9 || x == 15) paint = secondary;
+        // 사이드 라인
+        if (x == 10) paint = accent;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+      // 오른쪽 다리
+      for (int x = 16; x <= 22; x++) {
+        Paint paint = primary;
+        if (x == 16 || x == 22) paint = secondary;
+        // 사이드 라인
+        if (x == 21) paint = accent;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 허리 밴드 (신축성)
+    for (int x = 9; x <= 22; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 33, secondary);
+    }
+    
+    // 슬리퍼/샌들
+    for (int y = 43; y <= 45; y++) {
+      for (int x = 8; x <= 15; x++) {
+        final paint = y == 45 ? shoeShadow : shoePrimary;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+      for (int x = 16; x <= 23; x++) {
+        final paint = y == 45 ? shoeShadow : shoePrimary;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    // 샌들 끈
+    _drawPixel(canvas, offsetX, offsetY, 11, 43, accent);
+    _drawPixel(canvas, offsetX, offsetY, 12, 43, accent);
+    _drawPixel(canvas, offsetX, offsetY, 19, 43, accent);
+    _drawPixel(canvas, offsetX, offsetY, 20, 43, accent);
+  }
+
+  /// 명상 치마
+  void _drawMeditationSkirt(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.2);
+    final accent = Paint()..color = data.accentColor ?? const Color(0xFFFFD700);
+    final skinPaint = Paint()..color = sprite.skinColor;
+    final skinShadow = Paint()..color = _darken(sprite.skinColor, 0.15);
+    
+    // 치마 (넓게 퍼지는 형태)
+    for (int y = 33; y <= 43; y++) {
+      // 아래로 갈수록 넓어짐
+      int halfWidth = 3 + (y - 33) ~/ 2;
+      int startX = 16 - halfWidth;
+      int endX = 15 + halfWidth;
+      
+      for (int x = startX; x <= endX; x++) {
+        Paint paint = primary;
+        if (x <= startX + 1 || x >= endX - 1) paint = secondary;
+        // 주름 표현
+        if ((x - startX) % 3 == 0) paint = secondary;
+        _drawPixel(canvas, offsetX, offsetY, x, y, paint);
+      }
+    }
+    
+    // 금색 허리띠
+    for (int x = 10; x <= 21; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 33, accent);
+      _drawPixel(canvas, offsetX, offsetY, x, 34, accent);
+    }
+    
+    // 하단 금색 테두리
+    for (int x = 6; x <= 25; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 43, accent);
+    }
+    
+    // 발 (맨발)
+    for (int y = 44; y <= 45; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 10, y, skinPaint);
+      _drawPixel(canvas, offsetX, offsetY, 11, y, skinPaint);
+      _drawPixel(canvas, offsetX, offsetY, 12, y, skinShadow);
+      _drawPixel(canvas, offsetX, offsetY, 19, y, skinShadow);
+      _drawPixel(canvas, offsetX, offsetY, 20, y, skinPaint);
+      _drawPixel(canvas, offsetX, offsetY, 21, y, skinPaint);
+    }
+  }
+
+  // ========== 흙 머리 아이템 ==========
+
+  /// 꽃 화관
+  void _drawFlowerCrown(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final flower1 = Paint()..color = data.primaryColor; // 핑크
+    final flower2 = Paint()..color = data.secondaryColor ?? const Color(0xFFFFEB3B); // 노랑
+    final leaf = Paint()..color = data.accentColor ?? const Color(0xFF4CAF50);
+    final center = Paint()..color = const Color(0xFFFFEB3B);
+    
+    // 화관 베이스 (녹색 줄기)
+    for (int x = 8; x <= 23; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 4, leaf);
+    }
+    
+    // 꽃들 (다양한 위치에)
+    // 꽃 1 (왼쪽)
+    _drawPixel(canvas, offsetX, offsetY, 9, 2, flower1);
+    _drawPixel(canvas, offsetX, offsetY, 10, 1, flower1);
+    _drawPixel(canvas, offsetX, offsetY, 11, 2, flower1);
+    _drawPixel(canvas, offsetX, offsetY, 10, 3, flower1);
+    _drawPixel(canvas, offsetX, offsetY, 10, 2, center);
+    
+    // 꽃 2 (중앙)
+    _drawPixel(canvas, offsetX, offsetY, 14, 1, flower2);
+    _drawPixel(canvas, offsetX, offsetY, 15, 0, flower2);
+    _drawPixel(canvas, offsetX, offsetY, 16, 0, flower2);
+    _drawPixel(canvas, offsetX, offsetY, 17, 1, flower2);
+    _drawPixel(canvas, offsetX, offsetY, 15, 2, flower2);
+    _drawPixel(canvas, offsetX, offsetY, 16, 2, flower2);
+    _drawPixel(canvas, offsetX, offsetY, 15, 1, center);
+    _drawPixel(canvas, offsetX, offsetY, 16, 1, center);
+    
+    // 꽃 3 (오른쪽)
+    _drawPixel(canvas, offsetX, offsetY, 20, 2, flower1);
+    _drawPixel(canvas, offsetX, offsetY, 21, 1, flower1);
+    _drawPixel(canvas, offsetX, offsetY, 22, 2, flower1);
+    _drawPixel(canvas, offsetX, offsetY, 21, 3, flower1);
+    _drawPixel(canvas, offsetX, offsetY, 21, 2, center);
+    
+    // 작은 잎사귀들
+    _drawPixel(canvas, offsetX, offsetY, 12, 3, leaf);
+    _drawPixel(canvas, offsetX, offsetY, 13, 4, leaf);
+    _drawPixel(canvas, offsetX, offsetY, 18, 4, leaf);
+    _drawPixel(canvas, offsetX, offsetY, 19, 3, leaf);
+  }
+
+  /// 선(禪) 머리띠
+  void _drawZenHeadband(Canvas canvas, double offsetX, double offsetY, ItemSpriteData data) {
+    final primary = Paint()..color = data.primaryColor;
+    final secondary = Paint()..color = data.secondaryColor ?? _darken(data.primaryColor, 0.2);
+    final accent = Paint()..color = data.accentColor ?? const Color(0xFFFFEB3B);
+    
+    // 머리띠 본체
+    for (int x = 7; x <= 24; x++) {
+      _drawPixel(canvas, offsetX, offsetY, x, 4, primary);
+      _drawPixel(canvas, offsetX, offsetY, x, 5, secondary);
+    }
+    
+    // 중앙 원형 문양 (음양 느낌)
+    _drawPixel(canvas, offsetX, offsetY, 14, 3, accent);
+    _drawPixel(canvas, offsetX, offsetY, 15, 3, accent);
+    _drawPixel(canvas, offsetX, offsetY, 16, 3, accent);
+    _drawPixel(canvas, offsetX, offsetY, 17, 3, accent);
+    _drawPixel(canvas, offsetX, offsetY, 14, 4, accent);
+    _drawPixel(canvas, offsetX, offsetY, 17, 4, accent);
+    _drawPixel(canvas, offsetX, offsetY, 15, 4, primary); // 음
+    _drawPixel(canvas, offsetX, offsetY, 16, 4, secondary); // 양
+    
+    // 뒤로 늘어지는 띠
+    for (int y = 6; y <= 10; y++) {
+      _drawPixel(canvas, offsetX, offsetY, 7, y, primary);
+      _drawPixel(canvas, offsetX, offsetY, 8, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 23, y, secondary);
+      _drawPixel(canvas, offsetX, offsetY, 24, y, primary);
+    }
+    // 띠 끝 장식
+    _drawPixel(canvas, offsetX, offsetY, 7, 11, accent);
+    _drawPixel(canvas, offsetX, offsetY, 24, 11, accent);
   }
 
   /// 단일 픽셀 그리기
