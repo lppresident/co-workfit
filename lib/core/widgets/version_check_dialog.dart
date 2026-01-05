@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 버전 업데이트 필수 다이얼로그
 class VersionCheckDialog extends StatelessWidget {
@@ -53,16 +54,26 @@ class VersionCheckDialog extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              // 앱 종료
+            onPressed: () async {
+              // 스토어로 이동
               if (Platform.isAndroid) {
-                SystemNavigator.pop(); // Android
+                // Google Play Store
+                final url = Uri.parse('https://play.google.com/store/apps/details?id=com.hansol.coworkfit');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+                SystemNavigator.pop();
               } else if (Platform.isIOS) {
-                exit(0); // iOS
+                // App Store
+                final url = Uri.parse('https://apps.apple.com/app/id YOUR_APP_ID');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+                // iOS는 앱을 종료하지 않음 (Apple 가이드라인 준수)
               }
             },
             child: const Text(
-              '확인',
+              '업데이트',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
