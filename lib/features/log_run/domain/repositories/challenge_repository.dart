@@ -84,4 +84,10 @@ abstract class ChallengeRepository {
     required String contributionId,
     required String userId,
   });
+
+  /// 특정 운동이 제출된 챌린지 목록 조회
+  /// 운동 삭제 전 확인용
+  Future<Either<Failure, List<String>>> getChallengesByWorkoutId(
+    String workoutId,
+  );
 }

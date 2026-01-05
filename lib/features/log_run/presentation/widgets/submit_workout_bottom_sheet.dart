@@ -62,7 +62,8 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     super.dispose();
   }
 
-  /// Health에서 운동 데이터 로드 및 챌린지 기여 내역 확인
+  /// Health + Firestore 병합 데이터 로드 및 챌린지 기여 내역 확인
+  /// Firestore에 등록된 운동은 correctedDistance가 반영된 데이터를 사용
   Future<void> _loadHealthWorkouts() async {
     setState(() {
       _isLoading = true;
@@ -84,8 +85,9 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
       final startDate = widget.startDate.subtract(const Duration(days: 1));
       final endDate = widget.endDate.add(const Duration(days: 1));
 
-      // Health에서 운동 데이터 가져오기
-      final workoutsResult = await _workoutRepository.getWorkouts(
+      // Health + Firestore 병합 데이터 가져오기
+      // Firestore에 등록된 운동은 correctedDistance가 포함된 데이터 사용
+      final workoutsResult = await _workoutRepository.getMergedWorkouts(
         startDate: startDate,
         endDate: endDate,
       );
@@ -293,6 +295,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
               final workout = validWorkouts[index];
               final isSelected = _selectedWorkout?.id == workout.id;
               final isAlreadySubmitted = _submittedWorkoutIds.contains(workout.id);
+              final isRegisteredToFirestore = workout.syncedAt != null; // Firestore 등록 여부
 
               // 헬스 운동인 경우 점수 계산
               final isStrengthWorkout = workout.type == WorkoutType.weightTraining;
@@ -306,7 +309,8 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                     WorkoutIntensityExtension.fromHeartRate(workout.averageHeartRate);
                 valueDisplay = '${strengthScore.toStringAsFixed(1)}점 (${intensity.displayName})';
               } else {
-                valueDisplay = '${(workout.distance ?? 0.0).toStringAsFixed(2)} km';
+                // effectiveDistance 사용 (correctedDistance가 있으면 우선)
+                valueDisplay = '${(workout.effectiveDistance ?? 0.0).toStringAsFixed(2)} km';
               }
 
               return ListTile(
@@ -344,6 +348,20 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                         child: const Text(
                           '제출됨',
                           style: TextStyle(fontSize: 10, color: Colors.blue),
+                        ),
+                      ),
+                    ] else if (isRegisteredToFirestore) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          border: Border.all(color: Colors.green, width: 1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          '등록됨',
+                          style: TextStyle(fontSize: 10, color: Colors.green),
                         ),
                       ),
                     ],
@@ -384,7 +402,8 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                             );
                             _distanceController.text = strengthScore.toStringAsFixed(2);
                           } else {
-                            _distanceController.text = (workout.distance ?? 0.0).toStringAsFixed(2);
+                            // effectiveDistance 사용 (correctedDistance가 있으면 우선)
+                            _distanceController.text = (workout.effectiveDistance ?? 0.0).toStringAsFixed(2);
                           }
                         });
                       },
@@ -444,8 +463,9 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
 
     final workout = _selectedWorkout!;
     final isStrengthWorkout = workout.type == WorkoutType.weightTraining;
+    final isAlreadyRegistered = workout.syncedAt != null; // Firestore에 등록된 운동인지 확인
 
-    // 헬스 운동의 경우 점수로 바로 제출
+    // 웨이트 트레이닝: 점수로 바로 제출
     if (isStrengthWorkout) {
       final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
         durationMinutes: workout.durationMinutes,
@@ -455,8 +475,15 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
       return;
     }
 
-    // 달리기 운동의 경우 거리 확인 다이얼로그 표시
-    // (등록 시점에만 수정 가능, 이후에는 수정 불가)
+    // 이미 Firestore에 등록된 운동: 거리 수정 없이 바로 제출
+    // (등록 시점에 이미 거리가 확정됨)
+    if (isAlreadyRegistered) {
+      _submitWorkoutDirectly();
+      return;
+    }
+
+    // 기기에서 가져온 운동 (미등록): 거리 확인 다이얼로그 표시
+    // (등록 시점에만 수정 가능)
     _showDistanceConfirmDialog();
   }
 
@@ -567,7 +594,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     );
   }
 
-  /// 운동 기록 제출 (헬스 운동용 - 점수 기반)
+  /// 운동 기록 제출 (웨이트 트레이닝용 - 점수 기반, Firestore 등록 포함)
   Future<void> _submitWorkout(double score) async {
     if (_selectedWorkout == null) return;
 
@@ -629,6 +656,38 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     }
   }
 
+  /// 이미 Firestore에 등록된 운동 직접 제출 (거리 수정 없음)
+  Future<void> _submitWorkoutDirectly() async {
+    if (_selectedWorkout == null) return;
+
+    final workout = _selectedWorkout!;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // 이미 Firestore에 등록된 운동이므로 바로 챌린지에 제출
+      widget.onSubmit(workout);
+
+      if (mounted) {
+        Navigator.pop(context); // Bottom Sheet 닫기
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('제출 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
   /// 운동 기록 제출 (달리기 운동용 - 거리 기반, 수정된 거리 포함)
   Future<void> _submitWorkoutWithDistance(double distance) async {
     if (_selectedWorkout == null) return;
@@ -640,8 +699,9 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     });
 
     try {
-      // 사용자가 입력한 거리로 workout 업데이트
-      final workoutWithDistance = workout.copyWith(distance: distance);
+      // 사용자가 입력한 거리를 correctedDistance로 저장
+      // (원본 distance는 유지, correctedDistance에 수정된 값 저장)
+      final workoutWithDistance = workout.copyWith(correctedDistance: distance);
 
       // Firestore에 운동 등록 (수정된 거리 포함)
       final result = await _registerSelectedWorkoutsUseCase([workoutWithDistance]);

@@ -5,6 +5,7 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
+import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 import 'package:intl/intl.dart';
 
 /// 운동 상세보기 페이지
@@ -28,12 +29,15 @@ class WorkoutDetailPage extends StatefulWidget {
 
 class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
   late final WorkoutRepository _workoutRepository;
+  late final ChallengeRepository _challengeRepository;
   bool _isDeleting = false;
+  bool _isCheckingChallenges = false;
 
   @override
   void initState() {
     super.initState();
     _workoutRepository = GetIt.I<WorkoutRepository>();
+    _challengeRepository = GetIt.I<ChallengeRepository>();
   }
 
   WorkoutEntity get workout => widget.workout;
@@ -47,8 +51,9 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
 
   /// 페이스 계산 (분'초"/km 형식)
   /// 초 단위로 정확하게 계산
+  /// correctedDistance가 있으면 우선 사용
   String? get _pace {
-    final distance = workout.distance;
+    final distance = workout.effectiveDistance;
     if (distance == null || distance <= 0) return null;
     if (workout.durationSeconds <= 0) return null;
 
@@ -81,14 +86,14 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
           ),
           if (widget.isOwner)
             IconButton(
-              icon: _isDeleting
+              icon: (_isDeleting || _isCheckingChallenges)
                   ? const SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.delete_outline),
-              onPressed: _isDeleting ? null : _showDeleteConfirmDialog,
+              onPressed: (_isDeleting || _isCheckingChallenges) ? null : _onDeletePressed,
               tooltip: '삭제',
             ),
         ],
@@ -108,6 +113,111 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
             const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 삭제 버튼 클릭 시 챌린지 제출 여부 확인
+  Future<void> _onDeletePressed() async {
+    setState(() {
+      _isCheckingChallenges = true;
+    });
+
+    try {
+      // 이 운동이 제출된 챌린지가 있는지 확인
+      final result = await _challengeRepository.getChallengesByWorkoutId(workout.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isCheckingChallenges = false;
+      });
+
+      result.fold(
+        (failure) {
+          // 확인 실패 시에도 삭제 다이얼로그 표시 (안전하게)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('챌린지 확인 실패: ${failure.message}'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        },
+        (challengeIds) {
+          if (challengeIds.isNotEmpty) {
+            // 챌린지에 제출된 운동 - 삭제 불가 안내
+            _showCannotDeleteDialog(challengeIds.length);
+          } else {
+            // 챌린지에 제출되지 않은 운동 - 삭제 가능
+            _showDeleteConfirmDialog();
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isCheckingChallenges = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 챌린지에 제출된 운동은 삭제할 수 없음을 안내
+  void _showCannotDeleteDialog(int challengeCount) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.block, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('삭제 불가'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_getWorkoutTypeName(workout.type)} - ${workout.durationMinutes}분',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '이 운동은 $challengeCount개의 챌린지에 제출되어 있습니다.\n\n'
+                      '삭제하려면 먼저 해당 챌린지에서 이 운동 기록을 제거해주세요.',
+                      style: const TextStyle(fontSize: 13, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('확인'),
+          ),
+        ],
       ),
     );
   }
@@ -151,7 +261,7 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '삭제된 운동 기록은 복구할 수 없습니다.\n챌린지에 제출된 기록도 함께 삭제됩니다.',
+                      '삭제된 운동 기록은 복구할 수 없습니다.',
                       style: TextStyle(fontSize: 12, color: Colors.red),
                     ),
                   ),
@@ -313,13 +423,13 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
                 '${workout.calories} kcal',
               ),
             ],
-            if (workout.distance != null) ...[
+            if (workout.effectiveDistance != null) ...[
               const Divider(height: 24),
               _buildInfoRow(
                 context,
                 Icons.straighten,
                 '거리',
-                '${workout.distance!.toStringAsFixed(2)} km',
+                '${workout.effectiveDistance!.toStringAsFixed(2)} km${workout.hasDistanceCorrection ? ' (수정됨)' : ''}',
               ),
             ],
             // 페이스 표시 (러닝, 걷기, 등산)

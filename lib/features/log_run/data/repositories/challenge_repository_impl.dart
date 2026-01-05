@@ -152,4 +152,17 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, List<String>>> getChallengesByWorkoutId(
+    String workoutId,
+  ) async {
+    try {
+      final challengeIds = await dataSource.getChallengesByWorkoutId(workoutId);
+      return Right(challengeIds);
+    } catch (e) {
+      AppLogger.error('ChallengeRepository', 'getChallengesByWorkoutId 에러: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

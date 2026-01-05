@@ -404,6 +404,38 @@ class FirestoreChallengeDataSource {
     await challengeRef.delete();
   }
 
+  /// 특정 운동이 제출된 챌린지 목록 조회
+  /// Collection Group Query를 사용하여 모든 챌린지의 contributions에서 검색
+  /// 반환: 해당 운동이 제출된 챌린지 ID 목록
+  Future<List<String>> getChallengesByWorkoutId(String workoutId) async {
+    try {
+      // Collection Group Query: 모든 challenges의 contributions 서브컬렉션에서 검색
+      final query = await firestore
+          .collectionGroup(_contributionsSubcollection)
+          .where('workoutId', isEqualTo: workoutId)
+          .get();
+
+      // 중복 제거하여 챌린지 ID 목록 반환
+      final challengeIds = <String>{};
+      for (final doc in query.docs) {
+        // 경로: challenges/{challengeId}/contributions/{contributionId}
+        final pathSegments = doc.reference.path.split('/');
+        if (pathSegments.length >= 2) {
+          final challengeId = pathSegments[1]; // challenges 다음 세그먼트
+          challengeIds.add(challengeId);
+        }
+      }
+
+      AppLogger.info('FirestoreChallengeDataSource', 
+        '운동 $workoutId가 제출된 챌린지: ${challengeIds.length}개');
+      return challengeIds.toList();
+    } catch (e) {
+      AppLogger.error('FirestoreChallengeDataSource', 
+        'getChallengesByWorkoutId 실패', e);
+      rethrow;
+    }
+  }
+
   /// 보관 기간이 지난 완료 챌린지 정리 (백그라운드 작업용)
   Future<int> cleanupExpiredChallenges() async {
     final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
