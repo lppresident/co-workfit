@@ -164,7 +164,7 @@ class GarminDataSource {
     );
 
     return WorkoutEntity(
-      id: 'garmin_${activity.activityId ?? activity.startTime!.millisecondsSinceEpoch}',
+      id: '${userId}_garmin_${activity.activityId ?? activity.startTime!.millisecondsSinceEpoch}',
       userId: userId,
       source: WorkoutSource.garmin,
       type: workoutType,

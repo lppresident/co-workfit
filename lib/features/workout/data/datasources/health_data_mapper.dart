@@ -73,7 +73,7 @@ class HealthDataMapper {
     final elevationGain = details['elevationGain'] as double?;
 
     return WorkoutEntity(
-      id: _generateWorkoutId(healthPoint),
+      id: _generateWorkoutId(healthPoint, userId),
       userId: userId,
       source: source,
       type: workoutType,
@@ -91,15 +91,14 @@ class HealthDataMapper {
   }
 
   /// 고유한 운동 ID 생성
-  /// 형식: {timestamp}_{duration}
+  /// 형식: {userId}_{timestamp}_{duration}
+  /// - userId: 사용자 ID (전역 고유성 보장)
   /// - timestamp: 운동 시작 시간 (밀리초)
   /// - duration: 운동 시간 (초) - 같은 시간에 시작한 다른 운동과 구분
-  /// 
-  /// Note: Firestore 문서 ID는 ${userId}_${workoutId} 형태로 저장되어 전역 고유성 보장
-  String _generateWorkoutId(HealthDataPoint healthPoint) {
+  String _generateWorkoutId(HealthDataPoint healthPoint, String userId) {
     final timestamp = healthPoint.dateFrom.millisecondsSinceEpoch;
     final duration = healthPoint.dateTo.difference(healthPoint.dateFrom).inSeconds;
-    return '${timestamp}_$duration';
+    return '${userId}_${timestamp}_$duration';
   }
 
   /// 여러 HealthDataPoint를 WorkoutEntity 리스트로 변환
