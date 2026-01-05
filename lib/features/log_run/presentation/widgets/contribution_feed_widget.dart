@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_event.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
+import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
+import 'package:co_workfit/features/workout/presentation/pages/workout_detail_page.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:intl/intl.dart';
@@ -86,6 +89,63 @@ class _ContributionItem extends StatelessWidget {
     required this.challengeId,
   });
 
+  /// 운동 상세 페이지로 이동
+  Future<void> _navigateToWorkoutDetail(BuildContext context) async {
+    // 로딩 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final workoutRepository = GetIt.I<WorkoutRepository>();
+      final result = await workoutRepository.getWorkoutById(contribution.workoutId);
+
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // 로딩 닫기
+
+      result.fold(
+        (error) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('운동 정보를 불러올 수 없습니다: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+        (workout) {
+          if (workout == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('운동 기록을 찾을 수 없습니다'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            return;
+          }
+
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => WorkoutDetailPage(workout: workout),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // 로딩 닫기
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('오류가 발생했습니다: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _showDeleteConfirmation(BuildContext context) {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) return;
@@ -137,6 +197,7 @@ class _ContributionItem extends StatelessWidget {
 
     return Card(
       child: InkWell(
+        onTap: () => _navigateToWorkoutDetail(context),
         onLongPress: isOwner ? () => _showDeleteConfirmation(context) : null,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -233,6 +294,13 @@ class _ContributionItem extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
                 ),
+              ),
+              const SizedBox(width: 4),
+              // 상세 보기 힌트
+              Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: Colors.grey[400],
               ),
             ],
           ),
