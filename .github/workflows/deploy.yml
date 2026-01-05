@@ -414,6 +414,9 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add pubspec.yaml
           git commit -m "chore: Bump version to $NEW_VERSION" || echo "No changes"
+          
+          # Pull 먼저 받고 push (원격에 새 커밋이 있을 경우 대비)
+          git pull --rebase origin ${{ github.ref_name }} || echo "Pull failed or no changes"
           git push || echo "Push failed"
 
       - name: Download Android APK (self-hosted)
