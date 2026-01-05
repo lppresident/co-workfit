@@ -1,5 +1,5 @@
 import 'package:co_workfit/features/social/presentation/pages/community_page.dart';
-import 'package:co_workfit/features/log_run/presentation/pages/log_run_page.dart';
+import 'package:co_workfit/features/log_run/presentation/pages/challenge_page.dart';
 import 'package:co_workfit/features/workout/presentation/pages/workout_list_page.dart';
 import 'package:co_workfit/features/profile/presentation/screens/profile_screen.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
@@ -34,7 +34,7 @@ class _DashboardPageState extends State<DashboardPage> {
     _pageController.addListener(_onPageChanged);
     _pages = [
       const WorkoutListPage(),
-      LogRunPage(key: LogRunPage.globalKey),
+      ChallengePage(key: ChallengePage.globalKey),
       const CommunityPage(),
       BlocProvider<ProfileBloc>(
         create: (context) => di.sl<ProfileBloc>()..add(FetchProfileData()),
@@ -81,7 +81,7 @@ class _DashboardPageState extends State<DashboardPage> {
     switch (index) {
       case 1:
         // 챌린지 페이지 새로고침
-        LogRunPage.globalKey.currentState?.refreshChallenges();
+        ChallengePage.globalKey.currentState?.refreshChallenges();
         break;
       case 3:
         // 프로필 페이지 새로고침

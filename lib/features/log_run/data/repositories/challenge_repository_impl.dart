@@ -1,18 +1,18 @@
 import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/core/utils/logger.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
-import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
-import 'package:co_workfit/features/log_run/data/datasources/firestore_log_run_datasource.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
+import 'package:co_workfit/features/log_run/data/datasources/firestore_challenge_datasource.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
-class LogRunRepositoryImpl implements LogRunRepository {
-  final FirestoreLogRunDataSource dataSource;
-  LogRunRepositoryImpl({required this.dataSource});
+class ChallengeRepositoryImpl implements ChallengeRepository {
+  final FirestoreChallengeDataSource dataSource;
+  ChallengeRepositoryImpl({required this.dataSource});
 
   @override
-  Future<Either<Failure, LogRunChallengeEntity>> createChallenge({
+  Future<Either<Failure, ChallengeEntity>> createChallenge({
     required String userId,
     required String userNickname,
     required double targetWeight,
@@ -50,7 +50,7 @@ class LogRunRepositoryImpl implements LogRunRepository {
   }
 
   @override
-  Future<Either<Failure, LogRunContributionEntity>> submitWorkout({
+  Future<Either<Failure, ContributionEntity>> submitWorkout({
     required String challengeId,
     required String userId,
     required String userNickname,
@@ -70,18 +70,18 @@ class LogRunRepositoryImpl implements LogRunRepository {
   }
 
   @override
-  Future<Either<Failure, List<LogRunChallengeEntity>>> getAllChallenges(String userId) async {
+  Future<Either<Failure, List<ChallengeEntity>>> getAllChallenges(String userId) async {
     try {
       final challenges = await dataSource.getAllChallenges(userId);
       return Right(challenges);
     } catch (e, stackTrace) {
-      AppLogger.error('LogRunRepository', 'getAllChallenges 에러: $e\n$stackTrace');
+      AppLogger.error('ChallengeRepository', 'getAllChallenges 에러: $e\n$stackTrace');
       return Left(ServerFailure(e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, LogRunChallengeEntity>> getChallengeById(String challengeId) async {
+  Future<Either<Failure, ChallengeEntity>> getChallengeById(String challengeId) async {
     try {
       final challenge = await dataSource.getChallengeById(challengeId);
       return Right(challenge);
@@ -89,7 +89,7 @@ class LogRunRepositoryImpl implements LogRunRepository {
   }
 
   @override
-  Future<Either<Failure, LogRunChallengeEntity>> getChallengeByInviteCode(String inviteCode) async {
+  Future<Either<Failure, ChallengeEntity>> getChallengeByInviteCode(String inviteCode) async {
     try {
       final challenge = await dataSource.getChallengeByInviteCode(inviteCode);
       return Right(challenge);
@@ -97,7 +97,7 @@ class LogRunRepositoryImpl implements LogRunRepository {
   }
 
   @override
-  Future<Either<Failure, List<LogRunContributionEntity>>> getChallengeContributions(String challengeId) async {
+  Future<Either<Failure, List<ContributionEntity>>> getChallengeContributions(String challengeId) async {
     try {
       final contributions = await dataSource.getChallengeContributions(challengeId);
       return Right(contributions);
@@ -105,7 +105,7 @@ class LogRunRepositoryImpl implements LogRunRepository {
   }
 
   @override
-  Future<Either<Failure, List<LogRunContributionEntity>>> getUserContributions({required String challengeId, required String userId}) async {
+  Future<Either<Failure, List<ContributionEntity>>> getUserContributions({required String challengeId, required String userId}) async {
     try {
       final allContributions = await dataSource.getChallengeContributions(challengeId);
       final userContributions = allContributions.where((c) => c.userId == userId).toList();
@@ -114,14 +114,14 @@ class LogRunRepositoryImpl implements LogRunRepository {
   }
 
   @override
-  Stream<Either<Failure, LogRunChallengeEntity>> watchChallenge(String challengeId) {
+  Stream<Either<Failure, ChallengeEntity>> watchChallenge(String challengeId) {
     try {
       return dataSource.watchChallenge(challengeId).map((challenge) => Right(challenge));
     } catch (e) { return Stream.value(Left(ServerFailure(e.toString()))); }
   }
 
   @override
-  Stream<Either<Failure, List<LogRunContributionEntity>>> watchContributions(String challengeId) {
+  Stream<Either<Failure, List<ContributionEntity>>> watchContributions(String challengeId) {
     try {
       return dataSource.watchContributions(challengeId).map((contributions) => Right(contributions));
     } catch (e) { return Stream.value(Left(ServerFailure(e.toString()))); }

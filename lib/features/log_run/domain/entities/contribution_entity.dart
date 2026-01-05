@@ -4,7 +4,7 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 /// 챌린지 기여 엔티티
 ///
 /// 참가자가 챌린지에 제출한 러닝 기록
-class LogRunContributionEntity extends Equatable {
+class ContributionEntity extends Equatable {
   /// 기여 ID
   final String id;
 
@@ -35,7 +35,7 @@ class LogRunContributionEntity extends Equatable {
   /// 전체 목표 대비 기여 비율 (0.0 ~ 1.0)
   final double percentage;
 
-  const LogRunContributionEntity({
+  const ContributionEntity({
     required this.id,
     required this.challengeId,
     required this.userId,

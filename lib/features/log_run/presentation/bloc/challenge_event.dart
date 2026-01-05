@@ -2,15 +2,15 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 import 'package:equatable/equatable.dart';
 
 /// 챌린지 BLoC 이벤트
-abstract class LogRunEvent extends Equatable {
-  const LogRunEvent();
+abstract class ChallengeEvent extends Equatable {
+  const ChallengeEvent();
 
   @override
   List<Object?> get props => [];
 }
 
 /// 챌린지 목록 로드 (활성, 완료, 만료 모두 포함)
-class LoadChallenges extends LogRunEvent {
+class LoadChallenges extends ChallengeEvent {
   final String userId;
 
   const LoadChallenges(this.userId);
@@ -20,14 +20,14 @@ class LoadChallenges extends LogRunEvent {
 }
 
 /// 챌린지 생성
-class CreateChallenge extends LogRunEvent {
+class CreateChallengeEvent extends ChallengeEvent {
   final String userId;
   final String userNickname;
   final double targetWeight;
   final DateTime challengeDate;
   final int? maxParticipants;
 
-  const CreateChallenge({
+  const CreateChallengeEvent({
     required this.userId,
     required this.userNickname,
     required this.targetWeight,
@@ -46,12 +46,12 @@ class CreateChallenge extends LogRunEvent {
 }
 
 /// 챌린지 참가
-class JoinChallenge extends LogRunEvent {
+class JoinChallengeEvent extends ChallengeEvent {
   final String challengeId;
   final String userId;
   final String userNickname;
 
-  const JoinChallenge({
+  const JoinChallengeEvent({
     required this.challengeId,
     required this.userId,
     required this.userNickname,
@@ -62,7 +62,7 @@ class JoinChallenge extends LogRunEvent {
 }
 
 /// 초대 코드로 챌린지 참가
-class JoinChallengeByCode extends LogRunEvent {
+class JoinChallengeByCode extends ChallengeEvent {
   final String inviteCode;
   final String userId;
   final String userNickname;
@@ -78,7 +78,7 @@ class JoinChallengeByCode extends LogRunEvent {
 }
 
 /// 챌린지 탈퇴
-class LeaveChallenge extends LogRunEvent {
+class LeaveChallenge extends ChallengeEvent {
   final String challengeId;
   final String userId;
 
@@ -92,7 +92,7 @@ class LeaveChallenge extends LogRunEvent {
 }
 
 /// 운동 기록 제출
-class SubmitWorkout extends LogRunEvent {
+class SubmitWorkout extends ChallengeEvent {
   final String challengeId;
   final String userId;
   final String userNickname;
@@ -115,7 +115,7 @@ class SubmitWorkout extends LogRunEvent {
 }
 
 /// 챌린지 상세 조회
-class LoadChallengeDetail extends LogRunEvent {
+class LoadChallengeDetail extends ChallengeEvent {
   final String challengeId;
 
   const LoadChallengeDetail(this.challengeId);
@@ -125,7 +125,7 @@ class LoadChallengeDetail extends LogRunEvent {
 }
 
 /// 챌린지 기여 내역 조회
-class LoadChallengeContributions extends LogRunEvent {
+class LoadChallengeContributions extends ChallengeEvent {
   final String challengeId;
 
   const LoadChallengeContributions(this.challengeId);
@@ -135,7 +135,7 @@ class LoadChallengeContributions extends LogRunEvent {
 }
 
 /// 챌린지 실시간 구독 시작
-class WatchChallenge extends LogRunEvent {
+class WatchChallenge extends ChallengeEvent {
   final String challengeId;
 
   const WatchChallenge(this.challengeId);
@@ -145,7 +145,7 @@ class WatchChallenge extends LogRunEvent {
 }
 
 /// 기여 내역 실시간 구독 시작
-class WatchContributions extends LogRunEvent {
+class WatchContributions extends ChallengeEvent {
   final String challengeId;
 
   const WatchContributions(this.challengeId);
@@ -155,7 +155,7 @@ class WatchContributions extends LogRunEvent {
 }
 
 /// 챌린지 삭제
-class DeleteChallenge extends LogRunEvent {
+class DeleteChallenge extends ChallengeEvent {
   final String challengeId;
   final String userId;
 
@@ -169,7 +169,7 @@ class DeleteChallenge extends LogRunEvent {
 }
 
 /// 기여 기록 삭제
-class DeleteContributionEvent extends LogRunEvent {
+class DeleteContributionEvent extends ChallengeEvent {
   final String challengeId;
   final String contributionId;
   final String userId;

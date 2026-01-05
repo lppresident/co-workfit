@@ -1,13 +1,13 @@
 import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/core/usecases/usecase.dart';
-import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
+import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 
 /// 챌린지 참가 UseCase
-class JoinLogRunChallenge implements UseCase<void, JoinChallengeParams> {
-  final LogRunRepository repository;
+class JoinChallenge implements UseCase<void, JoinChallengeParams> {
+  final ChallengeRepository repository;
 
-  JoinLogRunChallenge(this.repository);
+  JoinChallenge(this.repository);
 
   @override
   Future<Either<Failure, void>> call(JoinChallengeParams params) async {

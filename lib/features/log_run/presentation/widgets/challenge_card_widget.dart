@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 
 /// 챌린지 카드 위젯
 class ChallengeCardWidget extends StatelessWidget {
-  final LogRunChallengeEntity challenge;
+  final ChallengeEntity challenge;
   final VoidCallback? onTap;
 
   const ChallengeCardWidget({

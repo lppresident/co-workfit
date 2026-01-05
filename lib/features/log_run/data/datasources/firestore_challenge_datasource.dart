@@ -1,23 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:co_workfit/features/log_run/data/models/log_run_challenge_model.dart';
-import 'package:co_workfit/features/log_run/data/models/log_run_contribution_model.dart';
+import 'package:co_workfit/features/log_run/data/models/challenge_model.dart';
+import 'package:co_workfit/features/log_run/data/models/contribution_model.dart';
 import 'package:co_workfit/features/log_run/data/models/participant_stats_model.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/participant_stats_entity.dart';
 import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.dart';
 import 'package:co_workfit/features/log_run/domain/utils/workout_converter.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
-class FirestoreLogRunDataSource {
+class FirestoreChallengeDataSource {
   final FirebaseFirestore firestore;
   static const String _challengesCollection = 'challenges';
   static const String _contributionsSubcollection = 'contributions';
 
-  FirestoreLogRunDataSource({required this.firestore});
+  FirestoreChallengeDataSource({required this.firestore});
 
   /// 챌린지 생성 (단일 날짜)
-  Future<LogRunChallengeModel> createChallenge({
+  Future<ChallengeModel> createChallenge({
     required String userId,
     required String userNickname,
     required double targetWeight,
@@ -72,7 +72,7 @@ class FirestoreLogRunDataSource {
     });
 
     final doc = await challengeRef.get();
-    return LogRunChallengeModel.fromFirestore(doc);
+    return ChallengeModel.fromFirestore(doc);
   }
 
   /// 챌린지 참가
@@ -99,18 +99,18 @@ class FirestoreLogRunDataSource {
   }
 
   /// 운동 기록 제출 (기간 검증 포함)
-  Future<LogRunContributionModel> submitWorkout({
+  Future<ContributionModel> submitWorkout({
     required String challengeId,
     required String userId,
     required String userNickname,
     required WorkoutEntity workout,
   }) async {
-    return await firestore.runTransaction<LogRunContributionModel>((transaction) async {
+    return await firestore.runTransaction<ContributionModel>((transaction) async {
       final challengeRef = firestore.collection(_challengesCollection).doc(challengeId);
       final challengeDoc = await transaction.get(challengeRef);
       if (!challengeDoc.exists) throw Exception('챌린지를 찾을 수 없습니다');
 
-      final challenge = LogRunChallengeModel.fromFirestore(challengeDoc);
+      final challenge = ChallengeModel.fromFirestore(challengeDoc);
 
       // 중복 제출 검증: 동일 사용자가 동일 workoutId로 이미 제출했는지 확인
       final existingContributions = await challengeRef
@@ -195,7 +195,7 @@ class FirestoreLogRunDataSource {
 
       // 완료 시 재화는 앱 실행 시 정산 시스템에서 처리됨
 
-      return LogRunContributionModel(
+      return ContributionModel(
         id: contributionRef.id,
         challengeId: challengeId,
         userId: userId,
@@ -226,8 +226,8 @@ class FirestoreLogRunDataSource {
       if (!challengeDoc.exists) throw Exception('챌린지를 찾을 수 없습니다');
       if (!contributionDoc.exists) throw Exception('기록을 찾을 수 없습니다');
 
-      final challenge = LogRunChallengeModel.fromFirestore(challengeDoc);
-      final contribution = LogRunContributionModel.fromFirestore(contributionDoc);
+      final challenge = ChallengeModel.fromFirestore(challengeDoc);
+      final contribution = ContributionModel.fromFirestore(contributionDoc);
 
       // 본인 기록만 삭제 가능 (또는 방장)
       if (contribution.userId != userId && challenge.createdBy != userId) {
@@ -255,7 +255,7 @@ class FirestoreLogRunDataSource {
 
   /// 모든 챌린지 목록 조회 (활성, 완료, 만료 모두 포함)
   /// 만료된 active 챌린지는 자동으로 expired 상태로 업데이트
-  Future<List<LogRunChallengeModel>> getAllChallenges(String userId) async {
+  Future<List<ChallengeModel>> getAllChallenges(String userId) async {
     AppLogger.info('LogRunDataSource', '=== 전체 챌린지 조회 시작 ===');
     
     // 사용자가 참여한 모든 챌린지 조회 (status 필터 없이)
@@ -266,10 +266,10 @@ class FirestoreLogRunDataSource {
     
     AppLogger.info('LogRunDataSource', '조회된 전체 챌린지 수: ${query.docs.length}');
     
-    final challenges = <LogRunChallengeModel>[];
+    final challenges = <ChallengeModel>[];
     
     for (final doc in query.docs) {
-      var challenge = LogRunChallengeModel.fromFirestore(doc);
+      var challenge = ChallengeModel.fromFirestore(doc);
       
       // active 상태인데 만료된 경우 → expired로 업데이트
       if (challenge.status == ChallengeStatus.active && challenge.isExpired) {
@@ -311,14 +311,14 @@ class FirestoreLogRunDataSource {
   }
 
   /// 챌린지 상세 조회
-  Future<LogRunChallengeModel> getChallengeById(String challengeId) async {
+  Future<ChallengeModel> getChallengeById(String challengeId) async {
     final doc = await firestore.collection(_challengesCollection).doc(challengeId).get();
     if (!doc.exists) throw Exception('챌린지를 찾을 수 없습니다');
-    return LogRunChallengeModel.fromFirestore(doc);
+    return ChallengeModel.fromFirestore(doc);
   }
 
   /// 초대 코드로 챌린지 조회
-  Future<LogRunChallengeModel> getChallengeByInviteCode(String inviteCode) async {
+  Future<ChallengeModel> getChallengeByInviteCode(String inviteCode) async {
     final query = await firestore
         .collection(_challengesCollection)
         .where('inviteCode', isEqualTo: inviteCode.toUpperCase())
@@ -329,31 +329,31 @@ class FirestoreLogRunDataSource {
       throw Exception('초대 코드가 유효하지 않습니다');
     }
 
-    return LogRunChallengeModel.fromFirestore(query.docs.first);
+    return ChallengeModel.fromFirestore(query.docs.first);
   }
 
   /// 챌린지 기여 내역 조회
-  Future<List<LogRunContributionModel>> getChallengeContributions(String challengeId) async {
+  Future<List<ContributionModel>> getChallengeContributions(String challengeId) async {
     final query = await firestore
         .collection(_challengesCollection)
         .doc(challengeId)
         .collection(_contributionsSubcollection)
         .orderBy('submittedAt', descending: true)
         .get();
-    return query.docs.map((doc) => LogRunContributionModel.fromFirestore(doc)).toList();
+    return query.docs.map((doc) => ContributionModel.fromFirestore(doc)).toList();
   }
 
   /// 챌린지 실시간 감시
-  Stream<LogRunChallengeModel> watchChallenge(String challengeId) {
+  Stream<ChallengeModel> watchChallenge(String challengeId) {
     return firestore
         .collection(_challengesCollection)
         .doc(challengeId)
         .snapshots()
-        .map((doc) => LogRunChallengeModel.fromFirestore(doc));
+        .map((doc) => ChallengeModel.fromFirestore(doc));
   }
 
   /// 기여 내역 실시간 감시
-  Stream<List<LogRunContributionModel>> watchContributions(String challengeId) {
+  Stream<List<ContributionModel>> watchContributions(String challengeId) {
     return firestore
         .collection(_challengesCollection)
         .doc(challengeId)
@@ -361,7 +361,7 @@ class FirestoreLogRunDataSource {
         .orderBy('submittedAt', descending: true)
         .snapshots()
         .map((snapshot) =>
-            snapshot.docs.map((doc) => LogRunContributionModel.fromFirestore(doc)).toList());
+            snapshot.docs.map((doc) => ContributionModel.fromFirestore(doc)).toList());
   }
 
   /// 챌린지 삭제 (방장만 가능)
@@ -373,7 +373,7 @@ class FirestoreLogRunDataSource {
     final challengeDoc = await challengeRef.get();
     if (!challengeDoc.exists) throw Exception('챌린지를 찾을 수 없습니다');
 
-    final challenge = LogRunChallengeModel.fromFirestore(challengeDoc);
+    final challenge = ChallengeModel.fromFirestore(challengeDoc);
     if (challenge.createdBy != userId) {
       throw Exception('방장만 챌린지를 삭제할 수 있습니다');
     }
@@ -414,7 +414,7 @@ class FirestoreLogRunDataSource {
     }
 
     if (deletedCount > 0) {
-      AppLogger.info('FirestoreLogRunDataSource', '보관 기간이 지난 챌린지 $deletedCount개 삭제됨');
+      AppLogger.info('FirestoreChallengeDataSource', '보관 기간이 지난 챌린지 $deletedCount개 삭제됨');
     }
 
     return deletedCount;

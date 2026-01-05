@@ -1,42 +1,42 @@
 import 'package:equatable/equatable.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
 
 /// 챌린지 BLoC 상태
-abstract class LogRunState extends Equatable {
-  const LogRunState();
+abstract class ChallengeState extends Equatable {
+  const ChallengeState();
 
   @override
   List<Object?> get props => [];
 }
 
 /// 초기 상태
-class LogRunInitial extends LogRunState {
-  const LogRunInitial();
+class ChallengeInitial extends ChallengeState {
+  const ChallengeInitial();
 }
 
 /// 로딩 중
-class LogRunLoading extends LogRunState {
-  const LogRunLoading();
+class ChallengeLoading extends ChallengeState {
+  const ChallengeLoading();
 }
 
 /// 챌린지 목록 로드 성공
 /// 모든 챌린지를 하나의 리스트로 관리하고, 각 챌린지의 status로 구분
-class ChallengesLoaded extends LogRunState {
-  final List<LogRunChallengeEntity> challenges;
+class ChallengesLoaded extends ChallengeState {
+  final List<ChallengeEntity> challenges;
 
   const ChallengesLoaded({required this.challenges});
 
   /// 활성 챌린지 필터
-  List<LogRunChallengeEntity> get activeChallenges =>
+  List<ChallengeEntity> get activeChallenges =>
       challenges.where((c) => c.status == ChallengeStatus.active).toList();
 
   /// 완료된 챌린지 필터
-  List<LogRunChallengeEntity> get completedChallenges =>
+  List<ChallengeEntity> get completedChallenges =>
       challenges.where((c) => c.status == ChallengeStatus.completed).toList();
 
   /// 만료된(실패) 챌린지 필터
-  List<LogRunChallengeEntity> get expiredChallenges =>
+  List<ChallengeEntity> get expiredChallenges =>
       challenges.where((c) => c.status == ChallengeStatus.expired).toList();
 
   @override
@@ -44,10 +44,10 @@ class ChallengesLoaded extends LogRunState {
 }
 
 /// 챌린지 상세 로드 성공 (목록 상태 유지)
-class ChallengeDetailLoaded extends LogRunState {
-  final LogRunChallengeEntity challenge;
-  final List<LogRunContributionEntity> contributions;
-  final List<LogRunChallengeEntity> challenges; // 목록 상태 유지
+class ChallengeDetailLoaded extends ChallengeState {
+  final ChallengeEntity challenge;
+  final List<ContributionEntity> contributions;
+  final List<ChallengeEntity> challenges; // 목록 상태 유지
 
   const ChallengeDetailLoaded({
     required this.challenge,
@@ -60,8 +60,8 @@ class ChallengeDetailLoaded extends LogRunState {
 }
 
 /// 챌린지 생성 성공
-class ChallengeCreated extends LogRunState {
-  final LogRunChallengeEntity challenge;
+class ChallengeCreated extends ChallengeState {
+  final ChallengeEntity challenge;
 
   const ChallengeCreated(this.challenge);
 
@@ -70,7 +70,7 @@ class ChallengeCreated extends LogRunState {
 }
 
 /// 챌린지 참가 성공
-class ChallengeJoined extends LogRunState {
+class ChallengeJoined extends ChallengeState {
   final String challengeId;
 
   const ChallengeJoined(this.challengeId);
@@ -80,10 +80,10 @@ class ChallengeJoined extends LogRunState {
 }
 
 /// 운동 기록 제출 성공
-class WorkoutSubmitted extends LogRunState {
-  final LogRunContributionEntity contribution;
-  final LogRunChallengeEntity challenge;
-  final List<LogRunChallengeEntity> challenges;
+class WorkoutSubmitted extends ChallengeState {
+  final ContributionEntity contribution;
+  final ChallengeEntity challenge;
+  final List<ChallengeEntity> challenges;
 
   const WorkoutSubmitted({
     required this.contribution,
@@ -96,7 +96,7 @@ class WorkoutSubmitted extends LogRunState {
 }
 
 /// 챌린지 삭제 성공
-class ChallengeDeleted extends LogRunState {
+class ChallengeDeleted extends ChallengeState {
   final String challengeId;
 
   const ChallengeDeleted(this.challengeId);
@@ -106,8 +106,8 @@ class ChallengeDeleted extends LogRunState {
 }
 
 /// 실시간 챌린지 업데이트
-class ChallengeUpdated extends LogRunState {
-  final LogRunChallengeEntity challenge;
+class ChallengeUpdated extends ChallengeState {
+  final ChallengeEntity challenge;
 
   const ChallengeUpdated(this.challenge);
 
@@ -116,8 +116,8 @@ class ChallengeUpdated extends LogRunState {
 }
 
 /// 실시간 기여 내역 업데이트
-class ContributionsUpdated extends LogRunState {
-  final List<LogRunContributionEntity> contributions;
+class ContributionsUpdated extends ChallengeState {
+  final List<ContributionEntity> contributions;
 
   const ContributionsUpdated(this.contributions);
 
@@ -126,22 +126,22 @@ class ContributionsUpdated extends LogRunState {
 }
 
 /// 에러 상태
-class LogRunError extends LogRunState {
+class ChallengeError extends ChallengeState {
   final String message;
 
-  const LogRunError(this.message);
+  const ChallengeError(this.message);
 
   @override
   List<Object?> get props => [message];
 }
 
 /// 빈 상태 (챌린지 없음)
-class LogRunEmpty extends LogRunState {
-  const LogRunEmpty();
+class ChallengeEmpty extends ChallengeState {
+  const ChallengeEmpty();
 }
 
 /// 기여 기록 삭제 성공
-class ContributionDeleted extends LogRunState {
+class ContributionDeleted extends ChallengeState {
   final String contributionId;
   final String challengeId;
 

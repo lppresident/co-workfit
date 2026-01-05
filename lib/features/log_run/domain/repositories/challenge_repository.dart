@@ -1,13 +1,13 @@
 import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/error/failures.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
 /// 챌린지 Repository 인터페이스
-abstract class LogRunRepository {
+abstract class ChallengeRepository {
   /// 챌린지 생성
-  Future<Either<Failure, LogRunChallengeEntity>> createChallenge({
+  Future<Either<Failure, ChallengeEntity>> createChallenge({
     required String userId,
     required String userNickname,
     required double targetWeight,
@@ -29,7 +29,7 @@ abstract class LogRunRepository {
   });
 
   /// 운동 기록 제출
-  Future<Either<Failure, LogRunContributionEntity>> submitWorkout({
+  Future<Either<Failure, ContributionEntity>> submitWorkout({
     required String challengeId,
     required String userId,
     required String userNickname,
@@ -37,38 +37,38 @@ abstract class LogRunRepository {
   });
 
   /// 모든 챌린지 목록 조회 (활성, 완료, 만료 모두 포함)
-  Future<Either<Failure, List<LogRunChallengeEntity>>> getAllChallenges(
+  Future<Either<Failure, List<ChallengeEntity>>> getAllChallenges(
     String userId,
   );
 
   /// 챌린지 상세 조회
-  Future<Either<Failure, LogRunChallengeEntity>> getChallengeById(
+  Future<Either<Failure, ChallengeEntity>> getChallengeById(
     String challengeId,
   );
 
   /// 초대 코드로 챌린지 조회
-  Future<Either<Failure, LogRunChallengeEntity>> getChallengeByInviteCode(
+  Future<Either<Failure, ChallengeEntity>> getChallengeByInviteCode(
     String inviteCode,
   );
 
   /// 챌린지 기여 내역 조회
-  Future<Either<Failure, List<LogRunContributionEntity>>> getChallengeContributions(
+  Future<Either<Failure, List<ContributionEntity>>> getChallengeContributions(
     String challengeId,
   );
 
   /// 특정 사용자의 기여 내역 조회
-  Future<Either<Failure, List<LogRunContributionEntity>>> getUserContributions({
+  Future<Either<Failure, List<ContributionEntity>>> getUserContributions({
     required String challengeId,
     required String userId,
   });
 
   /// 챌린지 실시간 스트림
-  Stream<Either<Failure, LogRunChallengeEntity>> watchChallenge(
+  Stream<Either<Failure, ChallengeEntity>> watchChallenge(
     String challengeId,
   );
 
   /// 기여 내역 실시간 스트림
-  Stream<Either<Failure, List<LogRunContributionEntity>>> watchContributions(
+  Stream<Either<Failure, List<ContributionEntity>>> watchContributions(
     String challengeId,
   );
 

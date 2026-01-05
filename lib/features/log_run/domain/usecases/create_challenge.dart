@@ -1,17 +1,17 @@
 import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/core/usecases/usecase.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
-import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 
 /// 챌린지 생성 UseCase
-class CreateLogRunChallenge implements UseCase<LogRunChallengeEntity, CreateChallengeParams> {
-  final LogRunRepository repository;
+class CreateChallenge implements UseCase<ChallengeEntity, CreateChallengeParams> {
+  final ChallengeRepository repository;
 
-  CreateLogRunChallenge(this.repository);
+  CreateChallenge(this.repository);
 
   @override
-  Future<Either<Failure, LogRunChallengeEntity>> call(CreateChallengeParams params) async {
+  Future<Either<Failure, ChallengeEntity>> call(CreateChallengeParams params) async {
     return await repository.createChallenge(
       userId: params.userId,
       userNickname: params.userNickname,

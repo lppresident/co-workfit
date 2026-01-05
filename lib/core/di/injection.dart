@@ -67,17 +67,17 @@ import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderboard_bloc.dart';
 
 // Log Run
-import 'package:co_workfit/features/log_run/data/datasources/firestore_log_run_datasource.dart';
-import 'package:co_workfit/features/log_run/data/repositories/log_run_repository_impl.dart';
-import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
-import 'package:co_workfit/features/log_run/domain/usecases/create_log_run_challenge.dart';
-import 'package:co_workfit/features/log_run/domain/usecases/join_log_run_challenge.dart';
+import 'package:co_workfit/features/log_run/data/datasources/firestore_challenge_datasource.dart';
+import 'package:co_workfit/features/log_run/data/repositories/challenge_repository_impl.dart';
+import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/create_challenge.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/join_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/join_challenge_by_invite_code.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_active_challenges.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contributions.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/delete_contribution.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
 
 // Currency (통합 재화 시스템)
 import 'package:co_workfit/features/currency/currency.dart' as currency;
@@ -295,18 +295,18 @@ Future<void> initializeDependencies() async {
   // ========== Log Run Feature ==========
 
   // Data Sources
-  sl.registerLazySingleton<FirestoreLogRunDataSource>(
-    () => FirestoreLogRunDataSource(firestore: sl()),
+  sl.registerLazySingleton<FirestoreChallengeDataSource>(
+    () => FirestoreChallengeDataSource(firestore: sl()),
   );
 
   // Repository
-  sl.registerLazySingleton<LogRunRepository>(
-    () => LogRunRepositoryImpl(dataSource: sl()),
+  sl.registerLazySingleton<ChallengeRepository>(
+    () => ChallengeRepositoryImpl(dataSource: sl()),
   );
 
   // Use Cases
-  sl.registerLazySingleton(() => CreateLogRunChallenge(sl()));
-  sl.registerLazySingleton(() => JoinLogRunChallenge(sl()));
+  sl.registerLazySingleton(() => CreateChallenge(sl()));
+  sl.registerLazySingleton(() => JoinChallenge(sl()));
   sl.registerLazySingleton(() => JoinChallengeByInviteCode(sl()));
   sl.registerLazySingleton(() => SubmitWorkoutToChallenge(sl()));
   sl.registerLazySingleton(() => GetAllChallenges(sl()));
@@ -315,7 +315,7 @@ Future<void> initializeDependencies() async {
 
   // BLoC
   sl.registerFactory(
-    () => LogRunBloc(
+    () => ChallengeBloc(
       createChallengeUseCase: sl(),
       joinChallengeUseCase: sl(),
       joinChallengeByCodeUseCase: sl(),

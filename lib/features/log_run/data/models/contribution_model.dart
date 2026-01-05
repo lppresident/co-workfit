@@ -1,17 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
-class LogRunContributionModel extends LogRunContributionEntity {
-  const LogRunContributionModel({
+class ContributionModel extends ContributionEntity {
+  const ContributionModel({
     required super.id, required super.challengeId, required super.userId, required super.userNickname,
     required super.workoutId, required super.distance, required super.workoutType,
     required super.workoutDate, required super.submittedAt, required super.percentage,
   });
 
-  factory LogRunContributionModel.fromFirestore(DocumentSnapshot doc) {
+  factory ContributionModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    return LogRunContributionModel(
+    return ContributionModel(
       id: doc.id,
       challengeId: data['challengeId'] as String? ?? '',
       userId: data['userId'] as String? ?? '',
@@ -35,8 +35,8 @@ class LogRunContributionModel extends LogRunContributionEntity {
     };
   }
 
-  factory LogRunContributionModel.fromEntity(LogRunContributionEntity entity) {
-    return LogRunContributionModel(
+  factory ContributionModel.fromEntity(ContributionEntity entity) {
+    return ContributionModel(
       id: entity.id, challengeId: entity.challengeId, userId: entity.userId, userNickname: entity.userNickname,
       workoutId: entity.workoutId, distance: entity.distance, workoutType: entity.workoutType,
       workoutDate: entity.workoutDate, submittedAt: entity.submittedAt, percentage: entity.percentage,

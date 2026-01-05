@@ -3,14 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:co_workfit/core/presentation/base_page.dart';
 import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_event.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_state.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/contribution_feed_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/submit_workout_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/share_challenge_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/podium_widget.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
@@ -33,9 +33,9 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
 
   @override
   void loadInitialData() {
-    context.read<LogRunBloc>().add(LoadChallengeDetail(widget.challengeId));
-    context.read<LogRunBloc>().add(WatchChallenge(widget.challengeId));
-    context.read<LogRunBloc>().add(WatchContributions(widget.challengeId));
+    context.read<ChallengeBloc>().add(LoadChallengeDetail(widget.challengeId));
+    context.read<ChallengeBloc>().add(WatchChallenge(widget.challengeId));
+    context.read<ChallengeBloc>().add(WatchContributions(widget.challengeId));
   }
 
   /// 참가자들의 장착 아이템 로드
@@ -59,7 +59,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
   }
 
   /// 참가자별 총 거리 계산 및 순위 생성
-  List<ParticipantRank> _calculateRankings(List<LogRunContributionEntity> contributions) {
+  List<ParticipantRank> _calculateRankings(List<ContributionEntity> contributions) {
     // 사용자별 총 거리 집계
     final Map<String, double> userDistances = {};
     final Map<String, String> userNicknames = {};
@@ -98,7 +98,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
         startDate: startDate,
         endDate: endDate,
         onSubmit: (workout) {
-          context.read<LogRunBloc>().add(
+          context.read<ChallengeBloc>().add(
                 SubmitWorkout(
                   challengeId: widget.challengeId,
                   userId: authState.user.id,
@@ -127,7 +127,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
   Widget _buildScoreSection(
     BuildContext context,
     Map<String, int> awardedScores,
-    List<LogRunContributionEntity> contributions,
+    List<ContributionEntity> contributions,
   ) {
     // 사용자별 닉네임 매핑 (contributions에서 추출)
     final Map<String, String> userNicknames = {};
@@ -210,7 +210,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              context.read<LogRunBloc>().add(
+              context.read<ChallengeBloc>().add(
                     DeleteChallenge(
                       challengeId: widget.challengeId,
                       userId: authState.user.id,
@@ -234,7 +234,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
         onPressed: () => Navigator.pop(context, _hasChanges),
       ),
       actions: [
-        BlocBuilder<LogRunBloc, LogRunState>(
+        BlocBuilder<ChallengeBloc, ChallengeState>(
           builder: (context, state) {
             // 챌린지 정보가 있을 때만 버튼 표시
             if (state is ChallengeDetailLoaded || state is ChallengeUpdated) {
@@ -276,7 +276,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
         if (didPop) return;
         Navigator.pop(context, _hasChanges);
       },
-      child: BlocConsumer<LogRunBloc, LogRunState>(
+      child: BlocConsumer<ChallengeBloc, ChallengeState>(
       listener: (context, state) {
         if (state is WorkoutSubmitted) {
           _hasChanges = true; // 변경 사항 표시
@@ -295,7 +295,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
             ),
           );
           // 상세 페이지 새로고침
-          context.read<LogRunBloc>().add(LoadChallengeDetail(widget.challengeId));
+          context.read<ChallengeBloc>().add(LoadChallengeDetail(widget.challengeId));
         } else if (state is ChallengeDeleted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -306,7 +306,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           // 이전 페이지로 돌아가기 (삭제됨을 알림)
           Navigator.pop(context, true);
           return;
-        } else if (state is LogRunError) {
+        } else if (state is ChallengeError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -316,7 +316,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
         }
       },
       builder: (context, state) {
-        if (state is LogRunLoading) {
+        if (state is ChallengeLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -324,7 +324,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           final challenge = state is ChallengeDetailLoaded ? state.challenge :
                             state is ChallengeUpdated ? state.challenge : null;
           final contributions = state is ChallengeDetailLoaded ? state.contributions :
-                               state is ContributionsUpdated ? state.contributions : <LogRunContributionEntity>[];
+                               state is ContributionsUpdated ? state.contributions : <ContributionEntity>[];
 
           if (challenge == null) return const Center(child: Text('챌린지 정보를 불러올 수 없습니다'));
 
@@ -415,7 +415,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
 
   @override
   Widget? buildFloatingActionButton(BuildContext context) {
-    return BlocBuilder<LogRunBloc, LogRunState>(
+    return BlocBuilder<ChallengeBloc, ChallengeState>(
       builder: (context, state) {
         // 챌린지 정보가 있을 때만 FAB 표시
         if (state is ChallengeDetailLoaded || state is ChallengeUpdated) {

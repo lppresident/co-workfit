@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
+import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_event.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
@@ -10,7 +10,7 @@ import 'package:intl/intl.dart';
 
 /// 기여 내역 피드 위젯
 class ContributionFeedWidget extends StatelessWidget {
-  final List<LogRunContributionEntity> contributions;
+  final List<ContributionEntity> contributions;
   final String challengeId;
 
   const ContributionFeedWidget({
@@ -78,7 +78,7 @@ class ContributionFeedWidget extends StatelessWidget {
 }
 
 class _ContributionItem extends StatelessWidget {
-  final LogRunContributionEntity contribution;
+  final ContributionEntity contribution;
   final String challengeId;
 
   const _ContributionItem({
@@ -114,7 +114,7 @@ class _ContributionItem extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              context.read<LogRunBloc>().add(
+              context.read<ChallengeBloc>().add(
                     DeleteContributionEvent(
                       challengeId: challengeId,
                       contributionId: contribution.id,

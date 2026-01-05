@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:co_workfit/features/log_run/data/models/participant_stats_model.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/participant_stats_entity.dart';
 
 /// 챌린지 모델
-class LogRunChallengeModel extends LogRunChallengeEntity {
-  const LogRunChallengeModel({
+class ChallengeModel extends ChallengeEntity {
+  const ChallengeModel({
     required super.id,
     required super.createdBy,
     required super.targetWeight,
@@ -26,7 +26,7 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
   });
 
   /// Firestore 문서에서 모델 생성
-  factory LogRunChallengeModel.fromFirestore(DocumentSnapshot doc) {
+  factory ChallengeModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
     // participantStats 파싱
@@ -41,7 +41,7 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
       );
     }
 
-    return LogRunChallengeModel(
+    return ChallengeModel(
       id: doc.id,
       createdBy: data['createdBy'] as String? ?? '',
       targetWeight: (data['targetWeight'] as num?)?.toDouble() ?? 0.0,
@@ -97,8 +97,8 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
   }
 
   /// 엔티티를 모델로 변환
-  factory LogRunChallengeModel.fromEntity(LogRunChallengeEntity entity) {
-    return LogRunChallengeModel(
+  factory ChallengeModel.fromEntity(ChallengeEntity entity) {
+    return ChallengeModel(
       id: entity.id,
       createdBy: entity.createdBy,
       targetWeight: entity.targetWeight,
@@ -120,7 +120,7 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
   }
 
   /// 일부 필드만 변경한 새 인스턴스 생성
-  LogRunChallengeModel copyWith({
+  ChallengeModel copyWith({
     String? id,
     String? createdBy,
     double? targetWeight,
@@ -139,7 +139,7 @@ class LogRunChallengeModel extends LogRunChallengeEntity {
     bool? scoreAwarded,
     Map<String, int>? awardedScores,
   }) {
-    return LogRunChallengeModel(
+    return ChallengeModel(
       id: id ?? this.id,
       createdBy: createdBy ?? this.createdBy,
       targetWeight: targetWeight ?? this.targetWeight,

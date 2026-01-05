@@ -1,11 +1,11 @@
 import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/core/usecases/usecase.dart';
-import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
+import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 
 /// 기여 기록 삭제 UseCase
 class DeleteContribution implements UseCase<void, DeleteContributionParams> {
-  final LogRunRepository repository;
+  final ChallengeRepository repository;
 
   DeleteContribution(this.repository);
 

@@ -16,9 +16,9 @@ import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart'
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
 import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderboard_bloc.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_event.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_state.dart';
 import 'package:co_workfit/features/currency/currency.dart';
 import 'package:co_workfit/features/craft/presentation/bloc/craft_bloc.dart';
 import 'package:co_workfit/core/utils/logger.dart';
@@ -60,7 +60,7 @@ class CoWorkFitApp extends StatefulWidget {
 class _CoWorkFitAppState extends State<CoWorkFitApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   StreamSubscription<DeepLinkData>? _deepLinkSubscription;
-  StreamSubscription<LogRunState>? _logRunStateSubscription;
+  StreamSubscription<ChallengeState>? _logRunStateSubscription;
   DeepLinkData? _pendingDeepLink;
   bool _isJoiningFromDeepLink = false;
 
@@ -77,19 +77,19 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
     });
   }
 
-  void _setupLogRunStateListener(BuildContext context) {
+  void _setupChallengeStateListener(BuildContext context) {
     _logRunStateSubscription?.cancel();
-    _logRunStateSubscription = context.read<LogRunBloc>().stream.listen((state) {
+    _logRunStateSubscription = context.read<ChallengeBloc>().stream.listen((state) {
       if (!_isJoiningFromDeepLink) return;
 
       if (state is ChallengeJoined) {
         _isJoiningFromDeepLink = false;
         _showResultSnackBar(context, '챌린지에 참가했습니다! 🎉', Colors.green);
         // 챌린지 탭으로 이동하도록 새로고침
-        context.read<LogRunBloc>().add(LoadChallenges(
+        context.read<ChallengeBloc>().add(LoadChallenges(
           (context.read<AuthBloc>().state as Authenticated).user.id,
         ));
-      } else if (state is LogRunError) {
+      } else if (state is ChallengeError) {
         _isJoiningFromDeepLink = false;
         _showResultSnackBar(context, state.message, Colors.red);
       }
@@ -140,8 +140,8 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
       return;
     }
 
-    // LogRunBloc 상태 리스너 설정
-    _setupLogRunStateListener(context);
+    // ChallengeBloc 상태 리스너 설정
+    _setupChallengeStateListener(context);
 
     showDialog(
       context: context,
@@ -165,7 +165,7 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
             onPressed: () {
               Navigator.pop(dialogContext);
               _isJoiningFromDeepLink = true;
-              context.read<LogRunBloc>().add(
+              context.read<ChallengeBloc>().add(
                     JoinChallengeByCode(
                       inviteCode: inviteCode,
                       userId: authState.user.id,
@@ -206,8 +206,8 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
         BlocProvider<LeaderboardBloc>(
           create: (_) => di.sl<LeaderboardBloc>(),
         ),
-        BlocProvider<LogRunBloc>(
-          create: (_) => di.sl<LogRunBloc>(),
+        BlocProvider<ChallengeBloc>(
+          create: (_) => di.sl<ChallengeBloc>(),
         ),
         BlocProvider<CurrencyBloc>(
           create: (_) => di.sl<CurrencyBloc>(),

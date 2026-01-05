@@ -5,7 +5,7 @@ import 'participant_stats_entity.dart';
 ///
 /// 여러 명이 하나의 목표 무게(kg)를 함께 완주하는 팀 챌린지
 /// 달리기/헬스 운동 모두 제출 가능하며, 각 운동 비율에 따라 재화 지급
-class LogRunChallengeEntity extends Equatable {
+class ChallengeEntity extends Equatable {
   /// 챌린지 ID
   final String id;
 
@@ -59,7 +59,7 @@ class LogRunChallengeEntity extends Equatable {
   /// 참가자별 획득 점수 (userId -> score)
   final Map<String, int> awardedScores;
 
-  const LogRunChallengeEntity({
+  const ChallengeEntity({
     required this.id,
     required this.createdBy,
     required this.targetWeight,

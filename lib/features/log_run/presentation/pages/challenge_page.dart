@@ -2,30 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/core/presentation/base_page.dart';
 import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
-import 'package:co_workfit/features/log_run/presentation/widgets/empty_log_run_widget.dart';
+import 'package:co_workfit/features/log_run/presentation/widgets/empty_challenge_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/challenge_card_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/create_challenge_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/invite_code_bottom_sheet.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
-import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_event.dart';
+import 'package:co_workfit/features/log_run/presentation/bloc/challenge_state.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/presentation/pages/challenge_detail_page.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 
 /// 챌린지 메인 페이지
-class LogRunPage extends BasePage {
-  const LogRunPage({super.key});
+class ChallengePage extends BasePage {
+  const ChallengePage({super.key});
 
   @override
-  State<LogRunPage> createState() => _LogRunPageState();
+  State<ChallengePage> createState() => _ChallengePageState();
 
   // DashboardPage에서 새로고침을 트리거할 수 있도록 GlobalKey 제공
-  static final GlobalKey<_LogRunPageState> globalKey = GlobalKey<_LogRunPageState>();
+  static final GlobalKey<_ChallengePageState> globalKey = GlobalKey<_ChallengePageState>();
 }
 
-class _LogRunPageState extends BasePageState<LogRunPage> {
+class _ChallengePageState extends BasePageState<ChallengePage> {
   @override
   void loadInitialData() {
     refreshChallenges();
@@ -35,7 +35,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
   void refreshChallenges() {
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
-      context.read<LogRunBloc>().add(LoadChallenges(authState.user.id));
+      context.read<ChallengeBloc>().add(LoadChallenges(authState.user.id));
     }
   }
 
@@ -67,7 +67,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
   void _showCreateChallengeSheet() {
     final authBloc = context.read<AuthBloc>();
-    final logRunBloc = context.read<LogRunBloc>();
+    final logRunBloc = context.read<ChallengeBloc>();
 
     showModalBottomSheet(
       context: context,
@@ -80,7 +80,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           final authState = authBloc.state;
           if (authState is Authenticated) {
             logRunBloc.add(
-              CreateChallenge(
+              CreateChallengeEvent(
                 userId: authState.user.id,
                 userNickname: authState.user.nickname,
                 targetWeight: targetWeight,
@@ -96,7 +96,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
   void _showJoinByCodeSheet() {
     final authBloc = context.read<AuthBloc>();
-    final logRunBloc = context.read<LogRunBloc>();
+    final logRunBloc = context.read<ChallengeBloc>();
 
     showModalBottomSheet(
       context: context,
@@ -129,7 +129,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
   }
 
   /// 현재 상태에서 챌린지 목록 추출
-  List<LogRunChallengeEntity> _getChallenges(LogRunState state) {
+  List<ChallengeEntity> _getChallenges(ChallengeState state) {
     if (state is ChallengesLoaded) return state.challenges;
     if (state is ChallengeDetailLoaded) return state.challenges;
     if (state is WorkoutSubmitted) return state.challenges;
@@ -138,9 +138,9 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
   @override
   Widget buildBody(BuildContext context) {
-    return BlocConsumer<LogRunBloc, LogRunState>(
+    return BlocConsumer<ChallengeBloc, ChallengeState>(
       listener: (context, state) {
-        if (state is LogRunError) {
+        if (state is ChallengeError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -170,13 +170,13 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
       },
       builder: (context, state) {
         // 초기 상태 또는 로딩 상태
-        if (state is LogRunInitial || state is LogRunLoading) {
+        if (state is ChallengeInitial || state is ChallengeLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
         // Empty 상태
-        if (state is LogRunEmpty) {
-          return EmptyLogRunWidget(
+        if (state is ChallengeEmpty) {
+          return EmptyChallengeWidget(
             onCreateOrJoin: _showActionSelectionDialog,
           );
         }
@@ -186,7 +186,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
           final challenges = _getChallenges(state);
 
           if (challenges.isEmpty) {
-            return EmptyLogRunWidget(
+            return EmptyChallengeWidget(
               onCreateOrJoin: _showActionSelectionDialog,
             );
           }
@@ -205,7 +205,7 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
     );
   }
 
-  Widget _buildChallengeList(List<LogRunChallengeEntity> challenges) {
+  Widget _buildChallengeList(List<ChallengeEntity> challenges) {
     return RefreshIndicator(
       onRefresh: () async {
         refreshChallenges();
@@ -239,10 +239,10 @@ class _LogRunPageState extends BasePageState<LogRunPage> {
 
   @override
   Widget? buildFloatingActionButton(BuildContext context) {
-    return BlocBuilder<LogRunBloc, LogRunState>(
+    return BlocBuilder<ChallengeBloc, ChallengeState>(
       builder: (context, state) {
         // 챌린지 목록이 있을 때 FloatingActionButton 표시
-        // (Empty 상태에서는 EmptyLogRunWidget에 버튼이 있음)
+        // (Empty 상태에서는 EmptyChallengeWidget에 버튼이 있음)
         final challenges = _getChallenges(state);
 
         if (challenges.isNotEmpty) {

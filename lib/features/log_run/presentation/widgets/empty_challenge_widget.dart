@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:co_workfit/core/constants/app_constants.dart';
 
 /// 챌린지가 없을 때 표시하는 빈 상태 위젯
-class EmptyLogRunWidget extends StatelessWidget {
+class EmptyChallengeWidget extends StatelessWidget {
   final VoidCallback onCreateOrJoin;
   final String? message;
 
-  const EmptyLogRunWidget({
+  const EmptyChallengeWidget({
     super.key,
     required this.onCreateOrJoin,
     this.message,

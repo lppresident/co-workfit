@@ -1,18 +1,18 @@
 import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/core/usecases/usecase.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_contribution_entity.dart';
-import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
+import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
 /// 운동 기록을 챌린지에 제출하는 UseCase
-class SubmitWorkoutToChallenge implements UseCase<LogRunContributionEntity, SubmitWorkoutParams> {
-  final LogRunRepository repository;
+class SubmitWorkoutToChallenge implements UseCase<ContributionEntity, SubmitWorkoutParams> {
+  final ChallengeRepository repository;
 
   SubmitWorkoutToChallenge(this.repository);
 
   @override
-  Future<Either<Failure, LogRunContributionEntity>> call(SubmitWorkoutParams params) async {
+  Future<Either<Failure, ContributionEntity>> call(SubmitWorkoutParams params) async {
     return await repository.submitWorkout(
       challengeId: params.challengeId,
       userId: params.userId,

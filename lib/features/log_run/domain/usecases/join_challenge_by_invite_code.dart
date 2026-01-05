@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/core/usecases/usecase.dart';
-import 'package:co_workfit/features/log_run/domain/entities/log_run_challenge_entity.dart';
-import 'package:co_workfit/features/log_run/domain/repositories/log_run_repository.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.dart';
 
 /// 초대 코드로 챌린지 참가 UseCase
@@ -11,13 +11,13 @@ import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.d
 /// 2. 코드로 챌린지 조회
 /// 3. 챌린지 참가
 class JoinChallengeByInviteCode
-    implements UseCase<LogRunChallengeEntity, JoinByCodeParams> {
-  final LogRunRepository repository;
+    implements UseCase<ChallengeEntity, JoinByCodeParams> {
+  final ChallengeRepository repository;
 
   JoinChallengeByInviteCode(this.repository);
 
   @override
-  Future<Either<Failure, LogRunChallengeEntity>> call(
+  Future<Either<Failure, ChallengeEntity>> call(
       JoinByCodeParams params) async {
     // 1. 초대 코드 검증
     final normalizedCode = InviteCodeGenerator.normalize(params.inviteCode);
