@@ -83,14 +83,8 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
             // 상단 헤더 (운동 타입 및 아이콘)
             _buildHeader(context),
 
-            // 점수 카드 (강조)
-            _buildScoreCard(context),
-
             // 운동 상세 정보
             _buildWorkoutInfo(context),
-
-            // 캘리브레이션 정보
-            _buildCalibrationInfo(context),
 
             // 데이터 소스
             _buildSourceInfo(context),
@@ -138,73 +132,6 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
                 ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildScoreCard(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 4,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Text(
-              '획득 점수',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Icon(
-                  Icons.star,
-                  size: 40,
-                  color: Colors.amber,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${workout.calibratedScore}',
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(width: 4),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    '점',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white70,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '운동 강도: ${workout.calibratedWorkload.toStringAsFixed(1)}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white70,
-                  ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -303,56 +230,6 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
                 '${workout.elevationGain!.toStringAsFixed(1)} m',
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCalibrationInfo(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.analytics_outlined,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '캘리브레이션 정보',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              context,
-              Icons.fitness_center,
-              '표준화된 운동 강도',
-              workout.calibratedWorkload.toStringAsFixed(2),
-            ),
-            const Divider(height: 24),
-            _buildInfoRow(
-              context,
-              Icons.star_rate,
-              '난이도',
-              _getDifficultyLevel(workout.calibratedWorkload),
-            ),
-            const Divider(height: 24),
-            _buildInfoRow(
-              context,
-              Icons.smartphone,
-              '플랫폼 보정',
-              _getSourceCorrectionInfo(workout.source),
-            ),
           ],
         ),
       ),
@@ -559,35 +436,6 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
           'icon': Icons.edit,
           'description': '사용자가 직접 입력한 데이터',
         };
-    }
-  }
-
-  String _getDifficultyLevel(double workload) {
-    if (workload >= 80) {
-      return '매우 높음 🔥🔥🔥';
-    } else if (workload >= 60) {
-      return '높음 🔥🔥';
-    } else if (workload >= 40) {
-      return '보통 🔥';
-    } else if (workload >= 20) {
-      return '낮음 ⭐';
-    } else {
-      return '매우 낮음 ⚡';
-    }
-  }
-
-  String _getSourceCorrectionInfo(WorkoutSource source) {
-    switch (source) {
-      case WorkoutSource.appleHealth:
-        return '높은 정확도 (기준)';
-      case WorkoutSource.googleFit:
-        return '플랫폼 보정 적용됨';
-      case WorkoutSource.garmin:
-        return '높은 정확도';
-      case WorkoutSource.samsungHealth:
-        return '플랫폼 보정 적용됨';
-      case WorkoutSource.manual:
-        return '수동 입력 (보정 없음)';
     }
   }
 

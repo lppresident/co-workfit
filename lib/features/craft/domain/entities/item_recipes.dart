@@ -12,13 +12,19 @@ import 'item_entity.dart';
 /// - 머리 (HEAD) - 4개
 /// - 상체 (BODY) - 3개
 /// - 하체 (LEGS) - 3개
+/// 
+/// 흙 아이템 (6개): 기타 운동 챌린지로 획득
+/// - 머리 (HEAD) - 2개
+/// - 상체 (BODY) - 2개
+/// - 하체 (LEGS) - 2개
 class ItemRecipes {
   ItemRecipes._();
 
-  /// 모든 아이템 목록 (통나무 + 쇠)
+  /// 모든 아이템 목록 (통나무 + 쇠 + 흙)
   static List<ItemEntity> get allItems => [
         ...woodItems,
         ...ironItems,
+        ...soilItems,
       ];
   
   /// 통나무 아이템 목록
@@ -33,6 +39,13 @@ class ItemRecipes {
         ...ironHeadItems,
         ...ironBodyItems,
         ...ironLegsItems,
+      ];
+  
+  /// 흙 아이템 목록
+  static List<ItemEntity> get soilItems => [
+        ...soilHeadItems,
+        ...soilBodyItems,
+        ...soilLegsItems,
       ];
 
   /// 머리 아이템 (4개)
@@ -176,6 +189,13 @@ class ItemRecipes {
     sorted.sort((a, b) => a.ironCost.compareTo(b.ironCost));
     return sorted;
   }
+  
+  /// 가격순 정렬 (흙 아이템)
+  static List<ItemEntity> get soilItemsSortedByPrice {
+    final sorted = List<ItemEntity>.from(soilItems);
+    sorted.sort((a, b) => a.soilCost.compareTo(b.soilCost));
+    return sorted;
+  }
 
   // ========== 쇠 아이템 (헬스 챌린지) ==========
 
@@ -288,6 +308,80 @@ class ItemRecipes {
           ironCost: 400,
           iconEmoji: '🦾',
           estimatedDays: 33,
+        ),
+      ];
+
+  // ========== 흙 아이템 (기타 운동 챌린지) ==========
+
+  /// 흙 머리 아이템 (2개)
+  static List<ItemEntity> get soilHeadItems => [
+        const ItemEntity(
+          id: 'soil_flower_crown',
+          name: '꽃 화관',
+          description: '요가와 명상에 어울리는 자연의 화관.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.head,
+          soilCost: 25,
+          iconEmoji: '💐',
+          estimatedDays: 3,
+        ),
+        const ItemEntity(
+          id: 'soil_zen_headband',
+          name: '선(禪) 머리띠',
+          description: '마음의 평화를 가져다주는 명상 머리띠.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.head,
+          soilCost: 100,
+          iconEmoji: '🧘',
+          estimatedDays: 12,
+        ),
+      ];
+
+  /// 흙 상체 아이템 (2개)
+  static List<ItemEntity> get soilBodyItems => [
+        const ItemEntity(
+          id: 'soil_nature_robe',
+          name: '자연의 로브',
+          description: '대지의 기운이 깃든 편안한 로브.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.body,
+          soilCost: 40,
+          iconEmoji: '🥋',
+          estimatedDays: 5,
+        ),
+        const ItemEntity(
+          id: 'soil_earth_poncho',
+          name: '대지의 판초',
+          description: '흙의 정령이 보호하는 신비로운 판초.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.body,
+          soilCost: 180,
+          iconEmoji: '🧥',
+          estimatedDays: 20,
+        ),
+      ];
+
+  /// 흙 하체 아이템 (2개)
+  static List<ItemEntity> get soilLegsItems => [
+        const ItemEntity(
+          id: 'soil_comfort_pants',
+          name: '편안한 바지',
+          description: '스트레칭과 요가에 최적화된 바지.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.legs,
+          soilCost: 35,
+          iconEmoji: '🩴',
+          estimatedDays: 4,
+        ),
+        const ItemEntity(
+          id: 'soil_meditation_skirt',
+          name: '명상 치마',
+          description: '명상할 때 착용하는 넓고 편안한 치마.',
+          category: ItemCategory.clothing,
+          clothingSlot: ClothingSlot.legs,
+          soilCost: 150,
+          iconEmoji: '👘',
+          estimatedDays: 18,
         ),
       ];
 }

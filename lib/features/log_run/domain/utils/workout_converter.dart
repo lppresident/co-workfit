@@ -2,7 +2,7 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 
 /// 운동 타입별 무게(kg) 변환 유틸리티
 ///
-/// 통합 챌린지 시스템에서 사용하는 표준 단위인 kg으로 변환합니다.
+/// 챌린지 시스템에서 사용하는 표준 단위인 kg으로 변환합니다.
 ///
 /// 변환 우선순위:
 /// 1. 달리기: 거리 기반 (1km = 1kg)
@@ -62,8 +62,7 @@ class WorkoutConverter {
   /// 우선순위:
   /// 1. 달리기 → 거리 기반
   /// 2. 칼로리 데이터 있음 → 칼로리 기반
-  /// 3. calibratedScore 있음 → 점수 기반
-  /// 4. 모두 없음 → 시간 기반 저강도
+  /// 3. 모두 없음 → 시간 기반 저강도
   static double fromWorkout(WorkoutEntity workout) {
     // 1. 달리기: 거리 기반 (우선)
     if (workout.type == WorkoutType.running) {
@@ -76,12 +75,7 @@ class WorkoutConverter {
       return caloriesToWeight(workout.calories!);
     }
 
-    // 3. calibratedScore 있음: 점수 기반 (심박수×시간)
-    if (workout.calibratedScore > 0) {
-      return scoreToWeight(workout.calibratedScore);
-    }
-
-    // 4. 모두 없음: 시간 기반 저강도 (최소 보장)
+    // 3. 모두 없음: 시간 기반 저강도 (최소 보장)
     return durationToLowIntensityWeight(workout.durationSeconds);
   }
 
@@ -132,9 +126,6 @@ class WorkoutConverter {
     }
     if (workout.calories != null && workout.calories! > 0) {
       return '칼로리 기반';
-    }
-    if (workout.calibratedScore > 0) {
-      return '점수 기반';
     }
     return '시간 기반 (저강도)';
   }

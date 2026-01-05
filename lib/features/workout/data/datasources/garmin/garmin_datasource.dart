@@ -179,8 +179,6 @@ class GarminDataSource {
       maxHeartRate: activity.maxHeartRateInBeatsPerMinute,
       steps: activity.steps,
       elevationGain: activity.elevationGainInMeters,
-      calibratedWorkload: 0, // 캘리브레이션은 Mapper에서 처리
-      calibratedScore: 0,
       createdAt: DateTime.now(),
     );
   }

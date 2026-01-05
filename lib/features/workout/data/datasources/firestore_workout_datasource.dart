@@ -3,23 +3,45 @@ import 'package:co_workfit/features/workout/data/models/workout_model.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 /// Firestore 운동 데이터 관리
+/// 
+/// 데이터 구조: /users/{userId}/workouts/{workoutId}
+/// - 사용자별 하위 컬렉션으로 관리
+/// - 보안 규칙이 간단하고 복합 색인 불필요
 class FirestoreWorkoutDataSource {
   final FirebaseFirestore firestore;
-  static const String _workoutsCollection = 'workouts';
   static const String _usersCollection = 'users';
+  static const String _workoutsSubcollection = 'workouts';
 
   FirestoreWorkoutDataSource({required this.firestore});
+
+  /// 사용자의 workouts 컬렉션 참조
+  CollectionReference<Map<String, dynamic>> _workoutsRef(String userId) {
+    return firestore
+        .collection(_usersCollection)
+        .doc(userId)
+        .collection(_workoutsSubcollection);
+  }
 
   /// Firestore에 운동 데이터 업로드 (단일)
   Future<void> uploadWorkout(String userId, WorkoutModel workout) async {
     try {
-      final docId = '${userId}_${workout.id}';
-      final docRef = firestore.collection(_workoutsCollection).doc(docId);
+      final docRef = _workoutsRef(userId).doc(workout.id);
 
-      // Firestore 저장용 데이터
+      // Firestore 저장용 데이터 (userId는 경로에 포함되므로 저장 불필요)
       final data = workout.toJson();
+      data.remove('userId'); // 중복 제거
+      
+      // DateTime을 Timestamp로 변환 (Firestore 쿼리 호환성)
+      data['startTime'] = Timestamp.fromDate(workout.startTime);
+      data['endTime'] = Timestamp.fromDate(workout.endTime);
+      data['createdAt'] = Timestamp.fromDate(workout.createdAt);
+      if (workout.syncedAt != null) {
+        data['syncedAt'] = Timestamp.fromDate(workout.syncedAt!);
+      }
       data['updatedAt'] = FieldValue.serverTimestamp();
 
+      AppLogger.info('FirestoreWorkoutDS', 'Uploading workout - userId: $userId, workoutId: ${workout.id}');
+      
       await docRef.set(data, SetOptions(merge: true));
       AppLogger.info('FirestoreWorkoutDS', 'Workout uploaded: ${workout.id}');
     } catch (e) {
@@ -41,15 +63,23 @@ class FirestoreWorkoutDataSource {
         final batchWorkouts = workouts.sublist(i, end);
 
         for (final workout in batchWorkouts) {
-          final docId = '${userId}_${workout.id}';
-          final docRef = firestore.collection(_workoutsCollection).doc(docId);
+          final docRef = _workoutsRef(userId).doc(workout.id);
           final data = workout.toJson();
+          data.remove('userId'); // 중복 제거
+          
+          // DateTime을 Timestamp로 변환 (Firestore 쿼리 호환성)
+          data['startTime'] = Timestamp.fromDate(workout.startTime);
+          data['endTime'] = Timestamp.fromDate(workout.endTime);
+          data['createdAt'] = Timestamp.fromDate(workout.createdAt);
+          if (workout.syncedAt != null) {
+            data['syncedAt'] = Timestamp.fromDate(workout.syncedAt!);
+          }
           data['updatedAt'] = FieldValue.serverTimestamp();
           batch.set(docRef, data, SetOptions(merge: true));
         }
 
         await batch.commit();
-        AppLogger.info('FirestoreWorkoutDS', 'Batch uploaded: ${batchWorkouts.length} workouts');
+        AppLogger.info('FirestoreWorkoutDS', 'Batch uploaded: ${batchWorkouts.length} workouts for user: $userId');
       }
     } catch (e) {
       AppLogger.error('FirestoreWorkoutDS', 'Batch upload failed', e);
@@ -64,16 +94,23 @@ class FirestoreWorkoutDataSource {
     required DateTime endDate,
   }) async {
     try {
-      final query = await firestore
-          .collection(_workoutsCollection)
-          .where('userId', isEqualTo: userId)
+      AppLogger.info('FirestoreWorkoutDS', 'Querying workouts for userId: $userId, startDate: $startDate, endDate: $endDate');
+      
+      // 하위 컬렉션 쿼리 - userId where 조건 불필요, 복합 색인 불필요
+      final query = await _workoutsRef(userId)
           .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .orderBy('startTime', descending: true)
           .get();
+      
+      AppLogger.info('FirestoreWorkoutDS', 'Query returned ${query.docs.length} documents');
 
       final workouts = query.docs.map((doc) {
         final data = doc.data();
+        // userId는 경로에서 가져옴
+        data['userId'] = userId;
+        data['id'] = doc.id; // 문서 ID를 workout ID로 사용
+        
         // Timestamp를 DateTime으로 변환
         if (data['startTime'] is Timestamp) {
           data['startTime'] = (data['startTime'] as Timestamp).toDate().toIso8601String();
@@ -101,8 +138,7 @@ class FirestoreWorkoutDataSource {
   /// 특정 운동 ID로 중복 체크
   Future<bool> workoutExists(String userId, String workoutId) async {
     try {
-      final docId = '${userId}_$workoutId';
-      final doc = await firestore.collection(_workoutsCollection).doc(docId).get();
+      final doc = await _workoutsRef(userId).doc(workoutId).get();
       return doc.exists;
     } catch (e) {
       AppLogger.error('FirestoreWorkoutDS', 'Exists check failed', e);
@@ -113,8 +149,7 @@ class FirestoreWorkoutDataSource {
   /// 운동 삭제
   Future<void> deleteWorkout(String userId, String workoutId) async {
     try {
-      final docId = '${userId}_$workoutId';
-      await firestore.collection(_workoutsCollection).doc(docId).delete();
+      await _workoutsRef(userId).doc(workoutId).delete();
       AppLogger.info('FirestoreWorkoutDS', 'Workout deleted: $workoutId');
     } catch (e) {
       AppLogger.error('FirestoreWorkoutDS', 'Delete failed', e);
@@ -148,6 +183,30 @@ class FirestoreWorkoutDataSource {
       AppLogger.info('FirestoreWorkoutDS', 'Last sync time updated');
     } catch (e) {
       AppLogger.error('FirestoreWorkoutDS', 'Update last sync time failed', e);
+      rethrow;
+    }
+  }
+
+  /// 특정 기간의 등록된 운동 ID 목록 조회
+  Future<Set<String>> getRegisteredWorkoutIds({
+    required String userId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      // 하위 컬렉션 쿼리 - userId where 조건 불필요
+      final query = await _workoutsRef(userId)
+          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+          .get();
+
+      // 문서 ID가 곧 workout ID
+      final workoutIds = query.docs.map((doc) => doc.id).toSet();
+
+      AppLogger.info('FirestoreWorkoutDS', 'Fetched ${workoutIds.length} registered workout IDs');
+      return workoutIds;
+    } catch (e) {
+      AppLogger.error('FirestoreWorkoutDS', 'Get registered workout IDs failed', e);
       rethrow;
     }
   }

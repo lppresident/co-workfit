@@ -5,6 +5,7 @@ import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart
 import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/workout_list_item.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/edit_distance_dialog.dart';
+import 'package:co_workfit/features/workout/presentation/widgets/register_workout_bottom_sheet.dart';
 import 'package:co_workfit/features/workout/presentation/pages/workout_detail_page.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/filter_bottom_sheet.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
@@ -21,7 +22,7 @@ class WorkoutListPage extends StatefulWidget {
 class _WorkoutListPageState extends State<WorkoutListPage> {
   WorkoutType? _selectedType;
   WorkoutSource? _selectedSource;
-  String _sortBy = 'latest'; // 'latest', 'oldest', 'score_high', 'score_low'
+  String _sortBy = 'latest'; // 'latest', 'oldest', 'duration_high', 'duration_low'
 
   final ScrollController _scrollController = ScrollController();
   int _loadedDays = 30;
@@ -175,9 +176,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                   label: '재시도',
                   textColor: Colors.white,
                   onPressed: () {
-                    context.read<WorkoutBloc>().add(
-                          const SyncWorkoutsToFirestoreEvent(days: 30),
-                        );
+                    _showSyncConfirmation();
                   },
                 ),
               ),
@@ -328,11 +327,11 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
               case 'oldest':
                 workouts.sort((a, b) => a.startTime.compareTo(b.startTime));
                 break;
-              case 'score_high':
-                workouts.sort((a, b) => b.calibratedScore.compareTo(a.calibratedScore));
+              case 'duration_high':
+                workouts.sort((a, b) => b.durationMinutes.compareTo(a.durationMinutes));
                 break;
-              case 'score_low':
-                workouts.sort((a, b) => a.calibratedScore.compareTo(b.calibratedScore));
+              case 'duration_low':
+                workouts.sort((a, b) => a.durationMinutes.compareTo(b.durationMinutes));
                 break;
             }
 
@@ -495,59 +494,14 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   }
 
   void _showSyncConfirmation() {
-    showDialog(
+    // 운동 등록 Bottom Sheet 표시
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.cloud_upload, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('운동 등록'),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '최근 30일간의 운동 데이터를 등록합니다.',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 12),
-            Text(
-              '기기의 Health 데이터 접근 권한이 필요합니다.',
-              style: TextStyle(fontSize: 13, color: Colors.orange, fontWeight: FontWeight.w500),
-            ),
-            SizedBox(height: 12),
-            Text(
-              '• 기기를 변경해도 데이터가 유지됩니다\n• 이미 등록된 데이터는 건너뜁니다\n• 챌린지 제출 시 등록된 데이터를 사용합니다',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () async {
-              Navigator.pop(context);
-              // 먼저 Health 권한 요청
-              context.read<WorkoutBloc>().add(const RequestHealthPermissionEvent());
-              // 권한 요청 후 동기화 (권한이 있어야 Health 데이터를 읽을 수 있음)
-              await Future.delayed(const Duration(milliseconds: 500));
-              if (context.mounted) {
-                context.read<WorkoutBloc>().add(
-                      const SyncWorkoutsToFirestoreEvent(days: 30),
-                    );
-              }
-            },
-            icon: const Icon(Icons.cloud_upload),
-            label: const Text('등록'),
-          ),
-        ],
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (context) => const RegisterWorkoutBottomSheet(),
     );
   }
 

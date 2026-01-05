@@ -56,7 +56,7 @@ class _CreateChallengeBottomSheetState extends State<CreateChallengeBottomSheet>
               Row(
                 children: [
                   const Text(
-                    '🏃💪',
+                    '🏋️',
                     style: TextStyle(fontSize: 28),
                   ),
                   const SizedBox(width: 12),
@@ -68,7 +68,7 @@ class _CreateChallengeBottomSheetState extends State<CreateChallengeBottomSheet>
               ),
               const SizedBox(height: 8),
               Text(
-                '모든 운동 타입을 지원하는 통합 챌린지입니다',
+                '친구들과 함께 목표를 달성하세요!',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
               ),
               const SizedBox(height: 24),
@@ -141,12 +141,12 @@ class _CreateChallengeBottomSheetState extends State<CreateChallengeBottomSheet>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '🏃💪',
+                      '🏋️',
                       style: TextStyle(fontSize: 18),
                     ),
                     SizedBox(width: 8),
                     Text(
-                      '통합 챌린지 만들기',
+                      '챌린지 만들기',
                       style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ],

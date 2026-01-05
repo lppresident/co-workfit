@@ -21,8 +21,6 @@ WorkoutModel _$WorkoutModelFromJson(Map<String, dynamic> json) => WorkoutModel(
       maxHeartRate: (json['maxHeartRate'] as num?)?.toInt(),
       steps: (json['steps'] as num?)?.toInt(),
       elevationGain: (json['elevationGain'] as num?)?.toDouble(),
-      calibratedWorkload: (json['calibratedWorkload'] as num).toDouble(),
-      calibratedScore: (json['calibratedScore'] as num).toInt(),
       createdAt: DateTime.parse(json['createdAt'] as String),
       syncedAt: json['syncedAt'] == null
           ? null
@@ -45,8 +43,6 @@ Map<String, dynamic> _$WorkoutModelToJson(WorkoutModel instance) =>
       'maxHeartRate': instance.maxHeartRate,
       'steps': instance.steps,
       'elevationGain': instance.elevationGain,
-      'calibratedWorkload': instance.calibratedWorkload,
-      'calibratedScore': instance.calibratedScore,
       'createdAt': instance.createdAt.toIso8601String(),
       'syncedAt': instance.syncedAt?.toIso8601String(),
     };

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
-import 'package:co_workfit/features/wood/wood.dart';
+import 'package:co_workfit/features/currency/currency.dart';
 import '../../domain/entities/item_category.dart';
 import '../../domain/entities/item_entity.dart';
 import '../../domain/entities/item_recipes.dart';
@@ -25,20 +24,28 @@ class _CraftPageState extends State<CraftPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   
-  /// 현재 선택된 재화 타입 (false: 통나무, true: 쇠)
-  bool _showIronItems = false;
+  /// 현재 선택된 재화 필터 (null = 전체)
+  ItemCurrencyType? _selectedCurrencyFilter;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _loadData();
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
+  }
+  
+  void _onTabChanged() {
+    // TabController가 변경될 때 상태 업데이트 (필요시)
+    if (_tabController.indexIsChanging) return;
+    setState(() {});
   }
 
   void _loadData() {
@@ -74,48 +81,25 @@ class _CraftPageState extends State<CraftPage>
       child: Scaffold(
         appBar: AppBar(
           title: const Text('🛠️ 제작소'),
-          actions: [
-            // 재화 보유량 표시
-            BlocBuilder<WoodBloc, WoodState>(
-              builder: (context, woodState) {
-                final authState = context.read<AuthBloc>().state;
-                final ironAmount = authState is Authenticated 
-                    ? authState.user.ironAmount 
-                    : 0;
-                
-                return Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // 통나무 표시
-                      _buildCurrencyChip(
-                        emoji: '🪵',
-                        amount: woodState.summary?.totalWood ?? 0,
-                        isSelected: !_showIronItems,
-                        onTap: () => setState(() => _showIronItems = false),
-                      ),
-                      const SizedBox(width: 8),
-                      // 쇠 표시
-                      _buildCurrencyChip(
-                        emoji: '🔩',
-                        amount: ironAmount,
-                        isSelected: _showIronItems,
-                        onTap: () => setState(() => _showIronItems = true),
-                      ),
-                    ],
-                  ),
-                );
-              },
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(100),
+            child: Column(
+              children: [
+                // 재화 필터 칩
+                _buildCurrencyFilterRow(),
+                const SizedBox(height: 8),
+                // 슬롯 탭
+                TabBar(
+                  controller: _tabController,
+                  tabs: const [
+                    Tab(text: '전체'),
+                    Tab(text: '🧢 머리'),
+                    Tab(text: '👕 상체'),
+                    Tab(text: '👖 하체'),
+                  ],
+                ),
+              ],
             ),
-          ],
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: '🧢 머리'),
-              Tab(text: '👕 상체'),
-              Tab(text: '👖 하체'),
-            ],
           ),
         ),
         body: BlocBuilder<CraftBloc, CraftState>(
@@ -127,9 +111,10 @@ class _CraftPageState extends State<CraftPage>
             return TabBarView(
               controller: _tabController,
               children: [
-                _buildSlotTab(ClothingSlot.head, state),
-                _buildSlotTab(ClothingSlot.body, state),
-                _buildSlotTab(ClothingSlot.legs, state),
+                _buildItemGrid(null, state), // 전체
+                _buildItemGrid(ClothingSlot.head, state),
+                _buildItemGrid(ClothingSlot.body, state),
+                _buildItemGrid(ClothingSlot.legs, state),
               ],
             );
           },
@@ -138,59 +123,162 @@ class _CraftPageState extends State<CraftPage>
     );
   }
 
-  /// 재화 선택 칩
-  Widget _buildCurrencyChip({
+  /// 재화 필터 칩 Row
+  Widget _buildCurrencyFilterRow() {
+    return BlocBuilder<CurrencyBloc, CurrencyState>(
+      builder: (context, currencyState) {
+        final woodAmount = currencyState is CurrencyLoaded 
+            ? currencyState.getAmount(CurrencyType.wood) 
+            : 0;
+        final ironAmount = currencyState is CurrencyLoaded 
+            ? currencyState.getAmount(CurrencyType.iron) 
+            : 0;
+        final soilAmount = currencyState is CurrencyLoaded 
+            ? currencyState.getAmount(CurrencyType.soil) 
+            : 0;
+        
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              // 전체 필터
+              _buildFilterChip(
+                label: '전체',
+                emoji: '📦',
+                isSelected: _selectedCurrencyFilter == null,
+                onTap: () => setState(() => _selectedCurrencyFilter = null),
+              ),
+              const SizedBox(width: 8),
+              // 통나무 필터
+              _buildFilterChip(
+                label: '통나무',
+                emoji: '🪵',
+                amount: woodAmount,
+                isSelected: _selectedCurrencyFilter == ItemCurrencyType.wood,
+                color: const Color(0xFF8B4513),
+                onTap: () => setState(() => _selectedCurrencyFilter = ItemCurrencyType.wood),
+              ),
+              const SizedBox(width: 8),
+              // 쇠 필터
+              _buildFilterChip(
+                label: '쇠',
+                emoji: '🔩',
+                amount: ironAmount,
+                isSelected: _selectedCurrencyFilter == ItemCurrencyType.iron,
+                color: const Color(0xFF708090),
+                onTap: () => setState(() => _selectedCurrencyFilter = ItemCurrencyType.iron),
+              ),
+              const SizedBox(width: 8),
+              // 흙 필터
+              _buildFilterChip(
+                label: '흙',
+                emoji: '🪨',
+                amount: soilAmount,
+                isSelected: _selectedCurrencyFilter == ItemCurrencyType.soil,
+                color: const Color(0xFF6B4423),
+                onTap: () => setState(() => _selectedCurrencyFilter = ItemCurrencyType.soil),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 필터 칩 위젯
+  Widget _buildFilterChip({
+    required String label,
     required String emoji,
-    required int amount,
+    int? amount,
     required bool isSelected,
+    Color? color,
     required VoidCallback onTap,
   }) {
+    final chipColor = color ?? Theme.of(context).colorScheme.primary;
+    
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected 
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Colors.grey.withValues(alpha: 0.2),
+              ? chipColor.withValues(alpha: 0.2)
+              : Colors.grey.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          border: isSelected 
-              ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
-              : null,
+          border: Border.all(
+            color: isSelected ? chipColor : Colors.grey.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(emoji, style: const TextStyle(fontSize: 16)),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Text(
-              '$amount',
+              label,
               style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isSelected 
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.grey[600],
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? chipColor : Colors.grey[700],
+                fontSize: 13,
               ),
             ),
+            if (amount != null) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? chipColor.withValues(alpha: 0.3)
+                      : Colors.grey.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$amount',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? chipColor : Colors.grey[600],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSlotTab(ClothingSlot slot, CraftState state) {
-    // 현재 선택된 재화 타입에 따라 아이템 필터링
-    final allSlotItems = ItemRecipes.getItemsBySlot(slot);
-    final items = allSlotItems.where((item) => 
-        _showIronItems ? item.isIronItem : item.isWoodItem
-    ).toList();
+  /// 아이템 그리드
+  Widget _buildItemGrid(ClothingSlot? slot, CraftState state) {
+    // 아이템 필터링
+    List<ItemEntity> items = ItemRecipes.allItems;
+    
+    // 슬롯 필터
+    if (slot != null) {
+      items = items.where((item) => item.clothingSlot == slot).toList();
+    }
+    
+    // 재화 필터
+    if (_selectedCurrencyFilter != null) {
+      items = items.where((item) => item.currencyType == _selectedCurrencyFilter).toList();
+    }
+    
+    // 가격순 정렬
+    items.sort((a, b) => a.cost.compareTo(b.cost));
 
-    return BlocBuilder<WoodBloc, WoodState>(
-      builder: (context, woodState) {
-        final currentWood = woodState.summary?.totalWood ?? 0;
-        final authState = context.read<AuthBloc>().state;
-        final currentIron = authState is Authenticated 
-            ? authState.user.ironAmount 
+    return BlocBuilder<CurrencyBloc, CurrencyState>(
+      builder: (context, currencyState) {
+        final currentWood = currencyState is CurrencyLoaded 
+            ? currencyState.getAmount(CurrencyType.wood) 
+            : 0;
+        final currentIron = currencyState is CurrencyLoaded 
+            ? currencyState.getAmount(CurrencyType.iron) 
+            : 0;
+        final currentSoil = currencyState is CurrencyLoaded 
+            ? currencyState.getAmount(CurrencyType.soil) 
             : 0;
 
         if (items.isEmpty) {
@@ -199,15 +287,22 @@ class _CraftPageState extends State<CraftPage>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  _showIronItems ? '🔩' : '🪵',
+                  _getEmptyEmoji(),
                   style: const TextStyle(fontSize: 48),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  _showIronItems 
-                      ? '쇠 ${slot.displayName} 아이템이 없습니다'
-                      : '통나무 ${slot.displayName} 아이템이 없습니다',
+                  '조건에 맞는 아이템이 없습니다',
                   style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedCurrencyFilter = null;
+                    });
+                  },
+                  child: const Text('필터 초기화'),
                 ),
               ],
             ),
@@ -236,10 +331,11 @@ class _CraftPageState extends State<CraftPage>
                 item: item,
                 currentWood: currentWood,
                 currentIron: currentIron,
+                currentSoil: currentSoil,
                 ownedQuantity: quantity,
                 isEquipped: isEquipped,
                 currentEquipped: state.equippedItems,
-                onTap: () => _showItemDetail(context, item, state, currentWood, currentIron),
+                onTap: () => _showItemDetail(context, item, state, currentWood, currentIron, currentSoil),
                 onCraft: () => _craftItem(item.id),
                 onEquip: quantity > 0 && !isEquipped
                     ? () => _equipItem(item.id)
@@ -252,6 +348,19 @@ class _CraftPageState extends State<CraftPage>
       },
     );
   }
+  
+  String _getEmptyEmoji() {
+    switch (_selectedCurrencyFilter) {
+      case ItemCurrencyType.wood:
+        return '🪵';
+      case ItemCurrencyType.iron:
+        return '🔩';
+      case ItemCurrencyType.soil:
+        return '🪨';
+      case null:
+        return '📦';
+    }
+  }
 
   void _showItemDetail(
     BuildContext context,
@@ -259,10 +368,15 @@ class _CraftPageState extends State<CraftPage>
     CraftState state,
     int currentWood,
     int currentIron,
+    int currentSoil,
   ) {
     final quantity = state.getItemQuantity(item.id);
     final isEquipped = state.isItemEquipped(item.id);
-    final canCraft = item.canCraft(currentWood: currentWood, currentIron: currentIron);
+    final canCraft = item.canCraft(
+      currentWood: currentWood, 
+      currentIron: currentIron,
+      currentSoil: currentSoil,
+    );
     
     // 미리보기용 장착 상태
     var previewEquipped = state.equippedItems;
@@ -393,12 +507,29 @@ class _CraftPageState extends State<CraftPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        item.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // 재화 타입 뱃지
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Color(item.themeColorValue).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              item.currencyEmoji,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -478,9 +609,7 @@ class _CraftPageState extends State<CraftPage>
                           }
                         : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: item.isIronItem 
-                          ? Colors.blueGrey[600]
-                          : Colors.brown[400],
+                      backgroundColor: _getCraftButtonColor(item),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -490,7 +619,7 @@ class _CraftPageState extends State<CraftPage>
                     child: Text(
                       canCraft
                           ? '${item.currencyEmoji} ${item.cost}개로 제작하기'
-                          : _buildInsufficientText(item, currentWood, currentIron),
+                          : _buildInsufficientText(item, currentWood, currentIron, currentSoil),
                     ),
                   ),
                 ),
@@ -537,6 +666,12 @@ class _CraftPageState extends State<CraftPage>
       ),
     );
   }
+  
+  Color _getCraftButtonColor(ItemEntity item) {
+    if (item.isSoilItem) return const Color(0xFF6B4423);
+    if (item.isIronItem) return Colors.blueGrey[600]!;
+    return Colors.brown[400]!;
+  }
 
   Widget _buildInfoItem(String emoji, String label, String value) {
     return Column(
@@ -562,8 +697,10 @@ class _CraftPageState extends State<CraftPage>
     );
   }
   
-  String _buildInsufficientText(ItemEntity item, int currentWood, int currentIron) {
-    if (item.isIronItem) {
+  String _buildInsufficientText(ItemEntity item, int currentWood, int currentIron, int currentSoil) {
+    if (item.isSoilItem) {
+      return '흙 부족 ($currentSoil/${item.soilCost})';
+    } else if (item.isIronItem) {
       return '쇠 부족 ($currentIron/${item.ironCost})';
     } else {
       return '통나무 부족 ($currentWood/${item.woodCost})';
@@ -577,9 +714,7 @@ class _CraftPageState extends State<CraftPage>
             CraftItemEvent(userId: authState.user.id, itemId: itemId),
           );
       // 재화 상태 새로고침
-      context.read<WoodBloc>().add(const LoadWoodSummary());
-      // AuthBloc 새로고침 (쇠 정보용)
-      context.read<AuthBloc>().add(AuthRefreshUserRequested());
+      context.read<CurrencyBloc>().add(const LoadCurrencySummaryEvent());
     }
   }
 
@@ -601,4 +736,3 @@ class _CraftPageState extends State<CraftPage>
     }
   }
 }
-

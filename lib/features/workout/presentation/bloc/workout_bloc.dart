@@ -9,6 +9,8 @@ import 'package:co_workfit/features/workout/domain/usecases/reset_workout_distan
 import 'package:co_workfit/features/workout/domain/usecases/sync_workouts_to_firestore.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_merged_workouts.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_workouts_from_firestore.dart';
+import 'package:co_workfit/features/workout/domain/usecases/register_selected_workouts.dart';
+import 'package:co_workfit/features/workout/domain/usecases/get_registered_workout_ids.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 /// 운동 BLoC
@@ -22,6 +24,8 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
   final SyncWorkoutsToFirestore syncWorkoutsToFirestore;
   final GetMergedWorkouts getMergedWorkouts;
   final GetWorkoutsFromFirestore getWorkoutsFromFirestore;
+  final RegisterSelectedWorkouts registerSelectedWorkouts;
+  final GetRegisteredWorkoutIds getRegisteredWorkoutIds;
 
   WorkoutBloc({
     required this.requestHealthPermission,
@@ -33,6 +37,8 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     required this.syncWorkoutsToFirestore,
     required this.getMergedWorkouts,
     required this.getWorkoutsFromFirestore,
+    required this.registerSelectedWorkouts,
+    required this.getRegisteredWorkoutIds,
   }) : super(const WorkoutInitial()) {
     on<RequestHealthPermissionEvent>(_onRequestHealthPermission);
     on<FetchTodayWorkoutsEvent>(_onFetchTodayWorkouts);
@@ -41,8 +47,9 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     on<RefreshWorkoutsEvent>(_onRefreshWorkouts);
     on<UpdateWorkoutDistanceEvent>(_onUpdateWorkoutDistance);
     on<ResetWorkoutDistanceEvent>(_onResetWorkoutDistance);
-    on<SyncWorkoutsToFirestoreEvent>(_onSyncWorkoutsToFirestore);
     on<FetchWorkoutsFromFirestoreEvent>(_onFetchWorkoutsFromFirestore);
+    on<RegisterSelectedWorkoutsEvent>(_onRegisterSelectedWorkouts);
+    on<CheckRegisteredWorkoutsEvent>(_onCheckRegisteredWorkouts);
   }
 
   Future<void> _onRequestHealthPermission(
@@ -352,33 +359,6 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     );
   }
 
-  Future<void> _onSyncWorkoutsToFirestore(
-    SyncWorkoutsToFirestoreEvent event,
-    Emitter<WorkoutState> emit,
-  ) async {
-    emit(const WorkoutSyncing());
-
-    final now = DateTime.now();
-    final startDate = now.subtract(Duration(days: event.days));
-
-    final result = await syncWorkoutsToFirestore(
-      SyncWorkoutsParams(startDate: startDate, endDate: now),
-    );
-
-    result.fold(
-      (failure) {
-        AppLogger.error('WorkoutBloc', 'Firestore 동기화 실패: ${failure.message}');
-        emit(WorkoutSyncFailure(failure.message));
-      },
-      (count) {
-        AppLogger.info('WorkoutBloc', 'Firestore 동기화 완료: $count개');
-        emit(WorkoutSyncSuccess(count));
-        // 동기화 후 자동으로 병합된 데이터 다시 로드
-        add(FetchWorkoutsFromFirestoreEvent(days: event.days));
-      },
-    );
-  }
-
   Future<void> _onFetchWorkoutsFromFirestore(
     FetchWorkoutsFromFirestoreEvent event,
     Emitter<WorkoutState> emit,
@@ -406,6 +386,81 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
           AppLogger.info('WorkoutBloc', 'Firestore 운동 데이터 로드 완료: ${workouts.length}개');
           emit(WorkoutLoaded.fromWorkouts(workouts));
         }
+      },
+    );
+  }
+
+  Future<void> _onRegisterSelectedWorkouts(
+    RegisterSelectedWorkoutsEvent event,
+    Emitter<WorkoutState> emit,
+  ) async {
+    if (event.workoutIds.isEmpty) {
+      emit(const WorkoutSyncFailure('선택된 운동이 없습니다'));
+      return;
+    }
+
+    // emit 전에 현재 상태 저장
+    final currentState = state;
+    if (currentState is! WorkoutLoaded) {
+      emit(const WorkoutSyncFailure('운동 목록을 먼저 로드해주세요'));
+      return;
+    }
+
+    // 현재 로드된 운동 목록에서 선택된 운동만 필터링
+    final selectedWorkouts = currentState.workouts
+        .where((workout) => event.workoutIds.contains(workout.id))
+        .toList();
+
+    if (selectedWorkouts.isEmpty) {
+      emit(const WorkoutSyncFailure('선택된 운동을 찾을 수 없습니다'));
+      return;
+    }
+
+    emit(const WorkoutSyncing());
+    AppLogger.info('WorkoutBloc', '선택된 ${event.workoutIds.length}개 운동 등록 시작');
+
+    // UseCase를 통해 선택된 운동만 Firestore에 업로드
+    final result = await registerSelectedWorkouts(selectedWorkouts);
+
+    result.fold(
+      (failure) {
+        AppLogger.error('WorkoutBloc', '선택된 운동 등록 실패: ${failure.message}');
+        emit(WorkoutSyncFailure(failure.message));
+      },
+      (count) {
+        AppLogger.info('WorkoutBloc', '선택된 운동 등록 완료: $count개');
+        emit(WorkoutSyncSuccess(count));
+
+        // 등록 후 Firestore 데이터 다시 로드
+        add(const FetchWorkoutsFromFirestoreEvent(days: 30));
+      },
+    );
+  }
+
+  Future<void> _onCheckRegisteredWorkouts(
+    CheckRegisteredWorkoutsEvent event,
+    Emitter<WorkoutState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! WorkoutLoaded) {
+      AppLogger.warning('WorkoutBloc', '현재 상태가 WorkoutLoaded가 아님');
+      return;
+    }
+
+    final now = DateTime.now();
+    final startDate = now.subtract(Duration(days: event.days));
+
+    final result = await getRegisteredWorkoutIds(
+      GetRegisteredWorkoutIdsParams(startDate: startDate, endDate: now),
+    );
+
+    result.fold(
+      (failure) {
+        AppLogger.error('WorkoutBloc', '등록된 운동 ID 조회 실패: ${failure.message}');
+      },
+      (registeredIds) {
+        AppLogger.info('WorkoutBloc', '등록된 운동 ID: ${registeredIds.length}개');
+        emit(currentState.copyWithRegisteredIds(registeredIds));
       },
     );
   }

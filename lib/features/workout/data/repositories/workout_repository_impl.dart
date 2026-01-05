@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dartz/dartz.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
@@ -21,7 +22,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   final GarminDataSource _garminDataSource;
   final HealthDataMapper _healthDataMapper;
   final FirestoreWorkoutDataSource _firestoreDataSource;
-  final String _userId; // TODO: AuthRepository에서 가져오도록 변경
+  final FirebaseAuth _firebaseAuth;
 
   // SharedPreferences 키
   static const String _correctedDistancesKey = 'workout_corrected_distances';
@@ -35,13 +36,22 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     required GarminDataSource garminDataSource,
     required HealthDataMapper healthDataMapper,
     required FirestoreWorkoutDataSource firestoreDataSource,
-    String userId = 'current_user', // 임시 기본값
+    required FirebaseAuth firebaseAuth,
   })  : _healthKitDataSource = healthKitDataSource,
         _healthConnectDataSource = healthConnectDataSource,
         _garminDataSource = garminDataSource,
         _healthDataMapper = healthDataMapper,
         _firestoreDataSource = firestoreDataSource,
-        _userId = userId;
+        _firebaseAuth = firebaseAuth;
+
+  /// 현재 로그인한 사용자 ID 반환
+  String get _userId {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw Exception('로그인이 필요합니다');
+    }
+    return user.uid;
+  }
 
   /// SharedPreferences에서 수정된 거리 정보 로드
   Future<Map<String, double>> _loadCorrectedDistances() async {
@@ -609,6 +619,68 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     } catch (e) {
       AppLogger.error('WorkoutRepo', 'getLastSyncTime 실패', e);
       return null;
+    }
+  }
+
+  @override
+  Future<Either<String, int>> registerSelectedWorkouts(
+    List<WorkoutEntity> workouts,
+  ) async {
+    try {
+      if (workouts.isEmpty) {
+        return const Right(0);
+      }
+
+      final modelsToUpload = <WorkoutModel>[];
+
+      // 중복 체크 후 업로드할 운동만 추가
+      for (final workout in workouts) {
+        final exists = await _firestoreDataSource.workoutExists(_userId, workout.id);
+        if (!exists) {
+          final model = WorkoutModel.fromEntity(
+            workout.copyWith(syncedAt: DateTime.now()),
+          );
+          modelsToUpload.add(model);
+        }
+      }
+
+      // 배치 업로드
+      if (modelsToUpload.isNotEmpty) {
+        await _firestoreDataSource.uploadWorkouts(_userId, modelsToUpload);
+      }
+
+      // 마지막 동기화 시간 업데이트
+      await _firestoreDataSource.updateLastSyncTime(_userId, DateTime.now());
+
+      AppLogger.info(
+        'WorkoutRepo',
+        '선택된 운동 등록 완료: ${modelsToUpload.length}개 (중복 ${workouts.length - modelsToUpload.length}개 제외)',
+      );
+
+      return Right(modelsToUpload.length);
+    } catch (e) {
+      AppLogger.error('WorkoutRepo', '선택된 운동 등록 실패', e);
+      return Left('선택된 운동 등록 실패: $e');
+    }
+  }
+
+  @override
+  Future<Either<String, Set<String>>> getRegisteredWorkoutIds({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final workoutIds = await _firestoreDataSource.getRegisteredWorkoutIds(
+        userId: _userId,
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+      AppLogger.info('WorkoutRepo', 'Firestore에 등록된 운동 ID: ${workoutIds.length}개');
+      return Right(workoutIds);
+    } catch (e) {
+      AppLogger.error('WorkoutRepo', '등록된 운동 ID 조회 실패', e);
+      return Left('등록된 운동 ID 조회 실패: $e');
     }
   }
 }

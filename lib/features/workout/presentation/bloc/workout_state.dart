@@ -43,22 +43,22 @@ class WorkoutPermissionDenied extends WorkoutState {
 class WorkoutLoaded extends WorkoutState {
   final List<WorkoutEntity> workouts;
 
+  // Firestore에 이미 등록된 운동 ID 목록
+  final Set<String> registeredWorkoutIds;
+
   // 전체 기간 통계
-  final int totalScore;
   final int totalCalories;
   final int totalDuration;
 
   // 오늘 통계
-  final int todayScore;
   final int todayCalories;
   final int todayDuration;
 
   const WorkoutLoaded({
     required this.workouts,
-    required this.totalScore,
+    this.registeredWorkoutIds = const {},
     required this.totalCalories,
     required this.totalDuration,
-    required this.todayScore,
     required this.todayCalories,
     required this.todayDuration,
   });
@@ -66,22 +66,31 @@ class WorkoutLoaded extends WorkoutState {
   @override
   List<Object?> get props => [
         workouts,
-        totalScore,
+        registeredWorkoutIds,
         totalCalories,
         totalDuration,
-        todayScore,
         todayCalories,
         todayDuration,
       ];
 
-  /// 통계 계산
-  factory WorkoutLoaded.fromWorkouts(List<WorkoutEntity> workouts) {
-    // 전체 기간 통계
-    final totalScore = workouts.fold<int>(
-      0,
-      (sum, workout) => sum + workout.calibratedScore,
+  /// 등록된 운동 ID 목록 업데이트
+  WorkoutLoaded copyWithRegisteredIds(Set<String> registeredIds) {
+    return WorkoutLoaded(
+      workouts: workouts,
+      registeredWorkoutIds: registeredIds,
+      totalCalories: totalCalories,
+      totalDuration: totalDuration,
+      todayCalories: todayCalories,
+      todayDuration: todayDuration,
     );
+  }
 
+  /// 통계 계산
+  factory WorkoutLoaded.fromWorkouts(
+    List<WorkoutEntity> workouts, {
+    Set<String> registeredWorkoutIds = const {},
+  }) {
+    // 전체 기간 통계
     final totalCalories = workouts.fold<int>(
       0,
       (sum, workout) => sum + (workout.calories ?? 0),
@@ -103,11 +112,6 @@ class WorkoutLoaded extends WorkoutState {
     }).toList();
 
     // 오늘 통계
-    final todayScore = todayWorkouts.fold<int>(
-      0,
-      (sum, workout) => sum + workout.calibratedScore,
-    );
-
     final todayCalories = todayWorkouts.fold<int>(
       0,
       (sum, workout) => sum + (workout.calories ?? 0),
@@ -120,10 +124,9 @@ class WorkoutLoaded extends WorkoutState {
 
     return WorkoutLoaded(
       workouts: workouts,
-      totalScore: totalScore,
+      registeredWorkoutIds: registeredWorkoutIds,
       totalCalories: totalCalories,
       totalDuration: totalDuration,
-      todayScore: todayScore,
       todayCalories: todayCalories,
       todayDuration: todayDuration,
     );

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
+import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
+import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
+import 'package:co_workfit/features/workout/domain/usecases/register_selected_workouts.dart';
+import 'package:co_workfit/features/workout/domain/utils/strength_score_calculator.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_event.dart';
-import 'package:co_workfit/features/workout/presentation/bloc/workout_state.dart';
-import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
-import 'package:co_workfit/features/iron/domain/entities/iron_reward_constants.dart';
 import 'package:intl/intl.dart';
 
 /// 운동 기록 제출 Bottom Sheet
+///
+/// Health 데이터에서 직접 선택하여 Firestore 등록 + 챌린지 제출을 한 번에 처리합니다.
 class SubmitWorkoutBottomSheet extends StatefulWidget {
   final String challengeId;
   final DateTime startDate;
@@ -31,19 +35,90 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
   WorkoutEntity? _selectedWorkout;
   final TextEditingController _distanceController = TextEditingController();
 
+  // Health 데이터 로딩을 위한 로컬 상태
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<WorkoutEntity> _healthWorkouts = [];
+  Set<String> _registeredWorkoutIds = {};
+  bool _isSubmitting = false;
+
+  late final WorkoutRepository _workoutRepository;
+  late final RegisterSelectedWorkouts _registerSelectedWorkoutsUseCase;
+
+  @override
+  void initState() {
+    super.initState();
+    _workoutRepository = GetIt.I<WorkoutRepository>();
+    _registerSelectedWorkoutsUseCase = GetIt.I<RegisterSelectedWorkouts>();
+    _loadHealthWorkouts();
+  }
+
   @override
   void dispose() {
     _distanceController.dispose();
     super.dispose();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    // 최근 30일 등록된 운동 기록만 로드 (Firestore 데이터만)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
+  /// Health에서 운동 데이터 로드
+  Future<void> _loadHealthWorkouts() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
     });
+
+    try {
+      // 권한 요청
+      final permissionResult = await _workoutRepository.requestHealthAuthorization();
+      if (permissionResult.isLeft()) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = permissionResult.fold((l) => l, (r) => '권한 요청 실패');
+        });
+        return;
+      }
+
+      // 챌린지 기간에 맞춰 데이터 조회 (여유있게 앞뒤로 1일 추가)
+      final startDate = widget.startDate.subtract(const Duration(days: 1));
+      final endDate = widget.endDate.add(const Duration(days: 1));
+
+      // Health에서 운동 데이터 가져오기
+      final workoutsResult = await _workoutRepository.getWorkouts(
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+      // Firestore에서 등록된 운동 ID 가져오기
+      final registeredIdsResult = await _workoutRepository.getRegisteredWorkoutIds(
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+      workoutsResult.fold(
+        (error) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = error;
+          });
+        },
+        (workouts) {
+          final registeredIds = registeredIdsResult.fold(
+            (l) => <String>{},
+            (r) => r,
+          );
+
+          setState(() {
+            _isLoading = false;
+            _healthWorkouts = workouts;
+            _registeredWorkoutIds = registeredIds;
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = '운동 데이터를 불러오는 중 오류가 발생했습니다: $e';
+      });
+    }
   }
 
   @override
@@ -86,194 +161,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
 
               // 운동 기록 목록
               Expanded(
-                child: BlocBuilder<WorkoutBloc, WorkoutState>(
-                  builder: (context, state) {
-                    if (state is WorkoutLoading) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (state is WorkoutLoaded) {
-                      // 챌린지 기간 계산
-                      final startOfStartDate = DateTime(
-                        widget.startDate.year,
-                        widget.startDate.month,
-                        widget.startDate.day,
-                      );
-                      final endOfEndDate = DateTime(
-                        widget.endDate.year,
-                        widget.endDate.month,
-                        widget.endDate.day,
-                        23,
-                        59,
-                        59,
-                      );
-
-                      // 통합 챌린지: 모든 운동 타입 허용
-                      final validWorkouts = state.workouts
-                          .where((workout) {
-                            // 기간 체크
-                            final inPeriod = workout.startTime.isAfter(
-                                    startOfStartDate.subtract(const Duration(seconds: 1))) &&
-                                workout.startTime.isBefore(
-                                    endOfEndDate.add(const Duration(seconds: 1)));
-                            return inPeriod;
-                          })
-                          .toList();
-
-                      if (validWorkouts.isEmpty) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.event_busy,
-                                  size: 48,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  '제출 가능한 운동 기록이 없습니다',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  '챌린지 기간: ${DateFormat('MM/dd').format(widget.startDate)} ~ ${DateFormat('MM/dd').format(widget.endDate)}',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '이 기간 내의 운동 기록만 제출 가능합니다',
-                                  style: TextStyle(
-                                    color: Colors.grey[500],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        controller: scrollController,
-                        itemCount: validWorkouts.length,
-                        itemBuilder: (context, index) {
-                          final workout = validWorkouts[index];
-                          final isSelected = _selectedWorkout?.id == workout.id;
-
-                          // Garmin 데이터인지 확인
-                          final isGarminData = workout.source == WorkoutSource.garmin;
-                          
-                          // 헬스 운동인 경우 점수 계산
-                          final isStrengthWorkout = workout.type == WorkoutType.weightTraining;
-                          String valueDisplay;
-                          if (isStrengthWorkout) {
-                            final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
-                              durationMinutes: workout.durationMinutes,
-                              avgHeartRate: workout.averageHeartRate,
-                            );
-                            final intensity = WorkoutIntensityExtension.fromHeartRate(workout.averageHeartRate);
-                            valueDisplay = '${strengthScore.toStringAsFixed(1)}점 (${intensity.displayName})';
-                          } else {
-                            valueDisplay = '${(workout.effectiveDistance ?? 0.0).toStringAsFixed(2)} km';
-                          }
-
-                          return ListTile(
-                            leading: Icon(
-                              _getWorkoutIcon(workout.type),
-                              color: isSelected ? Theme.of(context).colorScheme.primary : null,
-                            ),
-                            title: Row(
-                              children: [
-                                Text(
-                                  _getWorkoutTypeName(workout.type),
-                                  style: TextStyle(
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: isSelected ? Theme.of(context).colorScheme.primary : null,
-                                  ),
-                                ),
-                                if (isGarminData && !isStrengthWorkout) ...[
-                                  const SizedBox(width: 8),
-                                  Tooltip(
-                                    message: '거리 데이터가 부정확할 수 있습니다.\n제출 시 확인해주세요.',
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.withValues(alpha: 0.1),
-                                        border: Border.all(color: Colors.orange, width: 1),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.warning_amber, size: 12, color: Colors.orange),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            'Garmin',
-                                            style: TextStyle(fontSize: 10, color: Colors.orange),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            subtitle: Row(
-                              children: [
-                                Text(
-                                  '${DateFormat('yyyy.MM.dd HH:mm').format(workout.startTime)} • $valueDisplay',
-                                ),
-                                if (!isStrengthWorkout && workout.hasDistanceCorrection) ...[
-                                  const SizedBox(width: 4),
-                                  const Icon(Icons.edit, size: 12, color: Colors.blue),
-                                ],
-                                if (isStrengthWorkout) ...[
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '• ${workout.durationMinutes}분',
-                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            trailing: isSelected
-                                ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
-                                : null,
-                            selected: isSelected,
-                            onTap: () {
-                              setState(() {
-                                _selectedWorkout = workout;
-                                if (isStrengthWorkout) {
-                                  final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
-                                    durationMinutes: workout.durationMinutes,
-                                    avgHeartRate: workout.averageHeartRate,
-                                  );
-                                  _distanceController.text = strengthScore.toStringAsFixed(2);
-                                } else {
-                                  _distanceController.text = (workout.distance ?? 0.0).toStringAsFixed(2);
-                                }
-                              });
-                            },
-                          );
-                        },
-                      );
-                    }
-
-                    if (state is WorkoutError) {
-                      return Center(
-                        child: Text('운동 기록을 불러올 수 없습니다.\n${state.message}'),
-                      );
-                    }
-
-                    return const SizedBox.shrink();
-                  },
-                ),
+                child: _buildContent(scrollController),
               ),
 
               // 제출 버튼
@@ -288,13 +176,19 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _selectedWorkout == null
+                      onPressed: _selectedWorkout == null || _isSubmitting
                           ? null
                           : () => _handleSubmit(),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text('제출하기'),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('제출하기'),
                     ),
                   ),
                 ),
@@ -303,6 +197,226 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildContent(ScrollController scrollController) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+              const SizedBox(height: 16),
+              const Text(
+                '운동 기록을 불러올 수 없습니다',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _loadHealthWorkouts,
+                icon: const Icon(Icons.refresh),
+                label: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 챌린지 기간 필터링
+    final startOfStartDate = DateTime(
+      widget.startDate.year,
+      widget.startDate.month,
+      widget.startDate.day,
+    );
+    final endOfEndDate = DateTime(
+      widget.endDate.year,
+      widget.endDate.month,
+      widget.endDate.day,
+      23,
+      59,
+      59,
+    );
+
+    final validWorkouts = _healthWorkouts.where((workout) {
+      final inPeriod = workout.startTime.isAfter(
+              startOfStartDate.subtract(const Duration(seconds: 1))) &&
+          workout.startTime.isBefore(endOfEndDate.add(const Duration(seconds: 1)));
+      return inPeriod;
+    }).toList();
+
+    if (validWorkouts.isEmpty) {
+      return _buildNoValidWorkoutsView(context);
+    }
+
+    return Column(
+      children: [
+        // 안내 메시지
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '기기의 운동 기록을 선택하면 자동으로 등록 후 제출됩니다',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // 운동 목록
+        Expanded(
+          child: ListView.builder(
+            controller: scrollController,
+            itemCount: validWorkouts.length,
+            itemBuilder: (context, index) {
+              final workout = validWorkouts[index];
+              final isSelected = _selectedWorkout?.id == workout.id;
+              final isRegistered = _registeredWorkoutIds.contains(workout.id);
+
+              // Garmin 데이터인지 확인
+              final isGarminData = workout.source == WorkoutSource.garmin;
+
+              // 헬스 운동인 경우 점수 계산
+              final isStrengthWorkout = workout.type == WorkoutType.weightTraining;
+              String valueDisplay;
+              if (isStrengthWorkout) {
+                final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
+                  durationMinutes: workout.durationMinutes,
+                  avgHeartRate: workout.averageHeartRate,
+                );
+                final intensity =
+                    WorkoutIntensityExtension.fromHeartRate(workout.averageHeartRate);
+                valueDisplay = '${strengthScore.toStringAsFixed(1)}점 (${intensity.displayName})';
+              } else {
+                valueDisplay = '${(workout.effectiveDistance ?? 0.0).toStringAsFixed(2)} km';
+              }
+
+              return ListTile(
+                leading: Icon(
+                  _getWorkoutIcon(workout.type),
+                  color: isRegistered
+                      ? Colors.grey
+                      : isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                ),
+                title: Row(
+                  children: [
+                    Text(
+                      _getWorkoutTypeName(workout.type),
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isRegistered
+                            ? Colors.grey
+                            : isSelected
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                      ),
+                    ),
+                    if (isRegistered) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          border: Border.all(color: Colors.green, width: 1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          '등록됨',
+                          style: TextStyle(fontSize: 10, color: Colors.green),
+                        ),
+                      ),
+                    ],
+                    if (!isRegistered && isGarminData && !isStrengthWorkout) ...[
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: '거리 데이터가 부정확할 수 있습니다.\n제출 시 확인해주세요.',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            border: Border.all(color: Colors.orange, width: 1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.warning_amber, size: 12, color: Colors.orange),
+                              SizedBox(width: 4),
+                              Text(
+                                'Garmin',
+                                style: TextStyle(fontSize: 10, color: Colors.orange),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                subtitle: Row(
+                  children: [
+                    Text(
+                      '${DateFormat('yyyy.MM.dd HH:mm').format(workout.startTime)} • $valueDisplay',
+                      style: TextStyle(
+                        color: isRegistered ? Colors.grey : null,
+                      ),
+                    ),
+                    if (!isStrengthWorkout && workout.hasDistanceCorrection) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.edit, size: 12, color: Colors.blue),
+                    ],
+                    if (isStrengthWorkout) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '• ${workout.durationMinutes}분',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ),
+                trailing: isSelected
+                    ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
+                    : null,
+                selected: isSelected,
+                onTap: () {
+                  setState(() {
+                    _selectedWorkout = workout;
+                    if (isStrengthWorkout) {
+                      final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
+                        durationMinutes: workout.durationMinutes,
+                        avgHeartRate: workout.averageHeartRate,
+                      );
+                      _distanceController.text = strengthScore.toStringAsFixed(2);
+                    } else {
+                      _distanceController.text = (workout.distance ?? 0.0).toStringAsFixed(2);
+                    }
+                  });
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -477,9 +591,117 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     );
   }
 
-  /// 운동 기록 제출
-  void _submitWorkout(double distance) {
-    widget.onSubmit(_selectedWorkout!);
-    Navigator.pop(context); // Bottom Sheet 닫기
+  /// 운동 기록 제출 (Firestore 등록 + 챌린지 제출)
+  Future<void> _submitWorkout(double distance) async {
+    if (_selectedWorkout == null) return;
+
+    final workout = _selectedWorkout!;
+    final isAlreadyRegistered = _registeredWorkoutIds.contains(workout.id);
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // 아직 등록되지 않은 운동이면 먼저 Firestore에 등록
+      if (!isAlreadyRegistered) {
+        final result = await _registerSelectedWorkoutsUseCase([workout]);
+
+        final failed = result.fold(
+          (failure) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('운동 등록 실패: ${failure.message}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return true;
+          },
+          (count) => false,
+        );
+
+        if (failed) {
+          setState(() {
+            _isSubmitting = false;
+          });
+          return;
+        }
+      }
+
+      // 챌린지에 제출
+      widget.onSubmit(workout);
+
+      // 운동 탭 새로고침을 위해 이벤트 발생
+      if (mounted) {
+        context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
+      }
+
+      if (mounted) {
+        Navigator.pop(context); // Bottom Sheet 닫기
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('제출 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  /// 챌린지 기간 내 운동이 없을 때 표시하는 뷰
+  Widget _buildNoValidWorkoutsView(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.event_busy,
+              size: 48,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '제출 가능한 운동 기록이 없습니다',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '챌린지 기간: ${DateFormat('MM/dd').format(widget.startDate)} ~ ${DateFormat('MM/dd').format(widget.endDate)}',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '이 기간 내에 운동을 완료한 후 다시 시도해주세요',
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: _loadHealthWorkouts,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('새로고침'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

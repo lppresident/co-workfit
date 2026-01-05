@@ -249,7 +249,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                     icon: const Icon(Icons.share),
                     onPressed: () => _showShareSheet(
                       challenge.inviteCode,
-                      '${challenge.targetWeight.toStringAsFixed(0)}kg 통합 챌린지',
+                      '${challenge.targetWeight.toStringAsFixed(0)}kg 챌린지',
                     ),
                     tooltip: '초대 코드 공유',
                   ),
@@ -356,25 +356,6 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                   ),
                   child: Column(
                     children: [
-                      // 챌린지 타입 표시
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            '🏃💪',
-                            style: TextStyle(fontSize: 20),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '통합 챌린지',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: themeColor,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
                       if (challenge.isCompleted) ...[
                         const Icon(Icons.emoji_events, size: 48, color: Colors.amber),
                         const SizedBox(height: 8),

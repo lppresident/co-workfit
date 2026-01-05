@@ -40,10 +40,6 @@ class WorkoutEntity extends Equatable {
   final int? steps;
   final double? elevationGain; // meters
 
-  // 캘리브레이션된 데이터
-  final double calibratedWorkload; // 표준화된 노동 지수 (0-100)
-  final int calibratedScore; // 점수 (캘리브레이션 후)
-
   final DateTime createdAt;
   final DateTime? syncedAt;
 
@@ -62,8 +58,6 @@ class WorkoutEntity extends Equatable {
     this.maxHeartRate,
     this.steps,
     this.elevationGain,
-    required this.calibratedWorkload,
-    required this.calibratedScore,
     required this.createdAt,
     this.syncedAt,
   });
@@ -87,8 +81,6 @@ class WorkoutEntity extends Equatable {
         maxHeartRate,
         steps,
         elevationGain,
-        calibratedWorkload,
-        calibratedScore,
         createdAt,
         syncedAt,
       ];
@@ -109,8 +101,6 @@ class WorkoutEntity extends Equatable {
     int? maxHeartRate,
     int? steps,
     double? elevationGain,
-    double? calibratedWorkload,
-    int? calibratedScore,
     DateTime? createdAt,
     DateTime? syncedAt,
   }) {
@@ -129,8 +119,6 @@ class WorkoutEntity extends Equatable {
       maxHeartRate: maxHeartRate ?? this.maxHeartRate,
       steps: steps ?? this.steps,
       elevationGain: elevationGain ?? this.elevationGain,
-      calibratedWorkload: calibratedWorkload ?? this.calibratedWorkload,
-      calibratedScore: calibratedScore ?? this.calibratedScore,
       createdAt: createdAt ?? this.createdAt,
       syncedAt: syncedAt ?? this.syncedAt,
     );

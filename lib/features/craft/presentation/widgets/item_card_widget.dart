@@ -9,6 +9,7 @@ class ItemCardWidget extends StatelessWidget {
   final ItemEntity item;
   final int currentWood;
   final int currentIron;
+  final int currentSoil;
   final int ownedQuantity;
   final bool isEquipped;
   final EquippedItemsEntity? currentEquipped;
@@ -22,6 +23,7 @@ class ItemCardWidget extends StatelessWidget {
     required this.item,
     this.currentWood = 0,
     this.currentIron = 0,
+    this.currentSoil = 0,
     this.ownedQuantity = 0,
     this.isEquipped = false,
     this.currentEquipped,
@@ -31,8 +33,18 @@ class ItemCardWidget extends StatelessWidget {
     this.onUnequip,
   });
 
-  bool get canCraft => item.canCraft(currentWood: currentWood, currentIron: currentIron);
+  bool get canCraft => item.canCraft(
+    currentWood: currentWood, 
+    currentIron: currentIron,
+    currentSoil: currentSoil,
+  );
   bool get isOwned => ownedQuantity > 0;
+  
+  Color _getCraftButtonColor() {
+    if (item.isSoilItem) return const Color(0xFF6B4423);
+    if (item.isIronItem) return Colors.blueGrey[600]!;
+    return Colors.brown[400]!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -203,9 +215,7 @@ class ItemCardWidget extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: canCraft ? onCraft : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: item.isIronItem 
-                      ? Colors.blueGrey[600] 
-                      : Colors.brown[400],
+                  backgroundColor: _getCraftButtonColor(),
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(

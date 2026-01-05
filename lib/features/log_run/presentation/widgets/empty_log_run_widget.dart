@@ -48,11 +48,23 @@ class EmptyLogRunWidget extends StatelessWidget {
 
             // 설명
             Text(
-              '친구들과 함께 목표를 달성하고\n달리기는 🪵통나무, 헬스는 🔩쇠를 획득하세요!',
+              '친구들과 함께 목표를 달성하고\n운동 종류별 재화를 획득하세요!',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.grey[600],
                   ),
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            // 재화 아이콘 Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildCurrencyChip(context, '🪵', '달리기'),
+                const SizedBox(width: 8),
+                _buildCurrencyChip(context, '🔩', '헬스'),
+                const SizedBox(width: 8),
+                _buildCurrencyChip(context, '🪨', '기타'),
+              ],
             ),
             const SizedBox(height: 48),
 
@@ -115,6 +127,13 @@ class EmptyLogRunWidget extends StatelessWidget {
                     const SizedBox(height: 8),
                     _buildInfoItem(
                       context,
+                      Icons.self_improvement,
+                      '기타 운동 챌린지',
+                      '요가, 수영, 하이킹 등으로 🪨흙 획득',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildInfoItem(
+                      context,
                       Icons.emoji_events,
                       '기여도 보상',
                       '기여도에 따라 보상 차등 지급 + MVP 보너스',
@@ -160,6 +179,31 @@ class EmptyLogRunWidget extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCurrencyChip(BuildContext context, String emoji, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

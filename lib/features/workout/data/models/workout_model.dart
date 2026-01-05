@@ -21,8 +21,6 @@ class WorkoutModel {
   final int? maxHeartRate;
   final int? steps;
   final double? elevationGain;
-  final double calibratedWorkload;
-  final int calibratedScore;
   final DateTime createdAt;
   final DateTime? syncedAt;
 
@@ -41,8 +39,6 @@ class WorkoutModel {
     this.maxHeartRate,
     this.steps,
     this.elevationGain,
-    required this.calibratedWorkload,
-    required this.calibratedScore,
     required this.createdAt,
     this.syncedAt,
   });
@@ -72,8 +68,6 @@ class WorkoutModel {
       maxHeartRate: entity.maxHeartRate,
       steps: entity.steps,
       elevationGain: entity.elevationGain,
-      calibratedWorkload: entity.calibratedWorkload,
-      calibratedScore: entity.calibratedScore,
       createdAt: entity.createdAt,
       syncedAt: entity.syncedAt,
     );
@@ -102,8 +96,6 @@ class WorkoutModel {
       maxHeartRate: maxHeartRate,
       steps: steps,
       elevationGain: elevationGain,
-      calibratedWorkload: calibratedWorkload,
-      calibratedScore: calibratedScore,
       createdAt: createdAt,
       syncedAt: syncedAt,
     );

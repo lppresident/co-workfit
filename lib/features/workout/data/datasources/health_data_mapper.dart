@@ -1,14 +1,12 @@
 import 'package:health/health.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/core/constants/health_data_types.dart';
-import 'package:co_workfit/features/calibration/domain/usecases/calibrate_workout.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 /// Health 데이터를 WorkoutEntity로 변환하는 매퍼
 /// Apple HealthKit, Google Fit, Samsung Health 데이터 모두 지원
 class HealthDataMapper {
-  final CalibrateWorkout _calibrateWorkout = CalibrateWorkout();
 
   /// HealthDataPoint를 WorkoutEntity로 변환
   /// [healthPoint]: Health 패키지에서 가져온 운동 데이터 포인트
@@ -74,9 +72,8 @@ class HealthDataMapper {
     final steps = details['steps'] as int?;
     final elevationGain = details['elevationGain'] as double?;
 
-    // 임시 엔티티 생성 (캘리브레이션 전)
-    final tempEntity = WorkoutEntity(
-      id: _generateWorkoutId(healthPoint, source),
+    return WorkoutEntity(
+      id: _generateWorkoutId(healthPoint),
       userId: userId,
       source: source,
       type: workoutType,
@@ -89,43 +86,20 @@ class HealthDataMapper {
       maxHeartRate: maxHeartRate,
       steps: steps,
       elevationGain: elevationGain,
-      calibratedWorkload: 0, // 임시값
-      calibratedScore: 0, // 임시값
       createdAt: DateTime.now(),
-    );
-
-    // 캘리브레이션 실행
-    final calibrationResult = _calibrateWorkout.execute(tempEntity);
-
-    // 최종 엔티티 반환
-    return tempEntity.copyWith(
-      calibratedWorkload: calibrationResult.workload,
-      calibratedScore: calibrationResult.score,
     );
   }
 
   /// 고유한 운동 ID 생성
-  String _generateWorkoutId(HealthDataPoint healthPoint, WorkoutSource source) {
+  /// 형식: {timestamp}_{duration}
+  /// - timestamp: 운동 시작 시간 (밀리초)
+  /// - duration: 운동 시간 (초) - 같은 시간에 시작한 다른 운동과 구분
+  /// 
+  /// Note: Firestore 문서 ID는 ${userId}_${workoutId} 형태로 저장되어 전역 고유성 보장
+  String _generateWorkoutId(HealthDataPoint healthPoint) {
     final timestamp = healthPoint.dateFrom.millisecondsSinceEpoch;
-    final type = healthPoint.type.name;
-    final sourcePrefix = _getSourcePrefix(source);
-    return '${sourcePrefix}_${type}_$timestamp';
-  }
-
-  /// WorkoutSource에 따른 ID 접두사 반환
-  String _getSourcePrefix(WorkoutSource source) {
-    switch (source) {
-      case WorkoutSource.appleHealth:
-        return 'apple_health';
-      case WorkoutSource.googleFit:
-        return 'google_fit';
-      case WorkoutSource.samsungHealth:
-        return 'samsung_health';
-      case WorkoutSource.garmin:
-        return 'garmin';
-      case WorkoutSource.manual:
-        return 'manual';
-    }
+    final duration = healthPoint.dateTo.difference(healthPoint.dateFrom).inSeconds;
+    return '${timestamp}_$duration';
   }
 
   /// 여러 HealthDataPoint를 WorkoutEntity 리스트로 변환

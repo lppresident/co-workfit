@@ -5,6 +5,7 @@ import 'item_category.dart';
 enum ItemCurrencyType {
   wood,  // 통나무 (달리기)
   iron,  // 쇠 (헬스)
+  soil,  // 흙 (기타 운동)
 }
 
 /// 아이템 엔티티 (마스터 데이터)
@@ -29,6 +30,9 @@ class ItemEntity extends Equatable {
   
   /// 제작 비용 (쇠)
   final int ironCost;
+  
+  /// 제작 비용 (흙)
+  final int soilCost;
 
   /// 아이콘 이모지 (Phase 1에서 임시 사용)
   final String iconEmoji;
@@ -47,23 +51,34 @@ class ItemEntity extends Equatable {
     this.clothingSlot,
     this.woodCost = 0,
     this.ironCost = 0,
+    this.soilCost = 0,
     required this.iconEmoji,
     this.iconAssetPath,
     required this.estimatedDays,
   });
 
   /// 재화 타입
-  ItemCurrencyType get currencyType => 
-      ironCost > 0 ? ItemCurrencyType.iron : ItemCurrencyType.wood;
+  ItemCurrencyType get currencyType {
+    if (soilCost > 0) return ItemCurrencyType.soil;
+    if (ironCost > 0) return ItemCurrencyType.iron;
+    return ItemCurrencyType.wood;
+  }
   
   /// 통나무 아이템인지
-  bool get isWoodItem => woodCost > 0 && ironCost == 0;
+  bool get isWoodItem => woodCost > 0 && ironCost == 0 && soilCost == 0;
   
   /// 쇠 아이템인지
-  bool get isIronItem => ironCost > 0;
+  bool get isIronItem => ironCost > 0 && soilCost == 0;
+  
+  /// 흙 아이템인지
+  bool get isSoilItem => soilCost > 0;
   
   /// 제작 비용 (재화 타입에 따라)
-  int get cost => isIronItem ? ironCost : woodCost;
+  int get cost {
+    if (soilCost > 0) return soilCost;
+    if (ironCost > 0) return ironCost;
+    return woodCost;
+  }
 
   /// 제작 가능 여부 확인 (통나무)
   bool canCraftWithWood(int currentWood) => isWoodItem && currentWood >= woodCost;
@@ -71,8 +86,12 @@ class ItemEntity extends Equatable {
   /// 제작 가능 여부 확인 (쇠)
   bool canCraftWithIron(int currentIron) => isIronItem && currentIron >= ironCost;
   
+  /// 제작 가능 여부 확인 (흙)
+  bool canCraftWithSoil(int currentSoil) => isSoilItem && currentSoil >= soilCost;
+  
   /// 제작 가능 여부 확인 (통합)
-  bool canCraft({int currentWood = 0, int currentIron = 0}) {
+  bool canCraft({int currentWood = 0, int currentIron = 0, int currentSoil = 0}) {
+    if (isSoilItem) return currentSoil >= soilCost;
     if (isIronItem) return currentIron >= ironCost;
     return currentWood >= woodCost;
   }
@@ -80,7 +99,16 @@ class ItemEntity extends Equatable {
   /// 가격 기반 테마 색상
   int get themeColorValue {
     final price = cost;
-    if (isIronItem) {
+    if (isSoilItem) {
+      // 흙 아이템 - 황토색 계열
+      if (price >= 500) {
+        return 0xFF5D4037; // 진한 황토색 (고가)
+      } else if (price >= 100) {
+        return 0xFF6D4C41; // 황토색 (중가)
+      } else {
+        return 0xFF8D6E63; // 연한 황토색 (저가)
+      }
+    } else if (isIronItem) {
       // 쇠 아이템 - 청회색 계열
       if (price >= 500) {
         return 0xFF455A64; // 진한 청회색 (고가)
@@ -102,7 +130,11 @@ class ItemEntity extends Equatable {
   }
   
   /// 재화 이모지
-  String get currencyEmoji => isIronItem ? '🔩' : '🪵';
+  String get currencyEmoji {
+    if (isSoilItem) return '🪨';
+    if (isIronItem) return '🔩';
+    return '🪵';
+  }
 
   @override
   List<Object?> get props => [
@@ -113,6 +145,7 @@ class ItemEntity extends Equatable {
         clothingSlot,
         woodCost,
         ironCost,
+        soilCost,
         iconEmoji,
         iconAssetPath,
         estimatedDays,

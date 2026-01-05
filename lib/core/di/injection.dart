@@ -22,6 +22,8 @@ import 'package:co_workfit/features/workout/domain/usecases/reset_workout_distan
 import 'package:co_workfit/features/workout/domain/usecases/sync_workouts_to_firestore.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_merged_workouts.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_workouts_from_firestore.dart';
+import 'package:co_workfit/features/workout/domain/usecases/register_selected_workouts.dart';
+import 'package:co_workfit/features/workout/domain/usecases/get_registered_workout_ids.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
 
 // Auth
@@ -77,8 +79,8 @@ import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contri
 import 'package:co_workfit/features/log_run/domain/usecases/delete_contribution.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
 
-// Wood (통나무 재화 시스템)
-import 'package:co_workfit/features/wood/wood.dart';
+// Currency (통합 재화 시스템)
+import 'package:co_workfit/features/currency/currency.dart' as currency;
 
 // Craft (아이템 제작 시스템)
 import 'package:co_workfit/features/craft/craft.dart';
@@ -134,6 +136,7 @@ Future<void> initializeDependencies() async {
       garminDataSource: sl(),
       healthDataMapper: sl(),
       firestoreDataSource: sl(),
+      firebaseAuth: FirebaseAuth.instance,
     ),
   );
 
@@ -147,6 +150,8 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => SyncWorkoutsToFirestore(sl()));
   sl.registerLazySingleton(() => GetMergedWorkouts(sl()));
   sl.registerLazySingleton(() => GetWorkoutsFromFirestore(sl()));
+  sl.registerLazySingleton(() => RegisterSelectedWorkouts(sl()));
+  sl.registerLazySingleton(() => GetRegisteredWorkoutIds(sl()));
 
   // ========== BLoC ==========
   sl.registerFactory(
@@ -160,6 +165,8 @@ Future<void> initializeDependencies() async {
       syncWorkoutsToFirestore: sl(),
       getMergedWorkouts: sl(),
       getWorkoutsFromFirestore: sl(),
+      registerSelectedWorkouts: sl(),
+      getRegisteredWorkoutIds: sl(),
     ),
   );
 
@@ -320,30 +327,28 @@ Future<void> initializeDependencies() async {
     ),
   );
 
-  // ========== Wood Feature (통나무 재화 시스템) ==========
+  // ========== Currency Feature (통합 재화 시스템) ==========
 
   // Data Sources
-  sl.registerLazySingleton<FirestoreWoodDataSource>(
-    () => FirestoreWoodDataSource(firestore: sl()),
+  sl.registerLazySingleton<currency.FirestoreCurrencyDataSource>(
+    () => currency.FirestoreCurrencyDataSource(firestore: sl()),
   );
 
   // Repository
-  sl.registerLazySingleton<WoodRepository>(
-    () => WoodRepositoryImpl(dataSource: sl()),
+  sl.registerLazySingleton<currency.CurrencyRepository>(
+    () => currency.CurrencyRepositoryImpl(dataSource: sl()),
   );
 
   // Use Cases
-  sl.registerLazySingleton(() => GetWoodSummary(sl()));
-  sl.registerLazySingleton(() => GetSettlementHistory(sl()));
-  sl.registerLazySingleton(() => CalculateChallengeReward());
+  sl.registerLazySingleton(() => const currency.RewardCalculator());
   sl.registerLazySingleton(
-    () => SettleDailyRewards(
+    () => currency.SettleDailyRewards(
       repository: sl(),
-      calculateChallengeReward: sl(),
+      calculator: sl(),
     ),
   );
   sl.registerLazySingleton(
-    () => CheckPendingSettlements(
+    () => currency.CheckPendingSettlements(
       repository: sl(),
       settleDailyRewards: sl(),
     ),
@@ -351,11 +356,9 @@ Future<void> initializeDependencies() async {
 
   // BLoC
   sl.registerFactory(
-    () => WoodBloc(
-      getWoodSummary: sl(),
-      checkPendingSettlements: sl(),
-      getSettlementHistory: sl(),
+    () => currency.CurrencyBloc(
       repository: sl(),
+      checkPendingSettlements: sl(),
     ),
   );
 

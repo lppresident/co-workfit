@@ -13,7 +13,7 @@ class ChallengeCardWidget extends StatelessWidget {
   });
 
   Color get _themeColor {
-    return Colors.green; // 통합 챌린지 색상
+    return Colors.green;
   }
 
   @override
@@ -31,24 +31,23 @@ class ChallengeCardWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 헤더: 운동 타입 & 상태
+              // 헤더: 참가자 수 & 상태
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      _buildChallengeTypeChip(context),
-                      const SizedBox(width: 8),
                       Icon(
                         Icons.person,
-                        size: 14,
-                        color: Colors.grey[500],
+                        size: 16,
+                        color: Colors.grey[600],
                       ),
-                      const SizedBox(width: 2),
+                      const SizedBox(width: 4),
                       Text(
-                        '${challenge.participants.length}명',
+                        '${challenge.participants.length}명 참가',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[500],
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
                             ),
                       ),
                     ],
@@ -110,7 +109,7 @@ class ChallengeCardWidget extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
-              // 진행률 퍼센트 & 보상 타입
+              // 진행률 퍼센트 & 보상
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -124,12 +123,12 @@ class ChallengeCardWidget extends StatelessWidget {
                   Row(
                     children: [
                       const Text(
-                        '🪵🔩',
+                        '🪵🔩🪨',
                         style: TextStyle(fontSize: 14),
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '혼합 보상',
+                        '운동별 보상',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.grey[600],
                             ),
@@ -141,35 +140,6 @@ class ChallengeCardWidget extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildChallengeTypeChip(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: _themeColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _themeColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            '🏃💪',
-            style: TextStyle(fontSize: 12),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '통합 챌린지',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: _themeColor,
-            ),
-          ),
-        ],
       ),
     );
   }

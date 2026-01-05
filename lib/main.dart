@@ -19,10 +19,7 @@ import 'package:co_workfit/features/social/presentation/bloc/leaderboard/leaderb
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_event.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/log_run_state.dart';
-import 'package:co_workfit/features/wood/presentation/bloc/wood_bloc.dart';
-import 'package:co_workfit/features/wood/presentation/bloc/wood_event.dart';
-import 'package:co_workfit/features/wood/presentation/bloc/wood_state.dart';
-import 'package:co_workfit/features/wood/presentation/widgets/settlement_dialog.dart';
+import 'package:co_workfit/features/currency/currency.dart';
 import 'package:co_workfit/features/craft/presentation/bloc/craft_bloc.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/core/services/deep_link_service.dart';
@@ -212,8 +209,8 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
         BlocProvider<LogRunBloc>(
           create: (_) => di.sl<LogRunBloc>(),
         ),
-        BlocProvider<WoodBloc>(
-          create: (_) => di.sl<WoodBloc>(),
+        BlocProvider<CurrencyBloc>(
+          create: (_) => di.sl<CurrencyBloc>(),
         ),
         BlocProvider<CraftBloc>(
           create: (_) => di.sl<CraftBloc>(),
@@ -239,28 +236,27 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
                   });
                 }
 
-                // 인증 완료 시 WoodBloc 초기화 및 정산 체크
+                // 인증 완료 시 CurrencyBloc 초기화 및 정산 체크
                 if (state is Authenticated) {
-                  final woodBloc = context.read<WoodBloc>();
-                  woodBloc.setUserId(state.user.id);
-                  woodBloc.add(const LoadWoodSummary());
-                  woodBloc.add(const CheckPendingSettlementsEvent());
+                  final currencyBloc = context.read<CurrencyBloc>();
+                  currencyBloc.setUserId(state.user.id);
+                  currencyBloc.add(const LoadCurrencySummaryEvent());
+                  currencyBloc.add(const CheckPendingSettlementsEvent());
                 }
               },
             ),
-            BlocListener<WoodBloc, WoodState>(
+            BlocListener<CurrencyBloc, CurrencyState>(
               listener: (context, state) {
                 // 정산 결과가 있으면 다이얼로그 표시
-                if (state.shouldShowSettlementDialog &&
-                    state.pendingSettlementResult != null) {
+                if (state is CurrencyLoaded && state.hasNewSettlements) {
                   showDialog(
                     context: context,
                     barrierDismissible: false,
                     builder: (_) => SettlementDialog(
-                      summary: state.pendingSettlementResult!,
+                      settlements: state.newSettlements!,
                       onDismiss: () {
                         Navigator.of(context).pop();
-                        context.read<WoodBloc>().add(const DismissSettlementDialog());
+                        context.read<CurrencyBloc>().add(const DismissSettlementDialogEvent());
                       },
                     ),
                   );

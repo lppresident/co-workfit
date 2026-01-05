@@ -116,8 +116,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           const SizedBox(height: 12),
           _buildSortOption('latest', '최신순', Icons.schedule),
           _buildSortOption('oldest', '오래된순', Icons.history),
-          _buildSortOption('score_high', '점수 높은순', Icons.arrow_upward),
-          _buildSortOption('score_low', '점수 낮은순', Icons.arrow_downward),
+          _buildSortOption('duration_high', '시간 긴순', Icons.arrow_upward),
+          _buildSortOption('duration_low', '시간 짧은순', Icons.arrow_downward),
           const SizedBox(height: 24),
 
           // 버튼

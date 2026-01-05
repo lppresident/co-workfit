@@ -15,9 +15,6 @@ abstract class HealthBlocState extends Equatable {
   /// List of workout entities (empty if not loaded)
   final List<WorkoutEntity> workouts;
 
-  /// Computed total score from all workouts
-  final int totalScore;
-
   /// Computed total calories from all workouts
   final int totalCalories;
 
@@ -27,7 +24,6 @@ abstract class HealthBlocState extends Equatable {
   const HealthBlocState({
     required this.healthState,
     this.workouts = const [],
-    this.totalScore = 0,
     this.totalCalories = 0,
     this.totalDurationMinutes = 0,
   });
@@ -50,7 +46,6 @@ abstract class HealthBlocState extends Equatable {
   List<Object?> get props => [
         healthState,
         workouts,
-        totalScore,
         totalCalories,
         totalDurationMinutes,
       ];
@@ -131,18 +126,9 @@ class HealthBlocWorkoutLoaded extends HealthBlocState {
             workoutCount: workouts.length,
           ),
           workouts: workouts,
-          totalScore: _calculateTotalScore(workouts),
           totalCalories: _calculateTotalCalories(workouts),
           totalDurationMinutes: _calculateTotalDuration(workouts),
         );
-
-  /// Calculate total calibrated score from workouts
-  static int _calculateTotalScore(List<WorkoutEntity> workouts) {
-    return workouts.fold<int>(
-      0,
-      (sum, workout) => sum + workout.calibratedScore,
-    );
-  }
 
   /// Calculate total calories from workouts
   static int _calculateTotalCalories(List<WorkoutEntity> workouts) {

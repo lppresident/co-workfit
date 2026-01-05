@@ -9,7 +9,7 @@ import 'package:co_workfit/features/craft/presentation/widgets/character_widget.
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_state.dart';
-import 'package:co_workfit/features/wood/presentation/pages/settlement_history_page.dart';
+import 'package:co_workfit/features/currency/currency.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -341,12 +341,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildResourcesSection(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, authState) {
-        if (authState is! Authenticated) {
-          return const SizedBox.shrink();
+    return BlocBuilder<CurrencyBloc, CurrencyState>(
+      builder: (context, currencyState) {
+        // CurrencyBloc에서 데이터 가져오기
+        int woodAmount = 0;
+        int woodLifetime = 0;
+        int ironAmount = 0;
+        int ironLifetime = 0;
+        int soilAmount = 0;
+        int soilLifetime = 0;
+
+        if (currencyState is CurrencyLoaded) {
+          woodAmount = currencyState.getAmount(CurrencyType.wood);
+          woodLifetime = currencyState.getLifetimeEarned(CurrencyType.wood);
+          ironAmount = currencyState.getAmount(CurrencyType.iron);
+          ironLifetime = currencyState.getLifetimeEarned(CurrencyType.iron);
+          soilAmount = currencyState.getAmount(CurrencyType.soil);
+          soilLifetime = currencyState.getLifetimeEarned(CurrencyType.soil);
         }
-        final user = authState.user;
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -361,38 +373,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       context: context,
                       emoji: '🪵',
                       name: '통나무',
-                      amount: user.woodAmount,
-                      lifetimeEarned: user.woodLifetimeEarned,
+                      amount: woodAmount,
+                      lifetimeEarned: woodLifetime,
                       gradientColors: [Colors.amber[700]!, Colors.brown[600]!],
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const SettlementHistoryPage()),
-                        );
-                      },
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   // 쇠 카드
                   Expanded(
                     child: _buildResourceCard(
                       context: context,
                       emoji: '🔩',
                       name: '쇠',
-                      amount: user.ironAmount,
-                      lifetimeEarned: user.ironLifetimeEarned,
+                      amount: ironAmount,
+                      lifetimeEarned: ironLifetime,
                       gradientColors: [Colors.blueGrey[600]!, Colors.grey[800]!],
-                      onTap: () {
-                        // TODO: 쇠 정산 내역 페이지로 이동
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('헬스 챌린지에서 쇠를 획득할 수 있습니다!'),
-                          ),
-                        );
-                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 흙 카드
+                  Expanded(
+                    child: _buildResourceCard(
+                      context: context,
+                      emoji: '🪨',
+                      name: '흙',
+                      amount: soilAmount,
+                      lifetimeEarned: soilLifetime,
+                      gradientColors: [Colors.brown[600]!, Colors.brown[800]!],
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              // 정산 내역 보기 버튼
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettlementHistoryPage()),
+                  );
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.receipt_long, size: 18, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Text(
+                        '정산 내역 보기',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.chevron_right, size: 18, color: Colors.grey[500]),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -408,82 +455,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required int amount,
     required int lifetimeEarned,
     required List<Color> gradientColors,
-    required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: gradientColors,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: gradientColors[1].withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradientColors,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 아이콘 & 이름
-            Row(
-              children: [
-                Text(emoji, style: const TextStyle(fontSize: 28)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    name,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // 보유량
-            Text(
-              _formatNumber(amount),
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 4),
-            // 누적 획득량
-            Row(
-              children: [
-                Icon(
-                  Icons.trending_up,
-                  size: 12,
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '누적 ${_formatNumber(lifetimeEarned)}',
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors[1].withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 아이콘 & 이름
+          Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  name,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // 보유량
+          Text(
+            _formatNumber(amount),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 2),
+          // 누적 획득량
+          Text(
+            '누적 ${_formatNumber(lifetimeEarned)}',
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
       ),
     );
   }
