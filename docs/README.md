@@ -18,7 +18,7 @@
 
 | 문서 | 설명 |
 |------|------|
-| [CURRENCY_SYSTEM.md](CURRENCY_SYSTEM.md) | 통나무/쇠 재화 및 제작 시스템 |
+| [CURRENCY_SYSTEM.md](CURRENCY_SYSTEM.md) | 통나무/쇠/흙 재화 및 제작 시스템 |
 
 ## 🤖 AI 개발 가이드
 
