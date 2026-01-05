@@ -121,7 +121,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
           IconButton(
             icon: const Icon(Icons.cloud_upload),
             onPressed: _showSyncConfirmation,
-            tooltip: '클라우드 동기화',
+            tooltip: '운동 등록',
           ),
           IconButton(
             icon: const Icon(Icons.filter_list),
@@ -132,7 +132,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
       ),
       body: BlocConsumer<WorkoutBloc, WorkoutState>(
         listener: (context, state) {
-          // 동기화 상태 처리
+          // 운동 등록 상태 처리
           if (state is WorkoutSyncing) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -147,7 +147,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                       ),
                     ),
                     SizedBox(width: 16),
-                    Text('운동 데이터를 동기화하는 중...'),
+                    Text('운동 데이터를 등록하는 중...'),
                   ],
                 ),
                 duration: Duration(seconds: 30),
@@ -157,7 +157,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
             ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${state.uploadedCount}개의 운동 기록이 동기화되었습니다'),
+                content: Text('${state.uploadedCount}개의 운동 기록이 등록되었습니다'),
                 backgroundColor: Colors.green,
                 duration: const Duration(seconds: 3),
               ),
@@ -166,7 +166,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
             ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('동기화 실패: ${state.message}'),
+                content: Text('운동 등록 실패: ${state.message}'),
                 backgroundColor: Colors.red,
                 duration: const Duration(seconds: 5),
                 action: SnackBarAction(
@@ -483,7 +483,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
           children: [
             Icon(Icons.cloud_upload, color: Colors.blue),
             SizedBox(width: 8),
-            Text('클라우드 동기화'),
+            Text('운동 등록'),
           ],
         ),
         content: const Column(
@@ -491,12 +491,12 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '최근 30일간의 운동 데이터를 클라우드에 동기화합니다.',
+              '최근 30일간의 운동 데이터를 등록합니다.',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             Text(
-              '• 기기를 변경해도 데이터가 유지됩니다\n• 이미 동기화된 데이터는 건너뜁니다\n• 챌린지 제출 시 동기화된 데이터를 사용합니다',
+              '• 기기를 변경해도 데이터가 유지됩니다\n• 이미 등록된 데이터는 건너뜁니다\n• 챌린지 제출 시 등록된 데이터를 사용합니다',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
@@ -514,7 +514,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                   );
             },
             icon: const Icon(Icons.cloud_upload),
-            label: const Text('동기화'),
+            label: const Text('등록'),
           ),
         ],
       ),
