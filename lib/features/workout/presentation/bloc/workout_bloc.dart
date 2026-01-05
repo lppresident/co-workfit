@@ -371,7 +371,7 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
         AppLogger.info('WorkoutBloc', 'Firestore 동기화 완료: $count개');
         emit(WorkoutSyncSuccess(count));
         // 동기화 후 자동으로 병합된 데이터 다시 로드
-        add(FetchRecentWorkoutsEvent(days: event.days));
+        add(FetchWorkoutsFromFirestoreEvent(days: event.days));
       },
     );
   }

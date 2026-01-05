@@ -41,9 +41,9 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   @override
   void initState() {
     super.initState();
-    // 최근 30일 데이터 로드
+    // 최근 30일 데이터 로드 (Firestore + Health 병합 데이터)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WorkoutBloc>().add(const FetchRecentWorkoutsEvent(days: 30));
+      context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
     });
 
     // 스크롤 리스너 추가
@@ -77,8 +77,8 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
 
     final newDays = (_loadedDays + 30).clamp(0, _maxLoadDays);
 
-    // 새로운 범위의 데이터 요청
-    context.read<WorkoutBloc>().add(FetchRecentWorkoutsEvent(days: newDays));
+    // 새로운 범위의 데이터 요청 (Firestore + Health 병합 데이터)
+    context.read<WorkoutBloc>().add(FetchWorkoutsFromFirestoreEvent(days: newDays));
   }
 
   /// 데이터가 적으면 자동으로 더 로드 (필터 유무 관계없이)
@@ -119,6 +119,11 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
         title: const Text('전체 운동 기록'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.cloud_upload),
+            onPressed: _showSyncConfirmation,
+            tooltip: '클라우드 동기화',
+          ),
+          IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterSheet,
             tooltip: '필터 및 정렬',
@@ -127,6 +132,57 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
       ),
       body: BlocConsumer<WorkoutBloc, WorkoutState>(
         listener: (context, state) {
+          // 동기화 상태 처리
+          if (state is WorkoutSyncing) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    Text('운동 데이터를 동기화하는 중...'),
+                  ],
+                ),
+                duration: Duration(seconds: 30),
+              ),
+            );
+          } else if (state is WorkoutSyncSuccess) {
+            ScaffoldMessenger.of(context).clearSnackBars();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${state.uploadedCount}개의 운동 기록이 동기화되었습니다'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          } else if (state is WorkoutSyncFailure) {
+            ScaffoldMessenger.of(context).clearSnackBars();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('동기화 실패: ${state.message}'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: '재시도',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    context.read<WorkoutBloc>().add(
+                          const SyncWorkoutsToFirestoreEvent(days: 30),
+                        );
+                  },
+                ),
+              ),
+            );
+          }
+
+          // 기존 로직
           if (state is WorkoutLoaded) {
             final newWorkouts = state.workouts;
             
@@ -188,7 +244,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                   ElevatedButton.icon(
                     onPressed: () {
                       context.read<WorkoutBloc>().add(
-                            const FetchRecentWorkoutsEvent(days: 30),
+                            const FetchWorkoutsFromFirestoreEvent(days: 30),
                           );
                     },
                     icon: const Icon(Icons.refresh),
@@ -339,7 +395,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                   // 필터는 유지 (사용자가 필터 상태에서 새로고침할 수 있음)
                 });
                 context.read<WorkoutBloc>().add(
-                      const FetchRecentWorkoutsEvent(days: 30),
+                      const FetchWorkoutsFromFirestoreEvent(days: 30),
                     );
                 await Future.delayed(const Duration(seconds: 1));
               },
@@ -415,6 +471,52 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
           // 초기 상태
           return const Center(child: CircularProgressIndicator());
         },
+      ),
+    );
+  }
+
+  void _showSyncConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.cloud_upload, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('클라우드 동기화'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '최근 30일간의 운동 데이터를 클라우드에 동기화합니다.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '• 기기를 변경해도 데이터가 유지됩니다\n• 이미 동기화된 데이터는 건너뜁니다\n• 챌린지 제출 시 동기화된 데이터를 사용합니다',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<WorkoutBloc>().add(
+                    const SyncWorkoutsToFirestoreEvent(days: 30),
+                  );
+            },
+            icon: const Icon(Icons.cloud_upload),
+            label: const Text('동기화'),
+          ),
+        ],
       ),
     );
   }
