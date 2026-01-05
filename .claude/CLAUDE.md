@@ -41,12 +41,13 @@ lib/
 │   └── widgets/             # CommonLoadingWidget 등
 ├── features/
 │   ├── auth/                # 인증 (Google, Apple Sign-In)
-│   ├── calibration/         # 보정 계수 시스템
-│   ├── craft/               # 제작 시스템 (20종 아이템)
+│   ├── craft/               # 제작 시스템 (30종 아이템)
+│   ├── currency/            # 재화 공통 (wood, iron, soil)
 │   ├── iron/                # 쇠 재화 상수
-│   ├── log_run/             # 챌린지 시스템 (통나무런)
+│   ├── log_run/             # 챌린지 시스템
 │   ├── profile/             # 프로필 및 사용자 정보
-│   ├── social/              # 소셜 (친구, 공유) ⭐ 참고용
+│   ├── social/              # 소셜 (친구, 프로필) ⭐ 참고용
+│   ├── soil/                # 흙 재화 상수
 │   ├── wood/                # 통나무 재화 시스템
 │   └── workout/             # 운동 기록 (HealthKit/Health Connect)
 └── shared/
@@ -67,34 +68,32 @@ feature/
 |------|----------|------|------|
 | 🪵 통나무 | 달리기 챌린지 | 달리기 장비 10종 | `lib/features/wood/` |
 | 🔩 쇠 | 헬스 챌린지 | 헬스 장비 10종 | `lib/features/iron/` |
+| 🌱 흙 | 명상/요가 챌린지 | 명상 장비 6종 | `lib/features/soil/` |
 
-### 제작 시스템
-- 총 20종 아이템 (머리 8 / 상체 6 / 하체 6)
-- 위치: `lib/features/craft/`
-- 상세 정보: [CURRENCY_SYSTEM.md](../docs/CURRENCY_SYSTEM.md)
+상세: [CURRENCY_SYSTEM.md](../docs/CURRENCY_SYSTEM.md)
 
 ---
 
 ## 🏃 챌린지 시스템
 
-| 타입 | 측정 | 재화 | Entity |
-|------|------|------|--------|
-| `running` | 거리 (km) | 🪵 통나무 | `log_run_challenge_entity.dart` |
-| `strengthTraining` | 강도 점수 | 🔩 쇠 | `log_run_challenge_entity.dart` |
+| 타입 | 측정 | 재화 |
+|------|------|------|
+| `running` | 거리 (km) | 🪵 통나무 |
+| `strengthTraining` | 강도 점수 | 🔩 쇠 |
+| `mindfulness` | 시간 (분) | 🌱 흙 |
 
 위치: `lib/features/log_run/`
 
 ---
 
-## 🏥 Health 데이터 연동
+## 🗄️ Firestore 구조
 
-| 플랫폼 | API | 특징 |
-|--------|-----|------|
-| iOS | HealthKit | 앱 내 권한 요청 |
-| Android | Health Connect | 별도 앱 설치 필요 |
-
-위치: `lib/features/workout/`
-상세: [HEALTH.md](../docs/HEALTH.md)
+| 컬렉션 | 설명 |
+|--------|------|
+| `/users/{userId}` | 사용자 프로필, 재화, 장착 아이템 |
+| `/workouts/{workoutId}` | 운동 기록 (top-level, userId 필드로 소유자 구분) |
+| `/challenges/{challengeId}` | 챌린지 정보 |
+| `/challenges/{id}/contributions/{id}` | 챌린지 기여 기록 |
 
 ---
 
@@ -110,27 +109,16 @@ class _MyPageState extends BasePageState<MyPage> {
 }
 ```
 
-### 2. TabbedMixin (TabController 수동 금지)
-```dart
-class _MyPageState extends BasePageState<MyPage>
-    with SingleTickerProviderStateMixin, TabbedMixin { ... }
-```
-
-### 3. Common Widgets 사용
+### 2. Common Widgets 사용
 - `CommonLoadingWidget` / `CommonErrorWidget` / `CommonEmptyWidget`
 
-### 4. AppLogger 사용 (print 금지)
+### 3. AppLogger 사용 (print 금지)
 ```dart
 AppLogger.info('Tag', 'message');
 AppLogger.error('Tag', 'message', error, stackTrace);
 ```
 
-### 5. AppConstants 사용 (매직 넘버 금지)
-```dart
-EdgeInsets.all(AppConstants.defaultPadding)
-```
-
-### 6. Clean Architecture
+### 4. Clean Architecture
 - Domain: Entity (Equatable) / Repository (추상) / UseCase
 - Data: Model / DataSource / Repository Impl (Either<Failure, T>)
 - Presentation: BLoC / Page (BasePage) / Widget
@@ -148,38 +136,7 @@ EdgeInsets.all(AppConstants.defaultPadding)
 6. 확인    → flutter analyze (0 errors)
 ```
 
-### 템플릿 사용
-- [TEMPLATES.md](.claude/docs/TEMPLATES.md) - 모든 레이어 코드 템플릿 제공
-
----
-
-## 📝 네이밍 규칙
-
-| 타입 | 파일명 | 클래스명 |
-|------|--------|----------|
-| Entity | `{name}_entity.dart` | `{Name}Entity` |
-| Model | `{name}_model.dart` | `{Name}Model` |
-| Repository | `{name}_repository.dart` | `{Name}Repository` |
-| UseCase | `{action}_{name}.dart` | `{Action}{Name}` |
-| BLoC | `{name}_bloc.dart` | `{Name}Bloc` |
-| Page | `{name}_page.dart` | `{Name}Page` |
-
----
-
-## 🎨 제작 아이템 추가
-
-1. `lib/features/craft/domain/entities/item_recipes.dart`에 ItemEntity 추가
-2. (선택) `character_painter.dart`에 픽셀아트 렌더링 추가
-
-템플릿: [TEMPLATES.md](.claude/docs/TEMPLATES.md) 참고
-
----
-
-## 🔀 Git 규칙
-
-**브랜치**: `feature/{기능명}-{issue번호}`
-**PR 베이스**: `develop`
-**커밋**: `feat/fix/docs/refactor/chore: 설명 (#issue)`
+템플릿: [TEMPLATES.md](docs/TEMPLATES.md)
 
 ---
 
@@ -190,9 +147,7 @@ EdgeInsets.all(AppConstants.defaultPadding)
 | `Scaffold` 직접 사용 | `BasePage` |
 | `print()` / `debugPrint()` | `AppLogger` |
 | `initState`에서 BLoC 호출 | `loadInitialData()` |
-| 수동 `TabController` | `TabbedMixin` |
 | 매직 넘버 (16.0, 8.0) | `AppConstants` |
-| 커스텀 로딩/에러 UI | `CommonLoadingWidget`, `CommonErrorWidget` |
 | 직접 Firebase 호출 | `DataSource` 레이어 |
 | `Either` 없이 에러 처리 | `Either<Failure, T>` |
 
@@ -200,36 +155,33 @@ EdgeInsets.all(AppConstants.defaultPadding)
 
 ## 📚 참고 코드
 
-| 기능 | 파일 | 특징 |
-|------|------|------|
-| 탭 페이지 | `features/social/presentation/pages/community_page.dart` | TabbedMixin 사용 |
-| 기본 페이지 | `features/log_run/presentation/pages/log_run_page.dart` | BasePage 패턴 |
-| BLoC 패턴 | `features/social/presentation/bloc/social_bloc.dart` | 상태관리 예시 |
-| 제작 시스템 | `features/craft/presentation/pages/craft_page.dart` | 재화 선택 UI |
-| Health 연동 | `features/workout/presentation/bloc/health_bloc.dart` | 플랫폼별 Health 처리 |
-| 캐릭터 렌더링 | `features/craft/presentation/widgets/character_painter.dart` | CustomPainter |
-| 재화 정산 | `features/wood/domain/usecases/settle_daily_rewards.dart` | 비즈니스 로직 |
+| 기능 | 파일 |
+|------|------|
+| 탭 페이지 | `features/social/presentation/pages/community_page.dart` |
+| 기본 페이지 | `features/log_run/presentation/pages/challenge_page.dart` |
+| BLoC 패턴 | `features/social/presentation/bloc/social_bloc.dart` |
+| 프로필 페이지 | `features/social/presentation/pages/profile_page.dart` |
+| Health 연동 | `features/workout/presentation/bloc/health_bloc.dart` |
+| 캐릭터 렌더링 | `features/craft/presentation/widgets/character_painter.dart` |
 
 ---
 
 ## 🛠️ 환경 설정
 
-**Android 작업 전**: `source scripts/setup-env.sh`
-**의존성**: `flutter pub get`
-**코드 생성**: `flutter pub run build_runner build --delete-conflicting-outputs`
+```bash
+source scripts/setup-env.sh        # Android 작업 전
+flutter pub get                    # 의존성 설치
+flutter pub run build_runner build --delete-conflicting-outputs  # 코드 생성
+```
 
 ---
 
 ## 📖 추가 문서
 
-**필요할 때 읽을 것:**
-- [TEMPLATES.md](.claude/docs/TEMPLATES.md) - 코드 템플릿
+- [TEMPLATES.md](docs/TEMPLATES.md) - 코드 템플릿
 - [CURRENCY_SYSTEM.md](../docs/CURRENCY_SYSTEM.md) - 재화 시스템
 - [HEALTH.md](../docs/HEALTH.md) - Health 연동
-- [DEPLOYMENT.md](../docs/DEPLOYMENT.md) - 배포
-- [APPLE_SIGNIN_SETUP.md](../docs/APPLE_SIGNIN_SETUP.md) - Apple 로그인
-- [FASTLANE_MATCH_SETUP.md](../docs/FASTLANE_MATCH_SETUP.md) - iOS 인증서
 
 ---
 
-_v5.0 | 2026-01-05_
+_v6.0 | 2026-01-05_

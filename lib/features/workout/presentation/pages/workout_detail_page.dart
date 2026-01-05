@@ -13,15 +13,30 @@ import 'package:intl/intl.dart';
 /// 운동 데이터는 Firestore 등록 시점에만 수정 가능하며,
 /// 등록 이후에는 읽기 전용으로 표시됩니다.
 /// 본인의 운동만 삭제 가능합니다.
+/// 
+/// 챌린지에서 진입한 경우:
+/// - 삭제 버튼 대신 "기여 취소" 버튼 표시
+/// - 본인 운동인 경우에만 기여 취소 가능
 class WorkoutDetailPage extends StatefulWidget {
   final WorkoutEntity workout;
   final bool isOwner;
+  
+  /// 챌린지에서 진입한 경우 챌린지 ID
+  final String? challengeId;
+  
+  /// 챌린지에서 진입한 경우 contribution ID
+  final String? contributionId;
 
   const WorkoutDetailPage({
     super.key,
     required this.workout,
     this.isOwner = false,
+    this.challengeId,
+    this.contributionId,
   });
+  
+  /// 챌린지에서 진입했는지 여부
+  bool get isFromChallenge => challengeId != null && contributionId != null;
 
   @override
   State<WorkoutDetailPage> createState() => _WorkoutDetailPageState();
@@ -32,6 +47,17 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
   late final ChallengeRepository _challengeRepository;
   bool _isDeleting = false;
   bool _isCheckingChallenges = false;
+  bool _isCancellingContribution = false;
+
+  /// 삭제 버튼 표시 여부
+  /// - 본인 운동이고
+  /// - 챌린지에서 진입하지 않은 경우에만 표시
+  bool get _showDeleteButton => widget.isOwner && !widget.isFromChallenge;
+  
+  /// 기여 취소 버튼 표시 여부
+  /// - 본인 운동이고
+  /// - 챌린지에서 진입한 경우에만 표시
+  bool get _showCancelContributionButton => widget.isOwner && widget.isFromChallenge;
 
   @override
   void initState() {
@@ -84,7 +110,7 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
             },
             tooltip: '공유',
           ),
-          if (widget.isOwner)
+          if (_showDeleteButton)
             IconButton(
               icon: (_isDeleting || _isCheckingChallenges)
                   ? const SizedBox(
@@ -95,6 +121,18 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
                   : const Icon(Icons.delete_outline),
               onPressed: (_isDeleting || _isCheckingChallenges) ? null : _onDeletePressed,
               tooltip: '삭제',
+            ),
+          if (_showCancelContributionButton)
+            IconButton(
+              icon: _isCancellingContribution
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.remove_circle_outline),
+              onPressed: _isCancellingContribution ? null : _onCancelContributionPressed,
+              tooltip: '기여 취소',
             ),
         ],
       ),
@@ -117,8 +155,10 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
     );
   }
 
-  /// 삭제 버튼 클릭 시 챌린지 제출 여부 확인
+  /// 삭제 버튼 클릭 시 처리
+  /// 운동탭에서 진입한 경우에만 호출됨 (챌린지에서는 삭제 버튼 숨김)
   Future<void> _onDeletePressed() async {
+    // 다른 챌린지 제출 여부 확인
     setState(() {
       _isCheckingChallenges = true;
     });
@@ -157,6 +197,129 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
       if (mounted) {
         setState(() {
           _isCheckingChallenges = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 기여 취소 버튼 클릭 시 처리
+  void _onCancelContributionPressed() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.remove_circle_outline, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('기여 취소'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_getWorkoutTypeName(workout.type)} - ${workout.durationMinutes}분',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              DateFormat('yyyy년 MM월 dd일 HH:mm').format(workout.startTime),
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '이 챌린지에서 해당 운동 기여를 취소합니다.\n운동 기록 자체는 삭제되지 않습니다.',
+                      style: TextStyle(fontSize: 12, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _cancelContribution();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('기여 취소'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 기여 취소 실행
+  Future<void> _cancelContribution() async {
+    if (widget.challengeId == null || widget.contributionId == null) return;
+
+    setState(() {
+      _isCancellingContribution = true;
+    });
+
+    try {
+      final result = await _challengeRepository.deleteContribution(
+        challengeId: widget.challengeId!,
+        contributionId: widget.contributionId!,
+        userId: workout.userId,
+      );
+
+      if (!mounted) return;
+
+      result.fold(
+        (failure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('기여 취소 실패: ${failure.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isCancellingContribution = false;
+          });
+        },
+        (_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('기여가 취소되었습니다'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true); // true를 반환하여 변경되었음을 알림
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isCancellingContribution = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

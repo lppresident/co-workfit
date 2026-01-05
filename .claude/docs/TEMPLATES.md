@@ -492,11 +492,10 @@ BlocProvider<ItemBloc>(
 
 ## 🔟+3 제작 아이템 추가
 
-### 통나무 아이템
+### 아이템 레시피 추가
 
 ```dart
 // lib/features/craft/domain/entities/item_recipes.dart
-// headItems, bodyItems, legsItems 리스트에 추가
 
 const ItemEntity(
   id: 'head_unique_id',        // 유니크 ID (접두사: head_, body_, legs_)
@@ -504,37 +503,40 @@ const ItemEntity(
   description: '아이템 설명',
   category: ItemCategory.clothing,
   clothingSlot: ClothingSlot.head,  // head, body, legs
-  woodCost: 100,               // 통나무 비용
-  iconEmoji: '🎩',             // 이모지 아이콘
-  estimatedDays: 7,            // 예상 획득 기간
+  woodCost: 100,               // 통나무 비용 (또는 ironCost, soilCost)
+  iconEmoji: '🎩',
+  estimatedDays: 7,
 ),
 ```
 
-### 쇠 아이템
+### 스프라이트 등록
 
 ```dart
-// lib/features/craft/domain/entities/item_recipes.dart
-// ironHeadItems, ironBodyItems, ironLegsItems 리스트에 추가
+// lib/features/craft/domain/entities/character_sprite.dart
 
-const ItemEntity(
-  id: 'iron_head_unique_id',   // 접두사: iron_head_, iron_body_, iron_legs_
-  name: '아이템 이름',
-  description: '아이템 설명',
-  category: ItemCategory.clothing,
-  clothingSlot: ClothingSlot.head,
-  ironCost: 100,               // 쇠 비용 (woodCost 대신)
-  iconEmoji: '⛑️',
-  estimatedDays: 10,
-),
+// 1. SpriteType enum에 추가
+enum SpriteType {
+  // ... 기존 항목
+  newItem,
+}
+
+// 2. ItemSpriteRegistry에 추가
+static final Map<String, ItemSpriteData> _sprites = {
+  // ... 기존 항목
+  'new_item_id': const ItemSpriteData(
+    spriteType: SpriteType.newItem,
+    slot: ClothingSlot.head,
+  ),
+};
 ```
 
-### 픽셀아트 렌더링 (선택)
+### 픽셀아트 렌더링
 
 ```dart
 // lib/features/craft/presentation/widgets/character_painter.dart
-// _drawEquippedItems 메서드에 추가
 
-case 'new_item_id':
+// _drawHead, _drawBody, _drawLegs 메서드에 case 추가
+case SpriteType.newItem:
   _drawNewItem(canvas, size);
   break;
 
@@ -549,37 +551,35 @@ void _drawNewItem(Canvas canvas, Size size) {
 
 ## 🔟+4 챌린지 타입 확장
 
-### 새 챌린지 타입 추가
-
 ```dart
-// lib/features/log_run/domain/entities/log_run_challenge_entity.dart
+// lib/features/log_run/domain/entities/challenge_entity.dart
 
-enum LogRunChallengeType {
+enum ChallengeType {
   running,           // 달리기 → 통나무
   strengthTraining,  // 헬스 → 쇠
-  newType,          // 새 타입 → 새 재화
+  mindfulness,       // 명상/요가 → 흙
 }
 
-extension LogRunChallengeTypeExtension on LogRunChallengeType {
+extension ChallengeTypeExtension on ChallengeType {
   String get displayName {
     switch (this) {
-      case LogRunChallengeType.running:
+      case ChallengeType.running:
         return '달리기';
-      case LogRunChallengeType.strengthTraining:
+      case ChallengeType.strengthTraining:
         return '헬스';
-      case LogRunChallengeType.newType:
-        return '새 타입';
+      case ChallengeType.mindfulness:
+        return '명상';
     }
   }
 
   String get emoji {
     switch (this) {
-      case LogRunChallengeType.running:
+      case ChallengeType.running:
         return '🏃';
-      case LogRunChallengeType.strengthTraining:
+      case ChallengeType.strengthTraining:
         return '🏋️';
-      case LogRunChallengeType.newType:
-        return '🆕';
+      case ChallengeType.mindfulness:
+        return '🧘';
     }
   }
 }
@@ -587,5 +587,4 @@ extension LogRunChallengeTypeExtension on LogRunChallengeType {
 
 ---
 
-_v2.0 | 2026-01-01_
-
+_v3.0 | 2026-01-05_

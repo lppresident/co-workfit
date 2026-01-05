@@ -137,6 +137,8 @@ class _ContributionItem extends StatelessWidget {
               builder: (context) => WorkoutDetailPage(
                 workout: workout,
                 isOwner: isOwner,
+                challengeId: challengeId,
+                contributionId: contribution.id,
               ),
             ),
           );
