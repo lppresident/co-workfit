@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 import 'package:co_workfit/features/workout/domain/usecases/register_selected_workouts.dart';
@@ -39,16 +40,18 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
   bool _isLoading = true;
   String? _errorMessage;
   List<WorkoutEntity> _healthWorkouts = [];
-  Set<String> _registeredWorkoutIds = {};
+  Set<String> _submittedWorkoutIds = {}; // 이 챌린지에 이미 제출된 운동 ID
   bool _isSubmitting = false;
 
   late final WorkoutRepository _workoutRepository;
+  late final ChallengeRepository _challengeRepository;
   late final RegisterSelectedWorkouts _registerSelectedWorkoutsUseCase;
 
   @override
   void initState() {
     super.initState();
     _workoutRepository = GetIt.I<WorkoutRepository>();
+    _challengeRepository = GetIt.I<ChallengeRepository>();
     _registerSelectedWorkoutsUseCase = GetIt.I<RegisterSelectedWorkouts>();
     _loadHealthWorkouts();
   }
@@ -59,7 +62,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     super.dispose();
   }
 
-  /// Health에서 운동 데이터 로드
+  /// Health에서 운동 데이터 로드 및 챌린지 기여 내역 확인
   Future<void> _loadHealthWorkouts() async {
     setState(() {
       _isLoading = true;
@@ -87,10 +90,9 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
         endDate: endDate,
       );
 
-      // Firestore에서 등록된 운동 ID 가져오기
-      final registeredIdsResult = await _workoutRepository.getRegisteredWorkoutIds(
-        startDate: startDate,
-        endDate: endDate,
+      // 이 챌린지에 이미 제출된 운동 ID 가져오기
+      final contributionsResult = await _challengeRepository.getChallengeContributions(
+        widget.challengeId,
       );
 
       workoutsResult.fold(
@@ -101,15 +103,16 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
           });
         },
         (workouts) {
-          final registeredIds = registeredIdsResult.fold(
+          // 이 챌린지에 제출된 workoutId 추출
+          final submittedIds = contributionsResult.fold(
             (l) => <String>{},
-            (r) => r,
+            (contributions) => contributions.map((c) => c.workoutId).toSet(),
           );
 
           setState(() {
             _isLoading = false;
             _healthWorkouts = workouts;
-            _registeredWorkoutIds = registeredIds;
+            _submittedWorkoutIds = submittedIds;
           });
         },
       );
@@ -289,7 +292,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
             itemBuilder: (context, index) {
               final workout = validWorkouts[index];
               final isSelected = _selectedWorkout?.id == workout.id;
-              final isRegistered = _registeredWorkoutIds.contains(workout.id);
+              final isAlreadySubmitted = _submittedWorkoutIds.contains(workout.id);
 
               // Garmin 데이터인지 확인
               final isGarminData = workout.source == WorkoutSource.garmin;
@@ -310,9 +313,10 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
               }
 
               return ListTile(
+                enabled: !isAlreadySubmitted, // 이미 제출된 운동은 선택 불가
                 leading: Icon(
                   _getWorkoutIcon(workout.type),
-                  color: isRegistered
+                  color: isAlreadySubmitted
                       ? Colors.grey
                       : isSelected
                           ? Theme.of(context).colorScheme.primary
@@ -324,29 +328,29 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                       _getWorkoutTypeName(workout.type),
                       style: TextStyle(
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        color: isRegistered
+                        color: isAlreadySubmitted
                             ? Colors.grey
                             : isSelected
                                 ? Theme.of(context).colorScheme.primary
                                 : null,
                       ),
                     ),
-                    if (isRegistered) ...[
+                    if (isAlreadySubmitted) ...[
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
-                          border: Border.all(color: Colors.green, width: 1),
+                          color: Colors.blue.withValues(alpha: 0.1),
+                          border: Border.all(color: Colors.blue, width: 1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
-                          '등록됨',
-                          style: TextStyle(fontSize: 10, color: Colors.green),
+                          '제출됨',
+                          style: TextStyle(fontSize: 10, color: Colors.blue),
                         ),
                       ),
                     ],
-                    if (!isRegistered && isGarminData && !isStrengthWorkout) ...[
+                    if (!isAlreadySubmitted && isGarminData && !isStrengthWorkout) ...[
                       const SizedBox(width: 8),
                       Tooltip(
                         message: '거리 데이터가 부정확할 수 있습니다.\n제출 시 확인해주세요.',
@@ -378,7 +382,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                     Text(
                       '${DateFormat('yyyy.MM.dd HH:mm').format(workout.startTime)} • $valueDisplay',
                       style: TextStyle(
-                        color: isRegistered ? Colors.grey : null,
+                        color: isAlreadySubmitted ? Colors.grey : null,
                       ),
                     ),
                     if (!isStrengthWorkout && workout.hasDistanceCorrection) ...[
@@ -394,24 +398,28 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                     ],
                   ],
                 ),
-                trailing: isSelected
-                    ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
-                    : null,
+                trailing: isAlreadySubmitted
+                    ? const Icon(Icons.check_circle, color: Colors.grey)
+                    : isSelected
+                        ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
+                        : null,
                 selected: isSelected,
-                onTap: () {
-                  setState(() {
-                    _selectedWorkout = workout;
-                    if (isStrengthWorkout) {
-                      final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
-                        durationMinutes: workout.durationMinutes,
-                        avgHeartRate: workout.averageHeartRate,
-                      );
-                      _distanceController.text = strengthScore.toStringAsFixed(2);
-                    } else {
-                      _distanceController.text = (workout.distance ?? 0.0).toStringAsFixed(2);
-                    }
-                  });
-                },
+                onTap: isAlreadySubmitted
+                    ? null
+                    : () {
+                        setState(() {
+                          _selectedWorkout = workout;
+                          if (isStrengthWorkout) {
+                            final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
+                              durationMinutes: workout.durationMinutes,
+                              avgHeartRate: workout.averageHeartRate,
+                            );
+                            _distanceController.text = strengthScore.toStringAsFixed(2);
+                          } else {
+                            _distanceController.text = (workout.distance ?? 0.0).toStringAsFixed(2);
+                          }
+                        });
+                      },
               );
             },
           ),
@@ -596,38 +604,35 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
     if (_selectedWorkout == null) return;
 
     final workout = _selectedWorkout!;
-    final isAlreadyRegistered = _registeredWorkoutIds.contains(workout.id);
 
     setState(() {
       _isSubmitting = true;
     });
 
     try {
-      // 아직 등록되지 않은 운동이면 먼저 Firestore에 등록
-      if (!isAlreadyRegistered) {
-        final result = await _registerSelectedWorkoutsUseCase([workout]);
+      // Firestore에 운동 등록 (이미 등록되어 있으면 use case에서 스킵됨)
+      final result = await _registerSelectedWorkoutsUseCase([workout]);
 
-        final failed = result.fold(
-          (failure) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('운동 등록 실패: ${failure.message}'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            return true;
-          },
-          (count) => false,
-        );
+      final failed = result.fold(
+        (failure) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('운동 등록 실패: ${failure.message}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return true;
+        },
+        (count) => false,
+      );
 
-        if (failed) {
-          setState(() {
-            _isSubmitting = false;
-          });
-          return;
-        }
+      if (failed) {
+        setState(() {
+          _isSubmitting = false;
+        });
+        return;
       }
 
       // 챌린지에 제출
