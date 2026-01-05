@@ -8,6 +8,8 @@ import 'package:co_workfit/features/workout/data/datasources/health_kit_datasour
 import 'package:co_workfit/features/workout/data/datasources/health_connect_datasource.dart';
 import 'package:co_workfit/features/workout/data/datasources/health_data_mapper.dart';
 import 'package:co_workfit/features/workout/data/datasources/garmin/garmin_datasource.dart';
+import 'package:co_workfit/features/workout/data/datasources/firestore_workout_datasource.dart';
+import 'package:co_workfit/features/workout/data/models/workout_model.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 /// WorkoutRepository 구현체
@@ -18,6 +20,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   final HealthConnectDataSource _healthConnectDataSource;
   final GarminDataSource _garminDataSource;
   final HealthDataMapper _healthDataMapper;
+  final FirestoreWorkoutDataSource _firestoreDataSource;
   final String _userId; // TODO: AuthRepository에서 가져오도록 변경
 
   // SharedPreferences 키
@@ -31,11 +34,13 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     required HealthConnectDataSource healthConnectDataSource,
     required GarminDataSource garminDataSource,
     required HealthDataMapper healthDataMapper,
+    required FirestoreWorkoutDataSource firestoreDataSource,
     String userId = 'current_user', // 임시 기본값
   })  : _healthKitDataSource = healthKitDataSource,
         _healthConnectDataSource = healthConnectDataSource,
         _garminDataSource = garminDataSource,
         _healthDataMapper = healthDataMapper,
+        _firestoreDataSource = firestoreDataSource,
         _userId = userId;
 
   /// SharedPreferences에서 수정된 거리 정보 로드
@@ -470,5 +475,140 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   Future<Either<String, bool>> syncWithServer() async {
     // TODO: 서버 동기화 구현
     return Left('서버 동기화 기능 아직 미구현');
+  }
+
+  @override
+  Future<Either<String, int>> syncWorkoutsToFirestore({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      // 1. Health 플랫폼에서 운동 데이터 가져오기
+      final workoutsResult = await getWorkouts(startDate: startDate, endDate: endDate);
+
+      return workoutsResult.fold(
+        (error) => Left('Health 데이터 조회 실패: $error'),
+        (workouts) async {
+          try {
+            int uploadedCount = 0;
+            final modelsToUpload = <WorkoutModel>[];
+
+            // 2. 중복 체크 및 업로드 목록 생성
+            for (final workout in workouts) {
+              final exists = await _firestoreDataSource.workoutExists(_userId, workout.id);
+              if (!exists) {
+                final model = WorkoutModel.fromEntity(
+                  workout.copyWith(syncedAt: DateTime.now()),
+                );
+                modelsToUpload.add(model);
+              }
+            }
+
+            // 3. 배치 업로드
+            if (modelsToUpload.isNotEmpty) {
+              await _firestoreDataSource.uploadWorkouts(_userId, modelsToUpload);
+              uploadedCount = modelsToUpload.length;
+            }
+
+            // 4. 마지막 동기화 시간 업데이트
+            await _firestoreDataSource.updateLastSyncTime(_userId, DateTime.now());
+
+            AppLogger.info('WorkoutRepo', 'Firestore 동기화 완료: $uploadedCount개');
+            return Right(uploadedCount);
+          } catch (e) {
+            AppLogger.error('WorkoutRepo', 'Firestore 업로드 실패', e);
+            return Left('Firestore 업로드 실패: $e');
+          }
+        },
+      );
+    } catch (e) {
+      AppLogger.error('WorkoutRepo', 'syncWorkoutsToFirestore 실패', e);
+      return Left('동기화 실패: $e');
+    }
+  }
+
+  @override
+  Future<Either<String, List<WorkoutEntity>>> getWorkoutsFromFirestore({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final models = await _firestoreDataSource.getWorkouts(
+        userId: _userId,
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+      final entities = models.map((m) => m.toEntity()).toList();
+
+      // 수정된 거리 적용
+      final correctedDistances = await _loadCorrectedDistances();
+      final workoutsWithCorrections = entities.map((workout) {
+        final correctedDistance = correctedDistances[workout.id];
+        if (correctedDistance != null) {
+          return workout.copyWith(correctedDistance: correctedDistance);
+        }
+        return workout;
+      }).toList();
+
+      AppLogger.info('WorkoutRepo', 'Firestore에서 ${workoutsWithCorrections.length}개 조회');
+      return Right(workoutsWithCorrections);
+    } catch (e) {
+      AppLogger.error('WorkoutRepo', 'Firestore 조회 실패', e);
+      return Left('Firestore 조회 실패: $e');
+    }
+  }
+
+  @override
+  Future<Either<String, List<WorkoutEntity>>> getMergedWorkouts({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final allWorkouts = <WorkoutEntity>[];
+    final workoutIds = <String>{};
+
+    // 1. Firestore에서 먼저 가져오기 (캐시 역할)
+    final firestoreResult = await getWorkoutsFromFirestore(
+      startDate: startDate,
+      endDate: endDate,
+    );
+    firestoreResult.fold(
+      (error) => AppLogger.warning('WorkoutRepo', 'Firestore 조회 실패: $error'),
+      (workouts) {
+        allWorkouts.addAll(workouts);
+        workoutIds.addAll(workouts.map((w) => w.id));
+      },
+    );
+
+    // 2. Health 플랫폼에서 가져오기
+    final healthResult = await getWorkouts(startDate: startDate, endDate: endDate);
+    healthResult.fold(
+      (error) => AppLogger.warning('WorkoutRepo', 'Health 조회 실패: $error'),
+      (workouts) {
+        // 중복 제거 (Firestore에 있으면 스킵)
+        for (final workout in workouts) {
+          if (!workoutIds.contains(workout.id)) {
+            allWorkouts.add(workout);
+            workoutIds.add(workout.id);
+          }
+        }
+      },
+    );
+
+    // 3. 시간순 정렬 (최신순)
+    allWorkouts.sort((a, b) => b.startTime.compareTo(a.startTime));
+
+    AppLogger.info('WorkoutRepo', '병합된 운동 데이터: ${allWorkouts.length}개');
+    return Right(allWorkouts);
+  }
+
+  @override
+  Future<DateTime?> getLastSyncTime() async {
+    try {
+      return await _firestoreDataSource.getLastSyncTime(_userId);
+    } catch (e) {
+      AppLogger.error('WorkoutRepo', 'getLastSyncTime 실패', e);
+      return null;
+    }
   }
 }

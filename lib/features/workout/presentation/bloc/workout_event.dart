@@ -77,3 +77,23 @@ class ResetWorkoutDistanceEvent extends WorkoutEvent {
   @override
   List<Object?> get props => [workoutId];
 }
+
+/// Firestore에 동기화 이벤트
+class SyncWorkoutsToFirestoreEvent extends WorkoutEvent {
+  final int days;
+
+  const SyncWorkoutsToFirestoreEvent({this.days = 30});
+
+  @override
+  List<Object?> get props => [days];
+}
+
+/// Firestore에서 데이터 가져오기 이벤트
+class FetchWorkoutsFromFirestoreEvent extends WorkoutEvent {
+  final int days;
+
+  const FetchWorkoutsFromFirestoreEvent({this.days = 30});
+
+  @override
+  List<Object?> get props => [days];
+}

@@ -12,12 +12,15 @@ import 'package:co_workfit/features/workout/data/datasources/health_data_mapper.
 import 'package:co_workfit/features/workout/data/datasources/garmin/garmin_datasource.dart';
 import 'package:co_workfit/features/workout/data/datasources/garmin/garmin_auth_service.dart';
 import 'package:co_workfit/features/workout/data/datasources/garmin/garmin_api_client.dart';
+import 'package:co_workfit/features/workout/data/datasources/firestore_workout_datasource.dart';
 import 'package:co_workfit/features/workout/data/repositories/workout_repository_impl.dart';
 import 'package:co_workfit/features/workout/domain/repositories/workout_repository.dart';
 import 'package:co_workfit/features/workout/domain/usecases/get_workouts.dart';
 import 'package:co_workfit/features/workout/domain/usecases/request_health_permission.dart';
 import 'package:co_workfit/features/workout/domain/usecases/update_workout_distance.dart';
 import 'package:co_workfit/features/workout/domain/usecases/reset_workout_distance.dart';
+import 'package:co_workfit/features/workout/domain/usecases/sync_workouts_to_firestore.dart';
+import 'package:co_workfit/features/workout/domain/usecases/get_merged_workouts.dart';
 import 'package:co_workfit/features/workout/presentation/bloc/workout_bloc.dart';
 
 // Auth
@@ -115,6 +118,13 @@ Future<void> initializeDependencies() async {
     () => HealthDataMapper(),
   );
 
+  // Firestore DataSource
+  sl.registerLazySingleton(
+    () => FirestoreWorkoutDataSource(
+      firestore: FirebaseFirestore.instance,
+    ),
+  );
+
   // ========== Repository ==========
   sl.registerLazySingleton<WorkoutRepository>(
     () => WorkoutRepositoryImpl(
@@ -122,6 +132,7 @@ Future<void> initializeDependencies() async {
       healthConnectDataSource: sl(),
       garminDataSource: sl(),
       healthDataMapper: sl(),
+      firestoreDataSource: sl(),
     ),
   );
 
@@ -132,6 +143,8 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => GetRecentWorkouts(sl()));
   sl.registerLazySingleton(() => UpdateWorkoutDistance(sl()));
   sl.registerLazySingleton(() => ResetWorkoutDistance(sl()));
+  sl.registerLazySingleton(() => SyncWorkoutsToFirestore(sl()));
+  sl.registerLazySingleton(() => GetMergedWorkouts(sl()));
 
   // ========== BLoC ==========
   sl.registerFactory(
@@ -142,6 +155,8 @@ Future<void> initializeDependencies() async {
       getWorkouts: sl(),
       updateWorkoutDistance: sl(),
       resetWorkoutDistance: sl(),
+      syncWorkoutsToFirestore: sl(),
+      getMergedWorkouts: sl(),
     ),
   );
 

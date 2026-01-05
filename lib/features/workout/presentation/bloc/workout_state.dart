@@ -144,3 +144,28 @@ class WorkoutError extends WorkoutState {
   @override
   List<Object?> get props => [message];
 }
+
+/// 동기화 중
+class WorkoutSyncing extends WorkoutState {
+  const WorkoutSyncing();
+}
+
+/// 동기화 성공
+class WorkoutSyncSuccess extends WorkoutState {
+  final int uploadedCount;
+
+  const WorkoutSyncSuccess(this.uploadedCount);
+
+  @override
+  List<Object?> get props => [uploadedCount];
+}
+
+/// 동기화 실패
+class WorkoutSyncFailure extends WorkoutState {
+  final String message;
+
+  const WorkoutSyncFailure(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

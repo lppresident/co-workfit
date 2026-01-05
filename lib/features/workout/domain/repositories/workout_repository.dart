@@ -49,4 +49,25 @@ abstract class WorkoutRepository {
 
   /// 서버와 동기화
   Future<Either<String, bool>> syncWithServer();
+
+  /// Firestore에 운동 데이터 동기화 (업로드)
+  Future<Either<String, int>> syncWorkoutsToFirestore({
+    required DateTime startDate,
+    required DateTime endDate,
+  });
+
+  /// Firestore에서 운동 데이터 가져오기
+  Future<Either<String, List<WorkoutEntity>>> getWorkoutsFromFirestore({
+    required DateTime startDate,
+    required DateTime endDate,
+  });
+
+  /// 통합 운동 데이터 조회 (Health + Firestore 병합)
+  Future<Either<String, List<WorkoutEntity>>> getMergedWorkouts({
+    required DateTime startDate,
+    required DateTime endDate,
+  });
+
+  /// 마지막 동기화 시간 조회
+  Future<DateTime?> getLastSyncTime();
 }

@@ -6,6 +6,8 @@ import 'package:co_workfit/features/workout/domain/usecases/request_health_permi
 import 'package:co_workfit/features/workout/domain/usecases/get_workouts.dart';
 import 'package:co_workfit/features/workout/domain/usecases/update_workout_distance.dart';
 import 'package:co_workfit/features/workout/domain/usecases/reset_workout_distance.dart';
+import 'package:co_workfit/features/workout/domain/usecases/sync_workouts_to_firestore.dart';
+import 'package:co_workfit/features/workout/domain/usecases/get_merged_workouts.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
 /// 운동 BLoC
@@ -16,6 +18,8 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
   final GetWorkouts getWorkouts;
   final UpdateWorkoutDistance updateWorkoutDistance;
   final ResetWorkoutDistance resetWorkoutDistance;
+  final SyncWorkoutsToFirestore syncWorkoutsToFirestore;
+  final GetMergedWorkouts getMergedWorkouts;
 
   WorkoutBloc({
     required this.requestHealthPermission,
@@ -24,6 +28,8 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     required this.getWorkouts,
     required this.updateWorkoutDistance,
     required this.resetWorkoutDistance,
+    required this.syncWorkoutsToFirestore,
+    required this.getMergedWorkouts,
   }) : super(const WorkoutInitial()) {
     on<RequestHealthPermissionEvent>(_onRequestHealthPermission);
     on<FetchTodayWorkoutsEvent>(_onFetchTodayWorkouts);
@@ -32,6 +38,8 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
     on<RefreshWorkoutsEvent>(_onRefreshWorkouts);
     on<UpdateWorkoutDistanceEvent>(_onUpdateWorkoutDistance);
     on<ResetWorkoutDistanceEvent>(_onResetWorkoutDistance);
+    on<SyncWorkoutsToFirestoreEvent>(_onSyncWorkoutsToFirestore);
+    on<FetchWorkoutsFromFirestoreEvent>(_onFetchWorkoutsFromFirestore);
   }
 
   Future<void> _onRequestHealthPermission(
@@ -337,6 +345,63 @@ class WorkoutBloc extends Bloc<WorkoutEvent, WorkoutState> {
 
         // 통계 재계산 (fromWorkouts 팩토리 사용)
         emit(WorkoutLoaded.fromWorkouts(updatedWorkouts));
+      },
+    );
+  }
+
+  Future<void> _onSyncWorkoutsToFirestore(
+    SyncWorkoutsToFirestoreEvent event,
+    Emitter<WorkoutState> emit,
+  ) async {
+    emit(const WorkoutSyncing());
+
+    final now = DateTime.now();
+    final startDate = now.subtract(Duration(days: event.days));
+
+    final result = await syncWorkoutsToFirestore(
+      SyncWorkoutsParams(startDate: startDate, endDate: now),
+    );
+
+    result.fold(
+      (failure) {
+        AppLogger.error('WorkoutBloc', 'Firestore 동기화 실패: ${failure.message}');
+        emit(WorkoutSyncFailure(failure.message));
+      },
+      (count) {
+        AppLogger.info('WorkoutBloc', 'Firestore 동기화 완료: $count개');
+        emit(WorkoutSyncSuccess(count));
+        // 동기화 후 자동으로 병합된 데이터 다시 로드
+        add(FetchRecentWorkoutsEvent(days: event.days));
+      },
+    );
+  }
+
+  Future<void> _onFetchWorkoutsFromFirestore(
+    FetchWorkoutsFromFirestoreEvent event,
+    Emitter<WorkoutState> emit,
+  ) async {
+    emit(const WorkoutLoading());
+
+    final now = DateTime.now();
+    final startDate = now.subtract(Duration(days: event.days));
+
+    final result = await getMergedWorkouts(
+      GetMergedWorkoutsParams(startDate: startDate, endDate: now),
+    );
+
+    result.fold(
+      (failure) {
+        AppLogger.error('WorkoutBloc', 'Firestore 조회 실패: ${failure.message}');
+        emit(WorkoutError(failure.message));
+      },
+      (workouts) {
+        if (workouts.isEmpty) {
+          AppLogger.info('WorkoutBloc', '운동 데이터 없음');
+          emit(const WorkoutEmpty());
+        } else {
+          AppLogger.info('WorkoutBloc', '병합된 운동 데이터 로드 완료: ${workouts.length}개');
+          emit(WorkoutLoaded.fromWorkouts(workouts));
+        }
       },
     );
   }
