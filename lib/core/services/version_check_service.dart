@@ -20,7 +20,7 @@ class VersionCheckResult {
 /// Firebase Remote Config를 사용하여 최소 버전을 확인하고
 /// 현재 앱 버전과 비교하여 업데이트 필요 여부를 반환
 class VersionCheckService {
-  static const String _minimumVersionKey = 'minimum_version';
+  static const String _minimumVersionKey = 'minimum_app_version';
   static const String _defaultMinimumVersion = '0.0.1';
 
   final FirebaseRemoteConfig _remoteConfig;
@@ -34,7 +34,7 @@ class VersionCheckService {
       await _remoteConfig.setConfigSettings(
         RemoteConfigSettings(
           fetchTimeout: const Duration(seconds: 10),
-          minimumFetchInterval: const Duration(hours: 1),
+          minimumFetchInterval: Duration.zero, // 개발 중에는 즉시 fetch
         ),
       );
 
@@ -42,9 +42,10 @@ class VersionCheckService {
         _minimumVersionKey: _defaultMinimumVersion,
       });
 
-      await _remoteConfig.fetchAndActivate();
+      final activated = await _remoteConfig.fetchAndActivate();
 
-      AppLogger.info('VersionCheckService', 'Remote Config initialized');
+      AppLogger.info('VersionCheckService', 'Remote Config initialized (activated: $activated)');
+      AppLogger.info('VersionCheckService', 'Current minimum_app_version: ${_remoteConfig.getString(_minimumVersionKey)}');
     } catch (e, stackTrace) {
       AppLogger.error('VersionCheckService', 'Failed to initialize Remote Config', e, stackTrace);
     }
@@ -69,7 +70,10 @@ class VersionCheckService {
       AppLogger.info('VersionCheckService', 'Minimum version: $minimumVersion');
 
       // 버전 비교
-      final isUpdateRequired = _compareVersions(currentVersion, minimumVersion) < 0;
+      final compareResult = _compareVersions(currentVersion, minimumVersion);
+      final isUpdateRequired = compareResult < 0;
+
+      AppLogger.info('VersionCheckService', 'Version compare result: $compareResult (isUpdateRequired: $isUpdateRequired)');
 
       return VersionCheckResult(
         isUpdateRequired: isUpdateRequired,
