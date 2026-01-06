@@ -112,7 +112,7 @@ class WorkoutListItem extends StatelessWidget {
                     _buildStatItem(
                       context,
                       Icons.straighten_outlined,
-                      '${workout.effectiveDistance!.toStringAsFixed(1)}km',
+                      '${workout.effectiveDistance!.toStringAsFixed(2)}km',
                       '거리',
                     ),
                   // 페이스 표시 (러닝, 걷기, 등산에서만)

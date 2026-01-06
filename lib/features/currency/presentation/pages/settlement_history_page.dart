@@ -295,7 +295,7 @@ class _SettlementHistoryPageState extends State<SettlementHistoryPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '${reward.value.toStringAsFixed(1)}${reward.unit} 운동',
+                          '${reward.value.toStringAsFixed(2)}${reward.unit} 운동',
                           style: const TextStyle(
                             fontWeight: FontWeight.w500,
                           ),

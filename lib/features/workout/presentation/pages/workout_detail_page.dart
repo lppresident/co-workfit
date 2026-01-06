@@ -120,6 +120,25 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
     return "$minutes'${seconds.toString().padLeft(2, '0')}\"";
   }
 
+  /// 거리 수정 라벨을 표시해야 하는지 확인
+  ///
+  /// Garmin 데이터이고 실제로 거리가 수정된 경우에만 true 반환
+  /// (Firestore 미등록 운동을 챌린지에 제출할 때 correctedDistance가 설정되지만,
+  /// 이는 실제 수정이 아니므로 라벨을 표시하지 않음)
+  bool _shouldShowCorrectedLabel(WorkoutEntity workout) {
+    // Garmin 데이터가 아니면 false
+    if (workout.source != WorkoutSource.garmin) return false;
+
+    // correctedDistance가 없으면 false
+    if (workout.correctedDistance == null) return false;
+
+    // distance가 없으면 비교 불가능하므로 false
+    if (workout.distance == null) return false;
+
+    // 실제로 거리가 변경된 경우에만 true
+    return workout.correctedDistance != workout.distance;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -924,7 +943,7 @@ class _WorkoutDetailPageState extends State<WorkoutDetailPage> {
                 context,
                 Icons.straighten,
                 '거리',
-                '${workout.effectiveDistance!.toStringAsFixed(2)} km${workout.hasDistanceCorrection ? ' (수정됨)' : ''}',
+                '${workout.effectiveDistance!.toStringAsFixed(2)} km${_shouldShowCorrectedLabel(workout) ? ' (수정됨)' : ''}',
               ),
             ],
             // 페이스 표시 (러닝, 걷기, 등산)

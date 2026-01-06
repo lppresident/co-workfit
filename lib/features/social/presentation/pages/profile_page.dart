@@ -108,7 +108,7 @@ class _ProfilePageState extends BasePageState<ProfilePage> {
     if (authState is! Authenticated) return;
 
     final currentUserId = authState.user.id;
-    
+
     // 본인인지 확인
     if (currentUserId == widget.userId) {
       setState(() {
@@ -118,16 +118,17 @@ class _ProfilePageState extends BasePageState<ProfilePage> {
     }
 
     try {
-      // 친구 관계 확인
-      final friendshipQuery = await FirebaseFirestore.instance
+      // 친구 관계 확인 (Composite ID 방식)
+      final ids = [currentUserId, widget.userId]..sort();
+      final friendshipDocId = '${ids[0]}_${ids[1]}';
+
+      final friendshipDoc = await FirebaseFirestore.instance
           .collection('friendships')
-          .where('userId', isEqualTo: currentUserId)
-          .where('friendId', isEqualTo: widget.userId)
-          .limit(1)
+          .doc(friendshipDocId)
           .get();
 
-      if (friendshipQuery.docs.isNotEmpty) {
-        final friendshipData = friendshipQuery.docs.first.data();
+      if (friendshipDoc.exists) {
+        final friendshipData = friendshipDoc.data()!;
         final createdAt = friendshipData['createdAt'];
         setState(() {
           _isFriend = true;

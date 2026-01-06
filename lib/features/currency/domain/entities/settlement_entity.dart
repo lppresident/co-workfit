@@ -146,8 +146,8 @@ class SoloWorkoutReward extends Equatable {
 
   /// 표시용 이름
   String get displayName {
-    final valueStr = unit == 'km' 
-        ? value.toStringAsFixed(1) 
+    final valueStr = unit == 'km'
+        ? value.toStringAsFixed(2)
         : value.toStringAsFixed(0);
     return '개인 운동 ($valueStr$unit)';
   }

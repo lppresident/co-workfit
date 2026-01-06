@@ -76,7 +76,7 @@ class ChallengeCardWidget extends StatelessWidget {
                             ),
                       ),
                       Text(
-                        '${remainingWeight.toStringAsFixed(1)} kg',
+                        '${remainingWeight.toStringAsFixed(2)} kg',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: _themeColor,
@@ -86,7 +86,7 @@ class ChallengeCardWidget extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    '${challenge.currentWeight.toStringAsFixed(1)} / ${challenge.targetWeight.toStringAsFixed(1)} kg',
+                    '${challenge.currentWeight.toStringAsFixed(2)} / ${challenge.targetWeight.toStringAsFixed(2)} kg',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.grey[700],
                         ),
@@ -114,7 +114,7 @@ class ChallengeCardWidget extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${(progress * 100).toStringAsFixed(0)}% 완료',
+                    '${(progress * 100).floor()}% 완료',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
                           fontWeight: FontWeight.w500,

@@ -175,7 +175,7 @@ class _ContributionItem extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('기여 기록 삭제'),
-        content: Text('${contribution.contributionValue.toStringAsFixed(1)}kg 기록을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.'),
+        content: Text('${contribution.contributionValue.toStringAsFixed(2)}kg 기록을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -245,7 +245,7 @@ class _ContributionItem extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${contribution.contributionValue.toStringAsFixed(1)} kg',
+                          '${contribution.contributionValue.toStringAsFixed(2)} kg',
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,

@@ -307,7 +307,7 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                   durationMinutes: workout.durationMinutes,
                   avgHeartRate: workout.averageHeartRate,
                 );
-                valueDisplay = '${strengthScore.toStringAsFixed(1)}점';
+                valueDisplay = '${strengthScore.toStringAsFixed(2)}점';
                 if (workout.calories != null && workout.calories! > 0) {
                   calorieDisplay = '${workout.calories!.toStringAsFixed(0)} kcal';
                 }

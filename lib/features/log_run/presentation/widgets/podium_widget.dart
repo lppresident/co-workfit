@@ -154,7 +154,7 @@ class PodiumWidget extends StatelessWidget {
         const SizedBox(height: 2),
         // 거리
         Text(
-          '${participant.totalDistance.toStringAsFixed(1)}km',
+          '${participant.totalDistance.toStringAsFixed(2)}km',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.grey[600],
               ),

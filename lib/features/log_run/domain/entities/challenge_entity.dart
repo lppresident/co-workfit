@@ -133,7 +133,7 @@ class ChallengeEntity extends Equatable {
   String get targetUnitDisplay => '${targetWeight.toStringAsFixed(0)}kg';
 
   /// 현재 진행 단위 표시 (kg)
-  String get currentUnitDisplay => '${currentWeight.toStringAsFixed(1)}kg';
+  String get currentUnitDisplay => '${currentWeight.toStringAsFixed(2)}kg';
 
   /// 특정 참가자의 통계 가져오기
   ParticipantStatsEntity? getParticipantStats(String userId) {

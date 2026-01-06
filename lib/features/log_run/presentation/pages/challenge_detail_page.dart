@@ -301,7 +301,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            '${totalContributionValue.toStringAsFixed(1)}kg',
+                            '${totalContributionValue.toStringAsFixed(2)}kg',
                             style: const TextStyle(
                               fontSize: 10,
                               color: Colors.green,
@@ -504,7 +504,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${challenge.remainingWeight.toStringAsFixed(1)} kg',
+                          '${challenge.remainingWeight.toStringAsFixed(2)} kg',
                           style: Theme.of(context).textTheme.displayMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: themeColor,
@@ -519,7 +519,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                         valueColor: AlwaysStoppedAnimation<Color>(themeColor),
                       ),
                       const SizedBox(height: 8),
-                      Text('${(challenge.progress * 100).clamp(0, 100).toStringAsFixed(0)}% 완료'),
+                      Text('${(challenge.progress * 100).clamp(0, 100).floor()}% 완료'),
                     ],
                   ),
                 ),
