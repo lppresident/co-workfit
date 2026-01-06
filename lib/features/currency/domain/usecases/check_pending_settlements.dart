@@ -38,7 +38,12 @@ class CheckPendingSettlements {
       }
     }
 
-    // 3. 오래된 정산 기록 삭제 (7일 초과)
+    // 3. 마지막 정산 날짜 업데이트 (보상이 없는 날짜도 처리 완료로 표시)
+    if (pendingDates.isNotEmpty) {
+      await _repository.updateLastSettlementDate(userId, pendingDates.last);
+    }
+
+    // 4. 오래된 정산 기록 삭제 (7일 초과)
     await _repository.deleteOldSettlements(userId);
 
     return settlements;

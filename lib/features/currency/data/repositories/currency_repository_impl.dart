@@ -74,6 +74,11 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
   }
 
   @override
+  Future<void> updateLastSettlementDate(String userId, String date) async {
+    await _dataSource.updateLastSettlementDate(userId, date);
+  }
+
+  @override
   Future<void> deleteOldSettlements(String userId) async {
     await _dataSource.deleteOldSettlements(userId);
   }

@@ -40,6 +40,9 @@ abstract class CurrencyRepository {
   /// 미정산 날짜 목록 조회 (마지막 정산일 이후 ~ 어제)
   Future<List<String>> getPendingSettlementDates(String userId);
 
+  /// 마지막 정산 날짜 업데이트 (보상이 없는 날짜도 처리 완료로 표시)
+  Future<void> updateLastSettlementDate(String userId, String date);
+
   /// 7일 이상 지난 정산 기록 삭제
   Future<void> deleteOldSettlements(String userId);
 

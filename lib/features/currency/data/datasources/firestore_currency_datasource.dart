@@ -226,6 +226,21 @@ class FirestoreCurrencyDataSource {
     }
   }
 
+  /// 마지막 정산 날짜 업데이트 (보상이 없는 날짜도 처리 완료로 표시)
+  Future<void> updateLastSettlementDate(String userId, String date) async {
+    try {
+      final userRef = firestore.collection(_usersCollection).doc(userId);
+      await userRef.set({
+        'lastSettlementDate': Timestamp.fromDate(DateTime.parse(date)),
+      }, SetOptions(merge: true));
+
+      AppLogger.info('CurrencyDS', 'Updated lastSettlementDate to $date');
+    } catch (e) {
+      AppLogger.error('CurrencyDS', 'updateLastSettlementDate failed', e);
+      rethrow;
+    }
+  }
+
   /// 7일 이상 지난 정산 기록 삭제
   Future<void> deleteOldSettlements(String userId) async {
     try {
