@@ -80,11 +80,25 @@ class FirestoreSocialDataSource {
         // 상대방이 나에게 요청을 보낸 상태 - 자동으로 수락 처리
         final requestDoc = theirSentRequest.docs.first;
 
-        // acceptFriendRequest 로직 재사용
+        // 혹시 내가 보낸 요청도 있으면 함께 삭제 (race condition 대비)
+        final myRequestQuery = await _firestore
+            .collection(FirebaseConfig.friendRequestsCollection)
+            .where('senderId', isEqualTo: senderId)
+            .where('receiverId', isEqualTo: receiverId)
+            .where('status', isEqualTo: FriendRequestStatus.pending.name)
+            .limit(1)
+            .get();
+
         final batch = _firestore.batch();
 
-        // 친구 요청 삭제
+        // 상대방이 보낸 요청 삭제
         batch.delete(requestDoc.reference);
+
+        // 내가 보낸 요청도 있으면 삭제 (양방향 요청 처리)
+        if (myRequestQuery.docs.isNotEmpty) {
+          batch.delete(myRequestQuery.docs.first.reference);
+          AppLogger.info('FirestoreSocialDataSource', '양방향 친구 요청 발견 - 자동 수락 시 모두 삭제');
+        }
 
         // 단일 친구 관계 문서 생성 (Composite ID 사용)
         final friendshipDocId = _getFriendshipDocId(senderId, receiverId);
@@ -200,11 +214,26 @@ class FirestoreSocialDataSource {
 
       final request = FriendRequestModel.fromFirestore(requestDoc);
 
+      // 역방향 친구 요청 확인 (양방향 요청이 있을 수 있음)
+      final reverseRequestQuery = await _firestore
+          .collection(FirebaseConfig.friendRequestsCollection)
+          .where('senderId', isEqualTo: request.receiverId)
+          .where('receiverId', isEqualTo: request.senderId)
+          .where('status', isEqualTo: FriendRequestStatus.pending.name)
+          .limit(1)
+          .get();
+
       // 단일 친구 관계 문서 생성 + 친구 요청 삭제를 batch로 처리
       final batch = _firestore.batch();
 
-      // 친구 요청 삭제 (accepted 상태로 유지할 필요 없음)
+      // 현재 친구 요청 삭제
       batch.delete(requestDoc.reference);
+
+      // 역방향 요청도 있으면 함께 삭제
+      if (reverseRequestQuery.docs.isNotEmpty) {
+        batch.delete(reverseRequestQuery.docs.first.reference);
+        AppLogger.info('FirestoreSocialDataSource', '양방향 친구 요청 발견 - 모두 삭제 처리');
+      }
 
       // 단일 친구 관계 문서 생성 (Composite ID 사용)
       final friendshipDocId = _getFriendshipDocId(request.senderId, request.receiverId);

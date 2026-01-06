@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:co_workfit/core/config/firebase_config.dart';
 import 'package:co_workfit/core/presentation/base_page.dart';
 import 'package:co_workfit/core/presentation/widgets/standard_app_bar.dart';
 import 'package:co_workfit/core/constants/app_constants.dart';
@@ -123,7 +124,7 @@ class _ProfilePageState extends BasePageState<ProfilePage> {
       final friendshipDocId = '${ids[0]}_${ids[1]}';
 
       final friendshipDoc = await FirebaseFirestore.instance
-          .collection('friendships')
+          .collection(FirebaseConfig.friendsCollection)
           .doc(friendshipDocId)
           .get();
 
@@ -139,7 +140,7 @@ class _ProfilePageState extends BasePageState<ProfilePage> {
 
       // 보낸 친구 요청 확인
       final sentRequestQuery = await FirebaseFirestore.instance
-          .collection('friendRequests')
+          .collection(FirebaseConfig.friendRequestsCollection)
           .where('fromUserId', isEqualTo: currentUserId)
           .where('toUserId', isEqualTo: widget.userId)
           .where('status', isEqualTo: 'pending')
