@@ -321,16 +321,20 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     );
   }
 
-  void _showDeleteConfirmation() {
+  void _showDeleteOrLeaveConfirmation(ChallengeEntity challenge) {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) return;
+
+    final isCreator = challenge.createdBy == authState.user.id;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('챌린지 삭제'),
-        content: const Text(
-          '이 챌린지를 삭제하시겠습니까?\n\n모든 참가자의 기여 기록도 함께 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.',
+        title: Text(isCreator ? '챌린지 삭제' : '챌린지 나가기'),
+        content: Text(
+          isCreator
+              ? '이 챌린지를 삭제하시겠습니까?\n\n모든 참가자의 기여 기록도 함께 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.'
+              : '이 챌린지에서 나가시겠습니까?\n\n나가면 기여 기록은 유지되지만 더 이상 참여할 수 없습니다.',
         ),
         actions: [
           TextButton(
@@ -348,7 +352,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                   );
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('삭제'),
+            child: Text(isCreator ? '삭제' : '나가기'),
           ),
         ],
       ),
@@ -372,6 +376,9 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                   ? state.challenge
                   : (state as ChallengeUpdated).challenge;
 
+              final authState = context.read<AuthBloc>().state;
+              final isCreator = authState is Authenticated && challenge.createdBy == authState.user.id;
+
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -384,9 +391,9 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                     tooltip: '초대 코드 공유',
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: _showDeleteConfirmation,
-                    tooltip: '챌린지 삭제',
+                    icon: Icon(isCreator ? Icons.delete_outline : Icons.exit_to_app),
+                    onPressed: () => _showDeleteOrLeaveConfirmation(challenge),
+                    tooltip: isCreator ? '챌린지 삭제' : '챌린지 나가기',
                   ),
                 ],
               );

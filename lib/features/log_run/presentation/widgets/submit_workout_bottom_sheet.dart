@@ -300,14 +300,17 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
               // 헬스 운동인 경우 점수 계산
               final isStrengthWorkout = workout.type == WorkoutType.weightTraining;
               String valueDisplay;
+              String? calorieDisplay;
+
               if (isStrengthWorkout) {
                 final strengthScore = StrengthScoreCalculator.calculateStrengthScore(
                   durationMinutes: workout.durationMinutes,
                   avgHeartRate: workout.averageHeartRate,
                 );
-                final intensity =
-                    WorkoutIntensityExtension.fromHeartRate(workout.averageHeartRate);
-                valueDisplay = '${strengthScore.toStringAsFixed(1)}점 (${intensity.displayName})';
+                valueDisplay = '${strengthScore.toStringAsFixed(1)}점';
+                if (workout.calories != null && workout.calories! > 0) {
+                  calorieDisplay = '${workout.calories!.toStringAsFixed(0)} kcal';
+                }
               } else {
                 // effectiveDistance 사용 (correctedDistance가 있으면 우선)
                 valueDisplay = '${(workout.effectiveDistance ?? 0.0).toStringAsFixed(2)} km';
@@ -367,21 +370,48 @@ class _SubmitWorkoutBottomSheetState extends State<SubmitWorkoutBottomSheet> {
                     ],
                   ],
                 ),
-                subtitle: Row(
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${DateFormat('yyyy.MM.dd HH:mm').format(workout.startTime)} • $valueDisplay',
+                      DateFormat('yyyy.MM.dd HH:mm').format(workout.startTime),
                       style: TextStyle(
                         color: isAlreadySubmitted ? Colors.grey : null,
+                        fontSize: 12,
                       ),
                     ),
-                    if (isStrengthWorkout) ...[
-                      const SizedBox(width: 4),
-                      Text(
-                        '• ${workout.durationMinutes}분',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                      ),
-                    ],
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          valueDisplay,
+                          style: TextStyle(
+                            color: isAlreadySubmitted ? Colors.grey : null,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (calorieDisplay != null) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '• $calorieDisplay',
+                            style: TextStyle(
+                              color: isAlreadySubmitted ? Colors.grey[600] : Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                        if (isStrengthWorkout) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '• ${workout.durationMinutes}분',
+                            style: TextStyle(
+                              color: isAlreadySubmitted ? Colors.grey[600] : Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
                 trailing: isAlreadySubmitted
