@@ -152,9 +152,9 @@ class PodiumWidget extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        // 거리
+        // 기여량 (kg)
         Text(
-          '${participant.totalDistance.toStringAsFixed(2)}km',
+          '${participant.totalDistance.toStringAsFixed(2)}kg',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.grey[600],
               ),

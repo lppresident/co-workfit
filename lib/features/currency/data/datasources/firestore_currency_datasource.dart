@@ -430,17 +430,21 @@ class FirestoreCurrencyDataSource {
           switch (currencyType) {
             case CurrencyType.wood:
               // 거리 (km)
-              totalValue += (data['distance'] as num?)?.toDouble() ?? 0;
+              final distance = (data['distance'] as num?)?.toDouble() ?? 0;
+              totalValue += distance;
               break;
             case CurrencyType.iron:
               // 점수 (시간 × 강도)
-              final duration = (data['durationMinutes'] as int?) ?? 0;
+              final durationSeconds = data['durationSeconds'] as int?;
+              final durationMinutes = durationSeconds != null ? (durationSeconds / 60).round() : 0;
               final intensity = (data['intensity'] as num?)?.toDouble() ?? 0.83;
-              totalValue += duration * intensity;
+              totalValue += durationMinutes * intensity;
               break;
             case CurrencyType.soil:
               // 시간 (분)
-              totalValue += (data['durationMinutes'] as int?)?.toDouble() ?? 0;
+              final durationSeconds = data['durationSeconds'] as int?;
+              final durationMinutes = durationSeconds != null ? (durationSeconds / 60).round() : 0;
+              totalValue += durationMinutes.toDouble();
               break;
           }
         }
