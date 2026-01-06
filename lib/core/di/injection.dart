@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Firebase & Google Sign-In
 import 'package:firebase_auth/firebase_auth.dart';
@@ -85,9 +86,18 @@ import 'package:co_workfit/features/currency/currency.dart' as currency;
 // Craft (아이템 제작 시스템)
 import 'package:co_workfit/features/craft/craft.dart';
 
+// Core Services
+import 'package:co_workfit/core/services/app_lifecycle_service.dart';
+
 final sl = GetIt.instance;
 
 Future<void> initializeDependencies() async {
+  // ========== Core Dependencies ==========
+
+  // SharedPreferences
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
+
   // ========== Data Sources ==========
 
   // iOS - HealthKit
@@ -392,6 +402,18 @@ Future<void> initializeDependencies() async {
       equipItem: sl(),
       unequipItem: sl(),
       repository: sl(),
+    ),
+  );
+
+  // ========== Core Services ==========
+
+  // AppLifecycleService (Singleton - 앱 전역에서 하나만 존재)
+  // 주의: CurrencyBloc에 의존하므로 CurrencyBloc 등록 후에 생성해야 함
+  // 하지만 registerLazySingleton으로 등록하므로 실제 사용 시점에 생성됨
+  sl.registerLazySingleton<AppLifecycleService>(
+    () => AppLifecycleService(
+      prefs: sl(),
+      currencyBloc: sl(),
     ),
   );
 }
