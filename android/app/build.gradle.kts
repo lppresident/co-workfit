@@ -9,6 +9,7 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.github.triplet.play")
 }
 
 val keystorePropertiesFile = rootProject.file("key.properties")
@@ -66,4 +67,11 @@ android {
 
 flutter {
     source = "../.."
+}
+
+play {
+    serviceAccountCredentials.set(file("play-store-credentials.json"))
+    track.set("internal") // internal, alpha, beta, production
+    defaultToAppBundles.set(true)
+    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.COMPLETED)
 }
