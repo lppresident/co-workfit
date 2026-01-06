@@ -1,7 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// 버전 업데이트 필수 다이얼로그
 class VersionCheckDialog extends StatelessWidget {
@@ -31,7 +28,7 @@ class VersionCheckDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '새로운 버전이 출시되었습니다.\n최신 버전으로 업데이트해주세요.',
+              '새로운 버전이 출시되었습니다.\n앱을 새로 다운로드해주세요.',
               style: TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 16),
@@ -44,7 +41,7 @@ class VersionCheckDialog extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '최소 버전: $minimumVersion',
+              '최소 요구 버전: $minimumVersion',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -52,35 +49,7 @@ class VersionCheckDialog extends StatelessWidget {
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              // 스토어로 이동
-              if (Platform.isAndroid) {
-                // Google Play Store
-                final url = Uri.parse('https://play.google.com/store/apps/details?id=com.hansol.coworkfit');
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                }
-                SystemNavigator.pop();
-              } else if (Platform.isIOS) {
-                // App Store
-                final url = Uri.parse('https://apps.apple.com/app/id YOUR_APP_ID');
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                }
-                // iOS는 앱을 종료하지 않음 (Apple 가이드라인 준수)
-              }
-            },
-            child: const Text(
-              '업데이트',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
+        actions: const [],
       ),
     );
   }
