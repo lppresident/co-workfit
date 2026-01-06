@@ -24,6 +24,7 @@ class ChallengeModel extends ChallengeEntity {
     super.maxParticipants,
     super.scoreAwarded,
     super.awardedScores,
+    super.isSuccess,
   });
 
   /// Firestore 문서에서 모델 생성
@@ -80,6 +81,7 @@ class ChallengeModel extends ChallengeEntity {
               ),
             )
           : const {},
+      isSuccess: data['isSuccess'] as bool?,
     );
   }
 
@@ -105,6 +107,7 @@ class ChallengeModel extends ChallengeEntity {
       'maxParticipants': maxParticipants,
       'scoreAwarded': scoreAwarded,
       'awardedScores': awardedScores,
+      'isSuccess': isSuccess,
     };
   }
 
@@ -129,6 +132,7 @@ class ChallengeModel extends ChallengeEntity {
       maxParticipants: entity.maxParticipants,
       scoreAwarded: entity.scoreAwarded,
       awardedScores: entity.awardedScores,
+      isSuccess: entity.isSuccess,
     );
   }
 
@@ -152,6 +156,7 @@ class ChallengeModel extends ChallengeEntity {
     int? maxParticipants,
     bool? scoreAwarded,
     Map<String, int>? awardedScores,
+    bool? isSuccess,
   }) {
     return ChallengeModel(
       id: id ?? this.id,
@@ -172,6 +177,7 @@ class ChallengeModel extends ChallengeEntity {
       maxParticipants: maxParticipants ?? this.maxParticipants,
       scoreAwarded: scoreAwarded ?? this.scoreAwarded,
       awardedScores: awardedScores ?? this.awardedScores,
+      isSuccess: isSuccess ?? this.isSuccess,
     );
   }
 }
