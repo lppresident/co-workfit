@@ -73,5 +73,5 @@ play {
     serviceAccountCredentials.set(file("play-store-credentials.json"))
     track.set("internal") // internal, alpha, beta, production
     defaultToAppBundles.set(true)
-    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.COMPLETED)
+    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.DRAFT)
 }
