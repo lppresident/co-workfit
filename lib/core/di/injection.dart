@@ -88,6 +88,7 @@ import 'package:co_workfit/features/craft/craft.dart';
 
 // Core Services
 import 'package:co_workfit/core/services/app_lifecycle_service.dart';
+import 'package:co_workfit/core/services/version_check_service.dart';
 
 final sl = GetIt.instance;
 
@@ -407,13 +408,19 @@ Future<void> initializeDependencies() async {
 
   // ========== Core Services ==========
 
+  // VersionCheckService (Singleton)
+  sl.registerLazySingleton<VersionCheckService>(
+    () => VersionCheckService(),
+  );
+
   // AppLifecycleService (Singleton - 앱 전역에서 하나만 존재)
-  // 주의: CurrencyBloc에 의존하므로 CurrencyBloc 등록 후에 생성해야 함
+  // 주의: CurrencyBloc, VersionCheckService에 의존하므로 등록 후에 생성해야 함
   // 하지만 registerLazySingleton으로 등록하므로 실제 사용 시점에 생성됨
   sl.registerLazySingleton<AppLifecycleService>(
     () => AppLifecycleService(
       prefs: sl(),
       currencyBloc: sl(),
+      versionCheckService: sl(),
     ),
   );
 }

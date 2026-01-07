@@ -50,8 +50,8 @@ void main() async {
   // Initialize deep link service
   await DeepLinkService().initialize();
 
-  // Initialize version check service
-  final versionCheckService = VersionCheckService();
+  // Initialize version check service (DI에서 가져옴)
+  final versionCheckService = di.sl<VersionCheckService>();
   await versionCheckService.initialize();
 
   runApp(CoWorkFitApp(versionCheckService: versionCheckService));
@@ -277,6 +277,18 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
                   // AppLifecycleService 초기화 (인증 후 1회만)
                   if (_appLifecycleService == null) {
                     _appLifecycleService = di.sl<AppLifecycleService>();
+
+                    // 버전 체크 콜백 설정
+                    _appLifecycleService!.onVersionCheckRequired = (result) {
+                      if (context.mounted && result.isUpdateRequired) {
+                        VersionCheckDialog.show(
+                          context,
+                          currentVersion: result.currentVersion,
+                          minimumVersion: result.minimumVersion,
+                        );
+                      }
+                    };
+
                     _appLifecycleService!.initialize();
                     AppLogger.info('CoWorkFitApp', 'AppLifecycleService 초기화 완료');
                   }

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/currency/presentation/bloc/currency_bloc.dart';
 import '../../features/currency/presentation/bloc/currency_event.dart';
 import '../utils/logger.dart';
+import 'version_check_service.dart';
 
 /// 앱 생명주기를 관리하는 서비스
 ///
@@ -14,10 +15,11 @@ import '../utils/logger.dart';
 /// 1. bg→fg 전환 감지
 /// 2. 마지막 활성 시간/날짜 로컬 저장
 /// 3. 날짜 변경 시 정산 체크 트리거
-/// 4. 장시간 미사용 시 앱 초기화
+/// 4. 장시간 미사용 시 앱 초기화 및 버전 체크
 class AppLifecycleService with WidgetsBindingObserver {
   final SharedPreferences _prefs;
   final CurrencyBloc _currencyBloc;
+  final VersionCheckService _versionCheckService;
 
   // 설정값
   static const int resetThresholdHours = 6; // 6시간 미사용 시 초기화
@@ -29,12 +31,15 @@ class AppLifecycleService with WidgetsBindingObserver {
   // 콜백
   void Function()? onAppResumed;
   void Function()? onAppReset;
+  void Function(VersionCheckResult)? onVersionCheckRequired;
 
   AppLifecycleService({
     required SharedPreferences prefs,
     required CurrencyBloc currencyBloc,
+    required VersionCheckService versionCheckService,
   })  : _prefs = prefs,
-        _currencyBloc = currencyBloc;
+        _currencyBloc = currencyBloc,
+        _versionCheckService = versionCheckService;
 
   /// 서비스 초기화
   void initialize() {
@@ -175,9 +180,32 @@ class AppLifecycleService with WidgetsBindingObserver {
     // 추가 BLoC 리셋 로직은 필요 시 여기 추가
     // 예: _socialBloc.add(const RefreshSocialDataEvent());
 
+    // 버전 체크 수행
+    await _checkVersion();
+
     onAppReset?.call();
 
     AppLogger.info('AppLifecycle', '앱 초기화 완료');
+  }
+
+  /// 버전 체크 수행
+  Future<void> _checkVersion() async {
+    try {
+      AppLogger.info('AppLifecycle', '버전 체크 시작');
+      final result = await _versionCheckService.checkVersion();
+
+      if (result.isUpdateRequired) {
+        AppLogger.info(
+          'AppLifecycle',
+          '업데이트 필요: ${result.currentVersion} → ${result.minimumVersion}',
+        );
+        onVersionCheckRequired?.call(result);
+      } else {
+        AppLogger.info('AppLifecycle', '최신 버전 사용 중');
+      }
+    } catch (e, stackTrace) {
+      AppLogger.error('AppLifecycle', '버전 체크 실패', e, stackTrace);
+    }
   }
 
   /// 정산 체크 트리거
