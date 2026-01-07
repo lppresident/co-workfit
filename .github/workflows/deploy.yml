@@ -155,7 +155,7 @@ jobs:
 
       - name: Setup Play Store credentials
         run: |
-          echo '${{ secrets.PLAY_STORE_CONFIG_JSON }}' > android/app/play-store-credentials.json
+          echo '${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}' > android/app/play-store-credentials.json
 
       - name: Build AAB
         run: |
@@ -234,7 +234,7 @@ jobs:
 
       - name: Setup Play Store credentials
         run: |
-          echo '${{ secrets.PLAY_STORE_CONFIG_JSON }}' > android/app/play-store-credentials.json
+          echo '${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}' > android/app/play-store-credentials.json
 
       - name: Build AAB
         run: |
