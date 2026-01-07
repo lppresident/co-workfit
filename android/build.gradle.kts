@@ -1,3 +1,13 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.github.triplet.gradle:play-publisher:3.9.1")
+    }
+}
+
 allprojects {
     repositories {
         google()

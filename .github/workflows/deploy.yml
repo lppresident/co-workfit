@@ -9,9 +9,9 @@ on:
         default: 'all'
         type: choice
         options:
-          - all       # Android + iOS 모두 배포
-          - android   # Android만 배포 (Firebase)
-          - ios       # iOS만 배포 (TestFlight)
+          - all     # Android + iOS 모두 배포
+          - android # Android만 배포 (Play Store)
+          - ios     # iOS만 배포 (TestFlight)
       version_bump:
         description: '버전 증가 타입'
         required: true
@@ -60,11 +60,15 @@ jobs:
         id: check_target
         run: |
           TARGET="${{ github.event.inputs.deploy_target }}"
+
+          # Android 배포 여부
           if [[ "$TARGET" == "all" || "$TARGET" == "android" ]]; then
             echo "deploy_android=true" >> $GITHUB_OUTPUT
           else
             echo "deploy_android=false" >> $GITHUB_OUTPUT
           fi
+
+          # iOS 배포 여부
           if [[ "$TARGET" == "all" || "$TARGET" == "ios" ]]; then
             echo "deploy_ios=true" >> $GITHUB_OUTPUT
           else
@@ -101,12 +105,12 @@ jobs:
           echo "- **New Version**: $NEW_VERSION" >> $GITHUB_STEP_SUMMARY
           echo "- **Runner Type**: ${{ github.event.inputs.runner_type }}" >> $GITHUB_STEP_SUMMARY
 
-  # ==================== Android: Self-hosted ====================
-  android-self-hosted:
+  # ==================== Android Play Store: Self-hosted ====================
+  android-playstore-self-hosted:
     needs: prepare
     if: needs.prepare.outputs.deploy_android == 'true' && github.event.inputs.runner_type != 'github-hosted'
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 20
     continue-on-error: ${{ github.event.inputs.runner_type == 'self-hosted-first' }}
 
     outputs:
@@ -149,53 +153,45 @@ jobs:
           echo "keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}" >> android/key.properties
           echo "keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}" >> android/key.properties
 
-      - name: Build APK
+      - name: Setup Play Store credentials
+        run: |
+          echo '${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}' > android/app/play-store-credentials.json
+
+      - name: Build AAB
         run: |
           flutter clean
-          flutter build apk --release
+          flutter build appbundle --release
 
-      # macOS self-hosted에서는 Docker 기반 액션 사용 불가 → Firebase CLI 직접 사용
-      - name: Deploy to Firebase (via CLI)
+      - name: Deploy to Play Store
         run: |
-          # Firebase CLI 설치 (없으면)
-          if ! command -v firebase &> /dev/null; then
-            echo "Installing Firebase CLI..."
-            curl -sL https://firebase.tools | bash
-          fi
-          
-          # 서비스 계정 키 저장
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > firebase-service-account.json
-          export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/firebase-service-account.json"
-          
-          # Firebase App Distribution에 배포
-          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
-            --app "${{ secrets.FIREBASE_APP_ID }}" \
-            --groups "testers" \
-            --release-notes "${{ github.event.inputs.release_notes }}
-          Version: ${{ needs.prepare.outputs.new_version }}
-          Commit: ${{ github.sha }}"
-          
-          # 키 파일 삭제
-          rm -f firebase-service-account.json
+          cd android
+          ./gradlew publishBundle --track internal
 
-      - name: Upload APK artifact
+      - name: Cleanup credentials
+        if: always()
+        run: |
+          rm -f android/app/play-store-credentials.json
+          rm -f android/app/release-keystore.jks
+          rm -f android/key.properties
+
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk-self-hosted
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: android-aab-self-hosted
+          path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 7
 
       - name: Mark success
         id: build_result
         run: echo "success=true" >> $GITHUB_OUTPUT
 
-  # ==================== Android: GitHub-hosted Fallback ====================
-  android-github-hosted:
-    needs: [prepare, android-self-hosted]
+  # ==================== Android Play Store: GitHub-hosted Fallback ====================
+  android-playstore-github-hosted:
+    needs: [prepare, android-playstore-self-hosted]
     if: |
       always() && needs.prepare.outputs.deploy_android == 'true' && (
         github.event.inputs.runner_type == 'github-hosted' ||
-        (github.event.inputs.runner_type == 'self-hosted-first' && needs.android-self-hosted.outputs.success != 'true')
+        (github.event.inputs.runner_type == 'self-hosted-first' && needs.android-playstore-self-hosted.outputs.success != 'true')
       )
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -236,30 +232,32 @@ jobs:
           echo "keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}" >> android/key.properties
           echo "keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}" >> android/key.properties
 
-      - name: Build APK
+      - name: Setup Play Store credentials
+        run: |
+          echo '${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}' > android/app/play-store-credentials.json
+
+      - name: Build AAB
         run: |
           flutter clean
-          flutter build apk --release
+          flutter build appbundle --release
 
-      # Linux에서는 Docker 기반 액션 사용 가능
-      - name: Deploy to Firebase
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
-        with:
-          appId: ${{ secrets.FIREBASE_APP_ID }}
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          groups: testers
-          file: build/app/outputs/flutter-apk/app-release.apk
-          releaseNotes: |
-            ${{ github.event.inputs.release_notes }}
-            Version: ${{ needs.prepare.outputs.new_version }}
-            Commit: ${{ github.sha }}
-            (Built on GitHub-hosted runner)
+      - name: Deploy to Play Store
+        run: |
+          cd android
+          ./gradlew publishBundle --track internal
 
-      - name: Upload APK artifact
+      - name: Cleanup credentials
+        if: always()
+        run: |
+          rm -f android/app/play-store-credentials.json
+          rm -f android/app/release-keystore.jks
+          rm -f android/key.properties
+
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk-github-hosted
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: android-aab-github-hosted
+          path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 7
 
       - name: Mark success
@@ -397,7 +395,7 @@ jobs:
 
   # ==================== Finalize ====================
   finalize:
-    needs: [prepare, android-self-hosted, android-github-hosted, ios-self-hosted, ios-github-hosted]
+    needs: [prepare, android-playstore-self-hosted, android-playstore-github-hosted, ios-self-hosted, ios-github-hosted]
     if: always()
     runs-on: ubuntu-latest
 
@@ -419,20 +417,20 @@ jobs:
           git pull --rebase origin ${{ github.ref_name }} || echo "Pull failed or no changes"
           git push || echo "Push failed"
 
-      - name: Download Android APK (self-hosted)
-        if: needs.android-self-hosted.outputs.success == 'true'
+      - name: Download Android AAB (self-hosted)
+        if: needs.android-playstore-self-hosted.outputs.success == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: android-apk-self-hosted
-          path: ./apk
+          name: android-aab-self-hosted
+          path: ./aab
         continue-on-error: true
 
-      - name: Download Android APK (github-hosted)
-        if: needs.android-github-hosted.outputs.success == 'true'
+      - name: Download Android AAB (github-hosted)
+        if: needs.android-playstore-github-hosted.outputs.success == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: android-apk-github-hosted
-          path: ./apk
+          name: android-aab-github-hosted
+          path: ./aab
         continue-on-error: true
 
       - name: Create GitHub Release
@@ -450,16 +448,16 @@ jobs:
             - Commit: ${{ github.sha }}
             
             ## Build Info
-            - Android: ${{ needs.android-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.android-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '⏭️ 스킵' }}
+            - Android Play Store: ${{ needs.android-playstore-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.android-playstore-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '⏭️ 스킵' }}
             - iOS: ${{ needs.ios-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.ios-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '⏭️ 스킵' }}
-          files: ./apk/app-release.apk
+          files: ./aab/app-release.aab
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ==================== Summary ====================
   summary:
-    needs: [prepare, android-self-hosted, android-github-hosted, ios-self-hosted, ios-github-hosted, finalize]
+    needs: [prepare, android-playstore-self-hosted, android-playstore-github-hosted, ios-self-hosted, ios-github-hosted, finalize]
     if: always()
     runs-on: ubuntu-latest
 
@@ -474,11 +472,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [[ "${{ needs.prepare.outputs.deploy_android }}" == "true" ]]; then
-            echo "### 🤖 Android (Firebase App Distribution)" >> $GITHUB_STEP_SUMMARY
+            echo "### 🤖 Android Play Store (Internal Track)" >> $GITHUB_STEP_SUMMARY
             echo "| Runner | Status |" >> $GITHUB_STEP_SUMMARY
             echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
-            echo "| Self-hosted | ${{ needs.android-self-hosted.outputs.success == 'true' && '✅ 성공' || needs.android-self-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패/오프라인' }} |" >> $GITHUB_STEP_SUMMARY
-            echo "| GitHub-hosted | ${{ needs.android-github-hosted.outputs.success == 'true' && '✅ 성공 (Fallback)' || needs.android-github-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Self-hosted | ${{ needs.android-playstore-self-hosted.outputs.success == 'true' && '✅ 성공' || needs.android-playstore-self-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패/오프라인' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| GitHub-hosted | ${{ needs.android-playstore-github-hosted.outputs.success == 'true' && '✅ 성공 (Fallback)' || needs.android-playstore-github-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
           
