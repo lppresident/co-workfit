@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "89240730998-9oc72m3of4nd9g4gmhrm5dmpqmq7pntl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.coworkfit.co_workfit",
+            "certificate_hash": "79872deda4803c70713682c7c1fdb571544b918d"
+          }
+        },
+        {
+          "client_id": "89240730998-e3hn123j453b1eo6cojh9g5fclpf5ohj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.coworkfit.co_workfit",
+            "certificate_hash": "7f41d4eb9384cdcc54894025574e3d216eb4a82b"
+          }
+        },
+        {
           "client_id": "89240730998-lvh2bmj6ha6pmtk8h416jocam5i1qf1a.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
