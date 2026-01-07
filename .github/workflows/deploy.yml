@@ -22,10 +22,6 @@ on:
           - patch
           - minor
           - major
-      changelog:
-        description: 'iOS TestFlight 변경사항 (선택)'
-        required: false
-        default: 'Bug fixes and improvements'
       runner_type:
         description: 'Runner 선택'
         required: true
@@ -312,7 +308,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          bundle exec fastlane beta changelog:"${{ github.event.inputs.changelog }}"
+          bundle exec fastlane beta changelog:"Bug fixes and improvements"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -375,7 +371,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          bundle exec fastlane beta changelog:"${{ github.event.inputs.changelog }} (Built on GitHub-hosted runner)"
+          bundle exec fastlane beta changelog:"Bug fixes and improvements"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
