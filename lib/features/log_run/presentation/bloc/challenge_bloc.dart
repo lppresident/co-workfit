@@ -13,6 +13,10 @@ import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_ch
 import 'package:co_workfit/features/log_run/domain/usecases/get_active_challenges.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contributions.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/delete_contribution.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/create_challenge_invites.dart' as usecases;
+import 'package:co_workfit/features/log_run/domain/usecases/get_my_invites.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/accept_invite.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/reject_invite.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
@@ -25,10 +29,15 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
   final GetAllChallenges getAllChallengesUseCase;
   final GetChallengeContributions getChallengeContributionsUseCase;
   final DeleteContribution deleteContributionUseCase;
+  final usecases.CreateChallengeInvites createChallengeInvitesUseCase;
+  final GetMyInvites getMyInvitesUseCase;
+  final AcceptInvite acceptInviteUseCase;
+  final RejectInvite rejectInviteUseCase;
   final ChallengeRepository repository;
 
   StreamSubscription? _challengeSubscription;
   StreamSubscription? _contributionsSubscription;
+  StreamSubscription? _invitesSubscription;
 
   ChallengeBloc({
     required this.createChallengeUseCase,
@@ -38,6 +47,10 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     required this.getAllChallengesUseCase,
     required this.getChallengeContributionsUseCase,
     required this.deleteContributionUseCase,
+    required this.createChallengeInvitesUseCase,
+    required this.getMyInvitesUseCase,
+    required this.acceptInviteUseCase,
+    required this.rejectInviteUseCase,
     required this.repository,
   }) : super(const ChallengeInitial()) {
     on<LoadChallenges>(_onLoadChallenges);
@@ -52,6 +65,11 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     on<WatchContributions>(_onWatchContributions);
     on<DeleteChallenge>(_onDeleteChallenge);
     on<DeleteContributionEvent>(_onDeleteContribution);
+    on<CreateChallengeInvites>(_onCreateChallengeInvites);
+    on<LoadMyInvites>(_onLoadMyInvites);
+    on<WatchMyInvites>(_onWatchMyInvites);
+    on<AcceptInviteEvent>(_onAcceptInvite);
+    on<RejectInviteEvent>(_onRejectInvite);
   }
 
   /// 현재 상태에서 챌린지 목록 추출
@@ -365,10 +383,112 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     );
   }
 
+  Future<void> _onCreateChallengeInvites(
+    CreateChallengeInvites event,
+    Emitter<ChallengeState> emit,
+  ) async {
+    AppLogger.info('ChallengeBloc', 'Creating invites for ${event.inviteeIds.length} friends');
+
+    final result = await createChallengeInvitesUseCase(
+      usecases.CreateChallengeInvitesParams(
+        challengeId: event.challengeId,
+        challengeName: event.challengeName,
+        inviterId: event.inviterId,
+        inviterNickname: event.inviterNickname,
+        inviteeIds: event.inviteeIds,
+        targetWeight: event.targetWeight,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        participantCount: event.participantCount,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(ChallengeError(failure.toString())),
+      (_) {
+        AppLogger.info('ChallengeBloc', 'Invites created successfully');
+        emit(ChallengeInvitesCreated(event.inviteeIds.length));
+      },
+    );
+  }
+
+  Future<void> _onLoadMyInvites(
+    LoadMyInvites event,
+    Emitter<ChallengeState> emit,
+  ) async {
+    final result = await getMyInvitesUseCase(event.userId);
+
+    result.fold(
+      (failure) => emit(ChallengeError(failure.toString())),
+      (invites) {
+        AppLogger.info('ChallengeBloc', 'Loaded ${invites.length} invites');
+        emit(MyInvitesLoaded(invites));
+      },
+    );
+  }
+
+  Future<void> _onWatchMyInvites(
+    WatchMyInvites event,
+    Emitter<ChallengeState> emit,
+  ) async {
+    await _invitesSubscription?.cancel();
+    _invitesSubscription = repository.watchMyInvites(event.userId).listen(
+      (either) {
+        either.fold(
+          (failure) => add(LoadMyInvites(event.userId)),
+          (invites) {
+            AppLogger.info('ChallengeBloc', 'Invites updated: ${invites.length} invites');
+            if (!isClosed) {
+              emit(MyInvitesUpdated(invites));
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _onAcceptInvite(
+    AcceptInviteEvent event,
+    Emitter<ChallengeState> emit,
+  ) async {
+    final result = await acceptInviteUseCase(
+      AcceptInviteParams(
+        inviteId: event.inviteId,
+        userId: event.userId,
+        userNickname: event.userNickname,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(ChallengeError(failure.toString())),
+      (_) {
+        AppLogger.info('ChallengeBloc', 'Invite accepted: ${event.inviteId}');
+        // 챌린지 ID를 알 수 없으므로 빈 문자열로 전달
+        emit(InviteAccepted(inviteId: event.inviteId, challengeId: ''));
+      },
+    );
+  }
+
+  Future<void> _onRejectInvite(
+    RejectInviteEvent event,
+    Emitter<ChallengeState> emit,
+  ) async {
+    final result = await rejectInviteUseCase(event.inviteId);
+
+    result.fold(
+      (failure) => emit(ChallengeError(failure.toString())),
+      (_) {
+        AppLogger.info('ChallengeBloc', 'Invite rejected: ${event.inviteId}');
+        emit(InviteRejected(event.inviteId));
+      },
+    );
+  }
+
   @override
   Future<void> close() {
     _challengeSubscription?.cancel();
     _contributionsSubscription?.cancel();
+    _invitesSubscription?.cancel();
     return super.close();
   }
 }

@@ -3,6 +3,7 @@ import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_invite_entity.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 import 'package:co_workfit/features/log_run/data/datasources/firestore_challenge_datasource.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
@@ -162,6 +163,94 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
       return Right(challengeIds);
     } catch (e) {
       AppLogger.error('ChallengeRepository', 'getChallengesByWorkoutId 에러: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> createChallengeInvites({
+    required String challengeId,
+    required String challengeName,
+    required String inviterId,
+    required String inviterNickname,
+    required List<String> inviteeIds,
+    required double targetWeight,
+    required DateTime startDate,
+    required DateTime endDate,
+    required int participantCount,
+  }) async {
+    try {
+      await dataSource.createChallengeInvites(
+        challengeId: challengeId,
+        challengeName: challengeName,
+        inviterId: inviterId,
+        inviterNickname: inviterNickname,
+        inviteeIds: inviteeIds,
+        targetWeight: targetWeight,
+        startDate: startDate,
+        endDate: endDate,
+        participantCount: participantCount,
+      );
+      return const Right(null);
+    } catch (e) {
+      AppLogger.error('ChallengeRepository', 'createChallengeInvites 에러: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ChallengeInviteEntity>>> getMyInvites(
+    String userId,
+  ) async {
+    try {
+      final invites = await dataSource.getMyInvites(userId);
+      return Right(invites);
+    } catch (e) {
+      AppLogger.error('ChallengeRepository', 'getMyInvites 에러: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Stream<Either<Failure, List<ChallengeInviteEntity>>> watchMyInvites(
+    String userId,
+  ) {
+    try {
+      return dataSource.watchMyInvites(userId).map((invites) => Right(invites));
+    } catch (e) {
+      AppLogger.error('ChallengeRepository', 'watchMyInvites 에러: $e');
+      return Stream.value(Left(ServerFailure(e.toString())));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> acceptInvite({
+    required String inviteId,
+    required String userId,
+    required String userNickname,
+  }) async {
+    try {
+      await dataSource.acceptInvite(
+        inviteId: inviteId,
+        userId: userId,
+        userNickname: userNickname,
+      );
+      return const Right(null);
+    } catch (e) {
+      AppLogger.error('ChallengeRepository', 'acceptInvite 에러: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> rejectInvite({
+    required String inviteId,
+  }) async {
+    try {
+      await dataSource.rejectInvite(inviteId: inviteId);
+      return const Right(null);
+    } catch (e) {
+      AppLogger.error('ChallengeRepository', 'rejectInvite 에러: $e');
       return Left(ServerFailure(e.toString()));
     }
   }

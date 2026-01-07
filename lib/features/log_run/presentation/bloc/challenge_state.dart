@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_invite_entity.dart';
 
 /// 챌린지 BLoC 상태
 abstract class ChallengeState extends Equatable {
@@ -152,4 +153,58 @@ class ContributionDeleted extends ChallengeState {
 
   @override
   List<Object?> get props => [contributionId, challengeId];
+}
+
+/// 챌린지 초대 생성 성공
+class ChallengeInvitesCreated extends ChallengeState {
+  final int inviteCount;
+
+  const ChallengeInvitesCreated(this.inviteCount);
+
+  @override
+  List<Object?> get props => [inviteCount];
+}
+
+/// 내가 받은 챌린지 초대 목록 로드 성공
+class MyInvitesLoaded extends ChallengeState {
+  final List<ChallengeInviteEntity> invites;
+
+  const MyInvitesLoaded(this.invites);
+
+  @override
+  List<Object?> get props => [invites];
+}
+
+/// 실시간 챌린지 초대 목록 업데이트
+class MyInvitesUpdated extends ChallengeState {
+  final List<ChallengeInviteEntity> invites;
+
+  const MyInvitesUpdated(this.invites);
+
+  @override
+  List<Object?> get props => [invites];
+}
+
+/// 챌린지 초대 수락 성공
+class InviteAccepted extends ChallengeState {
+  final String inviteId;
+  final String challengeId;
+
+  const InviteAccepted({
+    required this.inviteId,
+    required this.challengeId,
+  });
+
+  @override
+  List<Object?> get props => [inviteId, challengeId];
+}
+
+/// 챌린지 초대 거절 성공
+class InviteRejected extends ChallengeState {
+  final String inviteId;
+
+  const InviteRejected(this.inviteId);
+
+  @override
+  List<Object?> get props => [inviteId];
 }

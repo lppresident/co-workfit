@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:co_workfit/features/log_run/data/models/challenge_model.dart';
 import 'package:co_workfit/features/log_run/data/models/contribution_model.dart';
 import 'package:co_workfit/features/log_run/data/models/participant_stats_model.dart';
+import 'package:co_workfit/features/log_run/data/models/challenge_invite_model.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/participant_stats_entity.dart';
 import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.dart';
@@ -13,6 +14,7 @@ class FirestoreChallengeDataSource {
   final FirebaseFirestore firestore;
   static const String _challengesCollection = 'challenges';
   static const String _contributionsSubcollection = 'contributions';
+  static const String _invitesCollection = 'challenge_invites';
 
   FirestoreChallengeDataSource({required this.firestore});
 
@@ -412,8 +414,19 @@ class FirestoreChallengeDataSource {
       await doc.reference.delete();
     }
 
+    // 해당 챌린지 관련 초대 모두 삭제
+    final invites = await firestore
+        .collection(_invitesCollection)
+        .where('challengeId', isEqualTo: challengeId)
+        .get();
+    for (final doc in invites.docs) {
+      await doc.reference.delete();
+    }
+
     // 챌린지 삭제
     await challengeRef.delete();
+
+    AppLogger.info('FirestoreChallengeDataSource', '챌린지 및 관련 초대 삭제 완료: $challengeId (기여: ${contributions.docs.length}개, 초대: ${invites.docs.length}개)');
   }
 
   /// 특정 운동이 제출된 챌린지 목록 조회
@@ -461,11 +474,21 @@ class FirestoreChallengeDataSource {
     int deletedCount = 0;
     for (final doc in query.docs) {
       final challengeRef = doc.reference;
+      final challengeId = doc.id;
 
       // 기여 내역 삭제
       final contributions = await challengeRef.collection(_contributionsSubcollection).get();
       for (final contribDoc in contributions.docs) {
         await contribDoc.reference.delete();
+      }
+
+      // 해당 챌린지 관련 초대 삭제
+      final invites = await firestore
+          .collection(_invitesCollection)
+          .where('challengeId', isEqualTo: challengeId)
+          .get();
+      for (final inviteDoc in invites.docs) {
+        await inviteDoc.reference.delete();
       }
 
       // 챌린지 삭제
@@ -474,10 +497,124 @@ class FirestoreChallengeDataSource {
     }
 
     if (deletedCount > 0) {
-      AppLogger.info('FirestoreChallengeDataSource', '보관 기간이 지난 챌린지 $deletedCount개 삭제됨');
+      AppLogger.info('FirestoreChallengeDataSource', '보관 기간이 지난 챌린지 $deletedCount개 삭제됨 (초대 포함)');
     }
 
     return deletedCount;
+  }
+
+  // ========== Challenge Invite Methods ==========
+
+  /// 챌린지 초대 생성 (친구에게 직접 초대)
+  Future<void> createChallengeInvites({
+    required String challengeId,
+    required String challengeName,
+    required String inviterId,
+    required String inviterNickname,
+    required List<String> inviteeIds,
+    required double targetWeight,
+    required DateTime startDate,
+    required DateTime endDate,
+    required int participantCount,
+  }) async {
+    final batch = firestore.batch();
+    final now = DateTime.now();
+
+    for (final inviteeId in inviteeIds) {
+      final inviteRef = firestore.collection(_invitesCollection).doc();
+
+      batch.set(inviteRef, {
+        'challengeId': challengeId,
+        'challengeName': challengeName,
+        'inviterId': inviterId,
+        'inviterNickname': inviterNickname,
+        'inviteeId': inviteeId,
+        'createdAt': Timestamp.fromDate(now),
+        'status': 'pending',
+        'targetWeight': targetWeight,
+        'startDate': Timestamp.fromDate(startDate),
+        'endDate': Timestamp.fromDate(endDate),
+        'participantCount': participantCount,
+      });
+    }
+
+    await batch.commit();
+    AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 ${inviteeIds.length}개 생성 완료');
+  }
+
+  /// 내가 받은 챌린지 초대 목록 조회
+  Future<List<ChallengeInviteModel>> getMyInvites(String userId) async {
+    final query = await firestore
+        .collection(_invitesCollection)
+        .where('inviteeId', isEqualTo: userId)
+        .where('status', isEqualTo: 'pending')
+        .orderBy('createdAt', descending: true)
+        .get();
+
+    return query.docs.map((doc) => ChallengeInviteModel.fromFirestore(doc)).toList();
+  }
+
+  /// 내가 받은 챌린지 초대 실시간 스트림
+  Stream<List<ChallengeInviteModel>> watchMyInvites(String userId) {
+    return firestore
+        .collection(_invitesCollection)
+        .where('inviteeId', isEqualTo: userId)
+        .where('status', isEqualTo: 'pending')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChallengeInviteModel.fromFirestore(doc))
+            .toList());
+  }
+
+  /// 챌린지 초대 수락
+  Future<void> acceptInvite({
+    required String inviteId,
+    required String userId,
+    required String userNickname,
+  }) async {
+    // 초대 정보 조회
+    final inviteDoc = await firestore.collection(_invitesCollection).doc(inviteId).get();
+
+    if (!inviteDoc.exists) {
+      throw Exception('초대를 찾을 수 없습니다');
+    }
+
+    final invite = ChallengeInviteModel.fromFirestore(inviteDoc);
+
+    // 트랜잭션으로 챌린지 참가 + 초대 상태 변경
+    await firestore.runTransaction((transaction) async {
+      final challengeRef = firestore.collection(_challengesCollection).doc(invite.challengeId);
+      final challengeDoc = await transaction.get(challengeRef);
+
+      if (!challengeDoc.exists) {
+        throw Exception('챌린지를 찾을 수 없습니다');
+      }
+
+      // 챌린지에 참가자 추가
+      transaction.update(challengeRef, {
+        'participants': FieldValue.arrayUnion([userId]),
+        'participantNicknames.$userId': userNickname,
+      });
+
+      // 초대 상태를 'accepted'로 변경
+      transaction.update(inviteDoc.reference, {
+        'status': 'accepted',
+      });
+    });
+
+    AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 수락: $inviteId');
+  }
+
+  /// 챌린지 초대 거절
+  Future<void> rejectInvite({
+    required String inviteId,
+  }) async {
+    await firestore.collection(_invitesCollection).doc(inviteId).update({
+      'status': 'rejected',
+    });
+
+    AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 거절: $inviteId');
   }
 
   // ========== Private Methods ==========

@@ -78,6 +78,10 @@ import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_ch
 import 'package:co_workfit/features/log_run/domain/usecases/get_active_challenges.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contributions.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/delete_contribution.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/create_challenge_invites.dart' as invite_usecases;
+import 'package:co_workfit/features/log_run/domain/usecases/get_my_invites.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/accept_invite.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/reject_invite.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
 
 // Currency (통합 재화 시스템)
@@ -323,6 +327,10 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => GetAllChallenges(sl()));
   sl.registerLazySingleton(() => GetChallengeContributions(sl()));
   sl.registerLazySingleton(() => DeleteContribution(sl()));
+  sl.registerLazySingleton(() => invite_usecases.CreateChallengeInvites(sl()));
+  sl.registerLazySingleton(() => GetMyInvites(sl()));
+  sl.registerLazySingleton(() => AcceptInvite(sl()));
+  sl.registerLazySingleton(() => RejectInvite(sl()));
 
   // BLoC
   sl.registerFactory(
@@ -334,6 +342,10 @@ Future<void> initializeDependencies() async {
       getAllChallengesUseCase: sl(),
       getChallengeContributionsUseCase: sl(),
       deleteContributionUseCase: sl(),
+      createChallengeInvitesUseCase: sl(),
+      getMyInvitesUseCase: sl(),
+      acceptInviteUseCase: sl(),
+      rejectInviteUseCase: sl(),
       repository: sl(),
     ),
   );

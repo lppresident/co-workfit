@@ -9,6 +9,7 @@ import 'package:co_workfit/features/log_run/presentation/bloc/challenge_state.da
 import 'package:co_workfit/features/log_run/presentation/widgets/contribution_feed_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/submit_workout_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/share_challenge_bottom_sheet.dart';
+import 'package:co_workfit/features/log_run/presentation/widgets/invite_friends_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/podium_widget.dart';
 import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
@@ -17,6 +18,8 @@ import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
 import 'package:co_workfit/features/craft/domain/usecases/get_equipped_items.dart';
 import 'package:co_workfit/features/social/presentation/pages/profile_page.dart';
+import 'package:co_workfit/features/social/presentation/bloc/social_bloc.dart';
+import 'package:co_workfit/features/social/presentation/bloc/social_event.dart';
 
 class ChallengeDetailPage extends BasePage {
   final String challengeId;
@@ -38,6 +41,12 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     context.read<ChallengeBloc>().add(LoadChallengeDetail(widget.challengeId));
     context.read<ChallengeBloc>().add(WatchChallenge(widget.challengeId));
     context.read<ChallengeBloc>().add(WatchContributions(widget.challengeId));
+
+    // 친구 목록 로드 (초대 기능용)
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      context.read<SocialBloc>().add(LoadFriendsData(authState.user.id));
+    }
   }
 
   /// 참가자들의 장착 아이템 로드
@@ -113,7 +122,80 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     );
   }
 
-  void _showShareSheet(String inviteCode, String challengeName) {
+  void _showShareOptions(ChallengeEntity challenge) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! Authenticated) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('챌린지 공유하기'),
+        content: const Text('어떤 방식으로 공유하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showInviteFriendsSheet(challenge, authState.user.id, authState.user.nickname);
+            },
+            child: const Text('친구 초대하기'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showShareLinkSheet(
+                challenge.inviteCode,
+                '${challenge.targetWeight.toStringAsFixed(0)}kg 챌린지',
+              );
+            },
+            child: const Text('링크로 공유하기'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showInviteFriendsSheet(ChallengeEntity challenge, String userId, String userNickname) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: InviteFriendsBottomSheet(
+          challengeId: challenge.id,
+          challengeName: '${challenge.targetWeight.toStringAsFixed(0)}kg 챌린지',
+          onInvite: (friendIds, selectedFriends) {
+            context.read<ChallengeBloc>().add(
+                  CreateChallengeInvites(
+                    challengeId: challenge.id,
+                    challengeName: '${challenge.targetWeight.toStringAsFixed(0)}kg 챌린지',
+                    inviterId: userId,
+                    inviterNickname: userNickname,
+                    inviteeIds: friendIds,
+                    targetWeight: challenge.targetWeight,
+                    startDate: challenge.startDate,
+                    endDate: challenge.endDate,
+                    participantCount: challenge.participants.length,
+                  ),
+                );
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${friendIds.length}명에게 초대를 보냈습니다'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showShareLinkSheet(String inviteCode, String challengeName) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -384,11 +466,8 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.share),
-                    onPressed: () => _showShareSheet(
-                      challenge.inviteCode,
-                      '${challenge.targetWeight.toStringAsFixed(0)}kg 챌린지',
-                    ),
-                    tooltip: '초대 코드 공유',
+                    onPressed: () => _showShareOptions(challenge),
+                    tooltip: '챌린지 공유',
                   ),
                   IconButton(
                     icon: Icon(isCreator ? Icons.delete_outline : Icons.exit_to_app),

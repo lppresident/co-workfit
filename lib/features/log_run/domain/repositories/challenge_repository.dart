@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_invite_entity.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
 /// 챌린지 Repository 인터페이스
@@ -90,4 +91,39 @@ abstract class ChallengeRepository {
   Future<Either<Failure, List<String>>> getChallengesByWorkoutId(
     String workoutId,
   );
+
+  /// 챌린지 초대 생성 (친구에게 직접 초대)
+  Future<Either<Failure, void>> createChallengeInvites({
+    required String challengeId,
+    required String challengeName,
+    required String inviterId,
+    required String inviterNickname,
+    required List<String> inviteeIds,
+    required double targetWeight,
+    required DateTime startDate,
+    required DateTime endDate,
+    required int participantCount,
+  });
+
+  /// 내가 받은 챌린지 초대 목록 조회
+  Future<Either<Failure, List<ChallengeInviteEntity>>> getMyInvites(
+    String userId,
+  );
+
+  /// 내가 받은 챌린지 초대 실시간 스트림
+  Stream<Either<Failure, List<ChallengeInviteEntity>>> watchMyInvites(
+    String userId,
+  );
+
+  /// 챌린지 초대 수락
+  Future<Either<Failure, void>> acceptInvite({
+    required String inviteId,
+    required String userId,
+    required String userNickname,
+  });
+
+  /// 챌린지 초대 거절
+  Future<Either<Failure, void>> rejectInvite({
+    required String inviteId,
+  });
 }

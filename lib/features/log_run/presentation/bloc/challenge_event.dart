@@ -183,3 +183,87 @@ class DeleteContributionEvent extends ChallengeEvent {
   @override
   List<Object?> get props => [challengeId, contributionId, userId];
 }
+
+/// 챌린지 초대 생성 (친구에게 직접 초대)
+class CreateChallengeInvites extends ChallengeEvent {
+  final String challengeId;
+  final String challengeName;
+  final String inviterId;
+  final String inviterNickname;
+  final List<String> inviteeIds;
+  final double targetWeight;
+  final DateTime startDate;
+  final DateTime endDate;
+  final int participantCount;
+
+  const CreateChallengeInvites({
+    required this.challengeId,
+    required this.challengeName,
+    required this.inviterId,
+    required this.inviterNickname,
+    required this.inviteeIds,
+    required this.targetWeight,
+    required this.startDate,
+    required this.endDate,
+    required this.participantCount,
+  });
+
+  @override
+  List<Object?> get props => [
+        challengeId,
+        challengeName,
+        inviterId,
+        inviterNickname,
+        inviteeIds,
+        targetWeight,
+        startDate,
+        endDate,
+        participantCount,
+      ];
+}
+
+/// 내가 받은 챌린지 초대 목록 로드
+class LoadMyInvites extends ChallengeEvent {
+  final String userId;
+
+  const LoadMyInvites(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
+}
+
+/// 내가 받은 챌린지 초대 실시간 구독
+class WatchMyInvites extends ChallengeEvent {
+  final String userId;
+
+  const WatchMyInvites(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
+}
+
+/// 챌린지 초대 수락
+class AcceptInviteEvent extends ChallengeEvent {
+  final String inviteId;
+  final String userId;
+  final String userNickname;
+
+  const AcceptInviteEvent({
+    required this.inviteId,
+    required this.userId,
+    required this.userNickname,
+  });
+
+  @override
+  List<Object?> get props => [inviteId, userId, userNickname];
+}
+
+/// 챌린지 초대 거절
+class RejectInviteEvent extends ChallengeEvent {
+  final String inviteId;
+
+  const RejectInviteEvent(this.inviteId);
+
+  @override
+  List<Object?> get props => [inviteId];
+}
