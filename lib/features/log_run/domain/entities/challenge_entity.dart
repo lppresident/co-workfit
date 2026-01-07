@@ -62,6 +62,10 @@ class ChallengeEntity extends Equatable {
   /// 참가자별 획득 점수 (userId -> score)
   final Map<String, int> awardedScores;
 
+  /// 챌린지 성공 여부 (currentWeight >= targetWeight)
+  /// expired 상태로 전환 시 자동 계산되어 저장됨
+  final bool? isSuccess;
+
   const ChallengeEntity({
     required this.id,
     required this.createdBy,
@@ -81,6 +85,7 @@ class ChallengeEntity extends Equatable {
     this.maxParticipants,
     this.scoreAwarded = false,
     this.awardedScores = const {},
+    this.isSuccess,
   });
 
   /// 진행률 (0.0 ~ 1.0)
@@ -165,6 +170,7 @@ class ChallengeEntity extends Equatable {
         maxParticipants,
         scoreAwarded,
         awardedScores,
+        isSuccess,
       ];
 }
 

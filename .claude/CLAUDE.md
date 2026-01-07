@@ -11,6 +11,7 @@
 | **상태관리** | flutter_bloc (^8.1.6) |
 | **DI** | GetIt (^8.0.2) + Injectable (^2.5.0) |
 | **Backend** | Firebase (Auth, Firestore) |
+| **로컬 저장소** | SharedPreferences (^2.5.3) - 앱 생명주기 데이터 |
 | **Health** | health package (^13.2.1) - HealthKit/Health Connect |
 | **현재 버전** | 0.0.1+19 |
 
@@ -31,11 +32,11 @@ lib/
 ├── core/
 │   ├── config/              # 앱 설정
 │   ├── constants/           # 상수 (AppConstants)
-│   ├── di/                  # DI 설정 (injection.dart)
+│   ├── di/                  # DI 설정 (injection.dart, SharedPreferences)
 │   ├── error/               # 에러 처리
 │   ├── platform/            # 플랫폼별 코드
 │   ├── presentation/        # BasePage, TabbedMixin
-│   ├── services/            # 공통 서비스
+│   ├── services/            # 공통 서비스 (AppLifecycleService 등)
 │   ├── usecases/            # UseCase 추상 클래스
 │   ├── utils/               # AppLogger, 유틸리티
 │   └── widgets/             # CommonLoadingWidget 등
@@ -181,7 +182,8 @@ flutter pub run build_runner build --delete-conflicting-outputs  # 코드 생성
 - [TEMPLATES.md](docs/TEMPLATES.md) - 코드 템플릿
 - [CURRENCY_SYSTEM.md](../docs/CURRENCY_SYSTEM.md) - 재화 시스템
 - [HEALTH.md](../docs/HEALTH.md) - Health 연동
+- [APP_LIFECYCLE.md](../docs/APP_LIFECYCLE.md) - 앱 생명주기 관리
 
 ---
 
-_v6.0 | 2026-01-05_
+_v6.1 | 2026-01-07_

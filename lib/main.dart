@@ -24,6 +24,7 @@ import 'package:co_workfit/features/craft/presentation/bloc/craft_bloc.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/core/services/deep_link_service.dart';
 import 'package:co_workfit/core/services/version_check_service.dart';
+import 'package:co_workfit/core/services/app_lifecycle_service.dart';
 import 'package:co_workfit/core/widgets/version_check_dialog.dart';
 
 void main() async {
@@ -75,6 +76,7 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
   DeepLinkData? _pendingDeepLink;
   bool _isJoiningFromDeepLink = false;
   bool _hasCheckedVersion = false;
+  AppLifecycleService? _appLifecycleService;
 
   @override
   void initState() {
@@ -196,6 +198,7 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
   void dispose() {
     _deepLinkSubscription?.cancel();
     _logRunStateSubscription?.cancel();
+    _appLifecycleService?.dispose();
     super.dispose();
   }
 
@@ -270,6 +273,13 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
                   currencyBloc.setUserId(state.user.id);
                   currencyBloc.add(const LoadCurrencySummaryEvent());
                   currencyBloc.add(const CheckPendingSettlementsEvent());
+
+                  // AppLifecycleService 초기화 (인증 후 1회만)
+                  if (_appLifecycleService == null) {
+                    _appLifecycleService = di.sl<AppLifecycleService>();
+                    _appLifecycleService!.initialize();
+                    AppLogger.info('CoWorkFitApp', 'AppLifecycleService 초기화 완료');
+                  }
                 }
               },
             ),

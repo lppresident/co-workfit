@@ -282,7 +282,7 @@ class FirestoreCurrencyDataSource {
       // 해당 날짜에 종료된 챌린지 조회
       final query = await firestore
           .collection(_challengesCollection)
-          .where('participantIds', arrayContains: userId)
+          .where('participants', arrayContains: userId)
           .where('endDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('endDate', isLessThan: Timestamp.fromDate(endOfDay))
           .get();

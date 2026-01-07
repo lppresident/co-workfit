@@ -290,9 +290,13 @@ class FirestoreChallengeDataSource {
       // active 상태인데 만료된 경우 → expired로 업데이트
       if (challenge.status == ChallengeStatus.active && challenge.isExpired) {
         AppLogger.info('LogRunDataSource', '만료 처리: ${challenge.id}');
-        await _markChallengeAsExpired(challenge.id);
-        // 업데이트된 상태로 챌린지 재생성
-        challenge = challenge.copyWith(status: ChallengeStatus.expired);
+        await _markChallengeAsExpired(challenge);
+        // 업데이트된 상태로 챌린지 재생성 (성공 여부 포함)
+        final isSuccess = challenge.currentWeight >= challenge.targetWeight;
+        challenge = challenge.copyWith(
+          status: ChallengeStatus.expired,
+          isSuccess: isSuccess,
+        );
       }
       
       challenges.add(challenge);
@@ -314,13 +318,21 @@ class FirestoreChallengeDataSource {
     return challenges;
   }
   
-  /// 챌린지를 만료 상태로 변경
-  Future<void> _markChallengeAsExpired(String challengeId) async {
+  /// 챌린지를 만료 상태로 변경하고 성공 여부 저장
+  Future<void> _markChallengeAsExpired(ChallengeModel challenge) async {
     try {
-      await firestore.collection(_challengesCollection).doc(challengeId).update({
+      // 성공 여부 계산: currentWeight >= targetWeight
+      final isSuccess = challenge.currentWeight >= challenge.targetWeight;
+
+      await firestore.collection(_challengesCollection).doc(challenge.id).update({
         'status': ChallengeStatus.expired.toFirestore(),
+        'isSuccess': isSuccess,
       });
-      AppLogger.info('LogRunDataSource', '챌린지 만료 처리 완료: $challengeId');
+
+      AppLogger.info(
+        'LogRunDataSource',
+        '챌린지 만료 처리 완료: ${challenge.id} (성공: $isSuccess, ${challenge.currentWeight}/${challenge.targetWeight}kg)',
+      );
     } catch (e) {
       AppLogger.error('LogRunDataSource', '챌린지 만료 처리 실패', e);
     }
