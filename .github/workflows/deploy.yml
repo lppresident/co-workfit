@@ -22,6 +22,10 @@ on:
           - patch
           - minor
           - major
+      release_notes:
+        description: '릴리즈 노트 (선택, 비워도 됨)'
+        required: false
+        default: ''
       runner_type:
         description: 'Runner 선택'
         required: true
@@ -153,6 +157,14 @@ jobs:
           flutter clean
           flutter build appbundle --release
 
+      - name: Setup release notes for Play Store
+        run: |
+          RELEASE_NOTES="${{ github.event.inputs.release_notes }}"
+          if [ -n "$RELEASE_NOTES" ]; then
+            mkdir -p android/app/src/main/play/release-notes/ko-KR
+            echo "$RELEASE_NOTES" > android/app/src/main/play/release-notes/ko-KR/internal.txt
+          fi
+
       - name: Deploy to Play Store
         run: |
           cd android
@@ -232,6 +244,14 @@ jobs:
           flutter clean
           flutter build appbundle --release
 
+      - name: Setup release notes for Play Store
+        run: |
+          RELEASE_NOTES="${{ github.event.inputs.release_notes }}"
+          if [ -n "$RELEASE_NOTES" ]; then
+            mkdir -p android/app/src/main/play/release-notes/ko-KR
+            echo "$RELEASE_NOTES" > android/app/src/main/play/release-notes/ko-KR/internal.txt
+          fi
+
       - name: Deploy to Play Store
         run: |
           cd android
@@ -308,7 +328,11 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          bundle exec fastlane beta changelog:"Bug fixes and improvements"
+          CHANGELOG="${{ github.event.inputs.release_notes }}"
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Bug fixes and improvements"
+          fi
+          bundle exec fastlane beta changelog:"$CHANGELOG"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -371,7 +395,11 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          bundle exec fastlane beta changelog:"Bug fixes and improvements"
+          CHANGELOG="${{ github.event.inputs.release_notes }}"
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Bug fixes and improvements"
+          fi
+          bundle exec fastlane beta changelog:"$CHANGELOG"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
