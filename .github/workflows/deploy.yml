@@ -23,7 +23,7 @@ on:
           - minor
           - major
       release_notes:
-        description: '릴리즈 노트 (선택, 비워도 됨)'
+        description: '릴리즈 노트 (선택)'
         required: false
         default: ''
       runner_type:
