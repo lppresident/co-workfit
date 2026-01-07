@@ -375,7 +375,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          bundle exec fastlane beta changelog:"${{ github.event.inputs.release_notes }} (Built on GitHub-hosted runner)"
+          bundle exec fastlane beta changelog:"${{ github.event.inputs.changelog }} (Built on GitHub-hosted runner)"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
