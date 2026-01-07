@@ -23,14 +23,9 @@ on:
           - minor
           - major
       release_notes:
-        description: '릴리스 노트'
+        description: '릴리즈 노트 (선택)'
         required: false
-        default: 'New test release'
-      create_github_release:
-        description: 'GitHub Release 생성 (Android APK 포함)'
-        required: true
-        default: false
-        type: boolean
+        default: ''
       runner_type:
         description: 'Runner 선택'
         required: true
@@ -162,6 +157,14 @@ jobs:
           flutter clean
           flutter build appbundle --release
 
+      - name: Setup release notes for Play Store
+        run: |
+          RELEASE_NOTES="${{ github.event.inputs.release_notes }}"
+          if [ -n "$RELEASE_NOTES" ]; then
+            mkdir -p android/app/src/main/play/release-notes/ko-KR
+            echo "$RELEASE_NOTES" > android/app/src/main/play/release-notes/ko-KR/internal.txt
+          fi
+
       - name: Deploy to Play Store
         run: |
           cd android
@@ -241,6 +244,14 @@ jobs:
           flutter clean
           flutter build appbundle --release
 
+      - name: Setup release notes for Play Store
+        run: |
+          RELEASE_NOTES="${{ github.event.inputs.release_notes }}"
+          if [ -n "$RELEASE_NOTES" ]; then
+            mkdir -p android/app/src/main/play/release-notes/ko-KR
+            echo "$RELEASE_NOTES" > android/app/src/main/play/release-notes/ko-KR/internal.txt
+          fi
+
       - name: Deploy to Play Store
         run: |
           cd android
@@ -317,7 +328,11 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          bundle exec fastlane beta changelog:"${{ github.event.inputs.release_notes }}"
+          CHANGELOG="${{ github.event.inputs.release_notes }}"
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Bug fixes and improvements"
+          fi
+          bundle exec fastlane beta changelog:"$CHANGELOG"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -380,7 +395,11 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          bundle exec fastlane beta changelog:"${{ github.event.inputs.release_notes }} (Built on GitHub-hosted runner)"
+          CHANGELOG="${{ github.event.inputs.release_notes }}"
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Bug fixes and improvements"
+          fi
+          bundle exec fastlane beta changelog:"$CHANGELOG"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -417,43 +436,6 @@ jobs:
           git pull --rebase origin ${{ github.ref_name }} || echo "Pull failed or no changes"
           git push || echo "Push failed"
 
-      - name: Download Android AAB (self-hosted)
-        if: needs.android-playstore-self-hosted.outputs.success == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: android-aab-self-hosted
-          path: ./aab
-        continue-on-error: true
-
-      - name: Download Android AAB (github-hosted)
-        if: needs.android-playstore-github-hosted.outputs.success == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: android-aab-github-hosted
-          path: ./aab
-        continue-on-error: true
-
-      - name: Create GitHub Release
-        if: github.event.inputs.create_github_release == 'true'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ needs.prepare.outputs.new_version }}
-          name: CoWorkfit v${{ needs.prepare.outputs.new_version }}
-          body: |
-            ## Release Notes
-            ${{ github.event.inputs.release_notes }}
-
-            ## Details
-            - Version: ${{ needs.prepare.outputs.new_version }}
-            - Commit: ${{ github.sha }}
-            
-            ## Build Info
-            - Android Play Store: ${{ needs.android-playstore-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.android-playstore-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '⏭️ 스킵' }}
-            - iOS: ${{ needs.ios-self-hosted.outputs.success == 'true' && 'Self-hosted ✅' || needs.ios-github-hosted.outputs.success == 'true' && 'GitHub-hosted ✅' || '⏭️ 스킵' }}
-          files: ./aab/app-release.aab
-          fail_on_unmatched_files: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ==================== Summary ====================
   summary:
@@ -488,7 +470,4 @@ jobs:
             echo "| GitHub-hosted | ${{ needs.ios-github-hosted.outputs.success == 'true' && '✅ 성공 (Fallback)' || needs.ios-github-hosted.result == 'skipped' && '⏭️ 스킵' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
-          
-          echo "### 📋 Options" >> $GITHUB_STEP_SUMMARY
-          echo "- **GitHub Release**: ${{ github.event.inputs.create_github_release == 'true' && '✅' || '⏭️' }}" >> $GITHUB_STEP_SUMMARY
 
