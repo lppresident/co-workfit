@@ -155,7 +155,9 @@ jobs:
       - name: Build AAB
         run: |
           flutter clean
-          flutter build appbundle --release
+          flutter build appbundle --release \
+            --build-name="${{ needs.prepare.outputs.version_name }}" \
+            --build-number="${{ needs.prepare.outputs.build_number }}"
 
       - name: Setup release notes for Play Store
         run: |
@@ -242,7 +244,9 @@ jobs:
       - name: Build AAB
         run: |
           flutter clean
-          flutter build appbundle --release
+          flutter build appbundle --release \
+            --build-name="${{ needs.prepare.outputs.version_name }}" \
+            --build-number="${{ needs.prepare.outputs.build_number }}"
 
       - name: Setup release notes for Play Store
         run: |
