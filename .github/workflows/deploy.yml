@@ -83,9 +83,9 @@ jobs:
           PATCH=$(echo "$VERSION_NAME" | cut -d'.' -f3)
 
           case "$VERSION_BUMP" in
-            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0; BUILD_NUMBER=1 ;;
-            minor) MINOR=$((MINOR + 1)); PATCH=0; BUILD_NUMBER=1 ;;
-            patch) PATCH=$((PATCH + 1)); BUILD_NUMBER=1 ;;
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0; BUILD_NUMBER=$((BUILD_NUMBER + 1)) ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0; BUILD_NUMBER=$((BUILD_NUMBER + 1)) ;;
+            patch) PATCH=$((PATCH + 1)); BUILD_NUMBER=$((BUILD_NUMBER + 1)) ;;
             build) BUILD_NUMBER=$((BUILD_NUMBER + 1)) ;;
           esac
 
