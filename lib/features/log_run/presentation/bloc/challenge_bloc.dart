@@ -6,6 +6,7 @@ import 'package:co_workfit/features/log_run/presentation/bloc/challenge_event.da
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_state.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_invite_entity.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/create_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/join_challenge.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/join_challenge_by_invite_code.dart';
@@ -37,7 +38,6 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
 
   StreamSubscription? _challengeSubscription;
   StreamSubscription? _contributionsSubscription;
-  StreamSubscription? _invitesSubscription;
 
   ChallengeBloc({
     required this.createChallengeUseCase,
@@ -80,6 +80,20 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
       return (state as ChallengeDetailLoaded).challenges;
     } else if (state is WorkoutSubmitted) {
       return (state as WorkoutSubmitted).challenges;
+    } else if (state is MyInvitesUpdated) {
+      return (state as MyInvitesUpdated).challenges;
+    }
+    return [];
+  }
+
+  /// 현재 상태에서 초대 목록 추출
+  List<ChallengeInviteEntity> _getCurrentInvites() {
+    if (state is ChallengesLoaded) {
+      return (state as ChallengesLoaded).invites;
+    } else if (state is MyInvitesLoaded) {
+      return (state as MyInvitesLoaded).invites;
+    } else if (state is MyInvitesUpdated) {
+      return (state as MyInvitesUpdated).invites;
     }
     return [];
   }
@@ -103,10 +117,12 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
       },
       (challenges) {
         AppLogger.info('ChallengeBloc', 'LoadChallenges 성공: ${challenges.length}개');
+        // 현재 초대 목록 유지
+        final currentInvites = _getCurrentInvites();
         if (challenges.isEmpty) {
           emit(const ChallengeEmpty());
         } else {
-          emit(ChallengesLoaded(challenges: challenges));
+          emit(ChallengesLoaded(challenges: challenges, invites: currentInvites));
         }
       },
     );
@@ -192,6 +208,9 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
       (failure) => emit(ChallengeError(failure.toString())),
       (_) {
         AppLogger.info('ChallengeBloc', 'Left challenge: ${event.challengeId}');
+        // 챌린지를 나갔음을 알리는 상태 발행 (상세 페이지에서 감지)
+        emit(ChallengeDeleted(event.challengeId));
+        // 챌린지 목록 새로고침
         add(LoadChallenges(event.userId));
       },
     );
@@ -431,18 +450,25 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     WatchMyInvites event,
     Emitter<ChallengeState> emit,
   ) async {
-    await _invitesSubscription?.cancel();
-    _invitesSubscription = repository.watchMyInvites(event.userId).listen(
-      (either) {
-        either.fold(
-          (failure) => add(LoadMyInvites(event.userId)),
+    await emit.forEach<Either<Failure, List<ChallengeInviteEntity>>>(
+      repository.watchMyInvites(event.userId),
+      onData: (either) {
+        return either.fold(
+          (failure) {
+            AppLogger.error('ChallengeBloc', 'Failed to watch invites', failure);
+            return ChallengeError(failure.toString());
+          },
           (invites) {
             AppLogger.info('ChallengeBloc', 'Invites updated: ${invites.length} invites');
-            if (!isClosed) {
-              emit(MyInvitesUpdated(invites));
-            }
+            // 현재 챌린지 목록 유지
+            final currentChallenges = _getCurrentChallenges();
+            return MyInvitesUpdated(invites, challenges: currentChallenges);
           },
         );
+      },
+      onError: (error, stackTrace) {
+        AppLogger.error('ChallengeBloc', 'Error watching invites', error, stackTrace);
+        return ChallengeError(error.toString());
       },
     );
   }
@@ -488,7 +514,6 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
   Future<void> close() {
     _challengeSubscription?.cancel();
     _contributionsSubscription?.cancel();
-    _invitesSubscription?.cancel();
     return super.close();
   }
 }

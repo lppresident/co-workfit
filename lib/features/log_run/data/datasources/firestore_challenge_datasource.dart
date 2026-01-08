@@ -560,11 +560,15 @@ class FirestoreChallengeDataSource {
         .collection(_invitesCollection)
         .where('inviteeId', isEqualTo: userId)
         .where('status', isEqualTo: 'pending')
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ChallengeInviteModel.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          // Firestore에서 가져온 후 메모리에서 정렬
+          final invites = snapshot.docs
+              .map((doc) => ChallengeInviteModel.fromFirestore(doc))
+              .toList();
+          invites.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return invites;
+        });
   }
 
   /// 챌린지 초대 수락
@@ -582,7 +586,7 @@ class FirestoreChallengeDataSource {
 
     final invite = ChallengeInviteModel.fromFirestore(inviteDoc);
 
-    // 트랜잭션으로 챌린지 참가 + 초대 상태 변경
+    // 트랜잭션으로 챌린지 참가 + 초대 삭제
     await firestore.runTransaction((transaction) async {
       final challengeRef = firestore.collection(_challengesCollection).doc(invite.challengeId);
       final challengeDoc = await transaction.get(challengeRef);
@@ -597,10 +601,8 @@ class FirestoreChallengeDataSource {
         'participantNicknames.$userId': userNickname,
       });
 
-      // 초대 상태를 'accepted'로 변경
-      transaction.update(inviteDoc.reference, {
-        'status': 'accepted',
-      });
+      // 초대 삭제 (accepted 상태로 변경하지 않음)
+      transaction.delete(inviteDoc.reference);
     });
 
     AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 수락: $inviteId');
@@ -610,11 +612,10 @@ class FirestoreChallengeDataSource {
   Future<void> rejectInvite({
     required String inviteId,
   }) async {
-    await firestore.collection(_invitesCollection).doc(inviteId).update({
-      'status': 'rejected',
-    });
+    // 거절 시 초대 문서 삭제
+    await firestore.collection(_invitesCollection).doc(inviteId).delete();
 
-    AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 거절: $inviteId');
+    AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 거절 및 삭제: $inviteId');
   }
 
   // ========== Private Methods ==========

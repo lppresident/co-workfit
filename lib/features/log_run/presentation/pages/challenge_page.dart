@@ -6,10 +6,12 @@ import 'package:co_workfit/features/log_run/presentation/widgets/empty_challenge
 import 'package:co_workfit/features/log_run/presentation/widgets/challenge_card_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/create_challenge_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/invite_code_bottom_sheet.dart';
+import 'package:co_workfit/features/log_run/presentation/widgets/challenge_invites_section.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_event.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_state.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_invite_entity.dart';
 import 'package:co_workfit/features/log_run/presentation/pages/challenge_detail_page.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
@@ -29,6 +31,7 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
   @override
   void loadInitialData() {
     refreshChallenges();
+    loadInvites();
   }
 
   /// 챌린지 목록 새로고침
@@ -36,6 +39,14 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
       context.read<ChallengeBloc>().add(LoadChallenges(authState.user.id));
+    }
+  }
+
+  /// 초대 목록 로드
+  void loadInvites() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      context.read<ChallengeBloc>().add(WatchMyInvites(authState.user.id));
     }
   }
 
@@ -133,6 +144,15 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
     if (state is ChallengesLoaded) return state.challenges;
     if (state is ChallengeDetailLoaded) return state.challenges;
     if (state is WorkoutSubmitted) return state.challenges;
+    if (state is MyInvitesUpdated) return state.challenges;
+    return [];
+  }
+
+  /// 현재 상태에서 초대 목록 추출
+  List<ChallengeInviteEntity> _getInvites(ChallengeState state) {
+    if (state is ChallengesLoaded) return state.invites;
+    if (state is MyInvitesLoaded) return state.invites;
+    if (state is MyInvitesUpdated) return state.invites;
     return [];
   }
 
@@ -166,6 +186,10 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
           refreshChallenges();
         } else if (state is ChallengeDeleted) {
           refreshChallenges();
+        } else if (state is InviteAccepted) {
+          refreshChallenges();
+        } else if (state is InviteRejected) {
+          // 초대 목록은 자동으로 업데이트됨 (WatchMyInvites 스트림)
         }
       },
       builder: (context, state) {
@@ -176,22 +200,28 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
 
         // Empty 상태
         if (state is ChallengeEmpty) {
+          // Empty 상태에서도 초대가 있을 수 있음
+          final invites = _getInvites(state);
+          if (invites.isNotEmpty) {
+            return _buildChallengeListWithInvites([], invites);
+          }
           return EmptyChallengeWidget(
             onCreateOrJoin: _showActionSelectionDialog,
           );
         }
 
         // 챌린지 목록이 있는 상태들
-        if (state is ChallengesLoaded || state is ChallengeDetailLoaded || state is WorkoutSubmitted) {
+        if (state is ChallengesLoaded || state is ChallengeDetailLoaded || state is WorkoutSubmitted || state is MyInvitesLoaded || state is MyInvitesUpdated) {
           final challenges = _getChallenges(state);
+          final invites = _getInvites(state);
 
-          if (challenges.isEmpty) {
+          if (challenges.isEmpty && invites.isEmpty) {
             return EmptyChallengeWidget(
               onCreateOrJoin: _showActionSelectionDialog,
             );
           }
 
-          return _buildChallengeList(challenges);
+          return _buildChallengeListWithInvites(challenges, invites);
         }
 
         // 일시적인 상태
@@ -205,16 +235,33 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
     );
   }
 
-  Widget _buildChallengeList(List<ChallengeEntity> challenges) {
+  Widget _buildChallengeListWithInvites(
+    List<ChallengeEntity> challenges,
+    List<ChallengeInviteEntity> invites,
+  ) {
     return RefreshIndicator(
       onRefresh: () async {
         refreshChallenges();
+        loadInvites();
       },
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: challenges.length,
+        itemCount: (invites.isNotEmpty ? 1 : 0) + challenges.length,
         itemBuilder: (context, index) {
-          final challenge = challenges[index];
+          // 첫 번째 아이템: 초대 섹션
+          if (invites.isNotEmpty && index == 0) {
+            return ChallengeInvitesSection(invites: invites);
+          }
+
+          // 나머지 아이템: 챌린지 카드
+          final challengeIndex = invites.isNotEmpty ? index - 1 : index;
+
+          // 챌린지가 없으면 빈 위젯 반환
+          if (challengeIndex >= challenges.length) {
+            return const SizedBox.shrink();
+          }
+
+          final challenge = challenges[challengeIndex];
           return ChallengeCardWidget(
             challenge: challenge,
             onTap: () async {

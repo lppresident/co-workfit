@@ -25,8 +25,12 @@ class ChallengeLoading extends ChallengeState {
 /// 모든 챌린지를 하나의 리스트로 관리하고, 각 챌린지의 status로 구분
 class ChallengesLoaded extends ChallengeState {
   final List<ChallengeEntity> challenges;
+  final List<ChallengeInviteEntity> invites;
 
-  const ChallengesLoaded({required this.challenges});
+  const ChallengesLoaded({
+    required this.challenges,
+    this.invites = const [],
+  });
 
   /// 활성 챌린지 필터
   List<ChallengeEntity> get activeChallenges =>
@@ -41,7 +45,7 @@ class ChallengesLoaded extends ChallengeState {
       challenges.where((c) => c.status == ChallengeStatus.expired).toList();
 
   @override
-  List<Object?> get props => [challenges];
+  List<Object?> get props => [challenges, invites];
 }
 
 /// 챌린지 상세 로드 성공 (목록 상태 유지)
@@ -178,11 +182,12 @@ class MyInvitesLoaded extends ChallengeState {
 /// 실시간 챌린지 초대 목록 업데이트
 class MyInvitesUpdated extends ChallengeState {
   final List<ChallengeInviteEntity> invites;
+  final List<ChallengeEntity> challenges;
 
-  const MyInvitesUpdated(this.invites);
+  const MyInvitesUpdated(this.invites, {this.challenges = const []});
 
   @override
-  List<Object?> get props => [invites];
+  List<Object?> get props => [invites, challenges];
 }
 
 /// 챌린지 초대 수락 성공

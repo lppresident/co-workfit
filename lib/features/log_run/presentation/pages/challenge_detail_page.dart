@@ -32,7 +32,10 @@ class ChallengeDetailPage extends BasePage {
 class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
   // 상세 페이지에서 변경 사항이 있었는지 추적
   bool _hasChanges = false;
-  
+
+  // 현재 사용자가 챌린지 생성자인지 추적
+  bool _isCreator = false;
+
   // 참가자별 장착 아이템 캐시
   final Map<String, EquippedItemsEntity> _equippedItemsCache = {};
 
@@ -426,12 +429,23 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              context.read<ChallengeBloc>().add(
-                    DeleteChallenge(
-                      challengeId: widget.challengeId,
-                      userId: authState.user.id,
-                    ),
-                  );
+              if (isCreator) {
+                // 생성자: 챌린지 삭제
+                context.read<ChallengeBloc>().add(
+                  DeleteChallenge(
+                    challengeId: widget.challengeId,
+                    userId: authState.user.id,
+                  ),
+                );
+              } else {
+                // 일반 참가자: 챌린지 나가기
+                context.read<ChallengeBloc>().add(
+                  LeaveChallenge(
+                    challengeId: widget.challengeId,
+                    userId: authState.user.id,
+                  ),
+                );
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: Text(isCreator ? '삭제' : '나가기'),
@@ -514,12 +528,12 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           context.read<ChallengeBloc>().add(LoadChallengeDetail(widget.challengeId));
         } else if (state is ChallengeDeleted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('챌린지가 삭제되었습니다'),
+            SnackBar(
+              content: Text(_isCreator ? '챌린지가 삭제되었습니다' : '챌린지에서 나갔습니다'),
               backgroundColor: Colors.green,
             ),
           );
-          // 이전 페이지로 돌아가기 (삭제됨을 알림)
+          // 이전 페이지로 돌아가기
           Navigator.pop(context, true);
           return;
         } else if (state is ChallengeError) {
@@ -543,6 +557,12 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                                state is ContributionsUpdated ? state.contributions : <ContributionEntity>[];
 
           if (challenge == null) return const Center(child: Text('챌린지 정보를 불러올 수 없습니다'));
+
+          // 현재 사용자가 생성자인지 확인 및 저장
+          final authState = context.read<AuthBloc>().state;
+          if (authState is Authenticated) {
+            _isCreator = challenge.createdBy == authState.user.id;
+          }
 
           // 참가자들의 장착 아이템 로드
           if (contributions.isNotEmpty) {
