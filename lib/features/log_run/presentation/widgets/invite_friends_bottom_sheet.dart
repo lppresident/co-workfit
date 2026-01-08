@@ -9,12 +9,16 @@ class InviteFriendsBottomSheet extends StatefulWidget {
   final String challengeId;
   final String challengeName;
   final Function(List<String> friendIds, List<FriendshipEntity> selectedFriends) onInvite;
+  final List<String> alreadyInvitedUserIds; // 이미 초대된 사용자 ID 목록
+  final List<String> participantUserIds; // 이미 참가 중인 사용자 ID 목록
 
   const InviteFriendsBottomSheet({
     super.key,
     required this.challengeId,
     required this.challengeName,
     required this.onInvite,
+    this.alreadyInvitedUserIds = const [],
+    this.participantUserIds = const [],
   });
 
   @override
@@ -93,10 +97,20 @@ class _InviteFriendsBottomSheetState extends State<InviteFriendsBottomSheet> {
                     itemBuilder: (context, index) {
                       final friend = friends[index];
                       final isSelected = _selectedFriendIds.contains(friend.friendId);
+                      final isAlreadyInvited = widget.alreadyInvitedUserIds.contains(friend.friendId);
+                      final isParticipant = widget.participantUserIds.contains(friend.friendId);
+                      final isDisabled = isAlreadyInvited || isParticipant;
+
+                      String? disabledReason;
+                      if (isParticipant) {
+                        disabledReason = '이미 참가 중';
+                      } else if (isAlreadyInvited) {
+                        disabledReason = '이미 초대됨';
+                      }
 
                       return CheckboxListTile(
                         value: isSelected,
-                        onChanged: (bool? value) {
+                        onChanged: isDisabled ? null : (bool? value) {
                           setState(() {
                             if (value == true) {
                               _selectedFriendIds.add(friend.friendId);
@@ -107,29 +121,46 @@ class _InviteFriendsBottomSheetState extends State<InviteFriendsBottomSheet> {
                         },
                         title: Text(
                           friend.friendNickname ?? friend.friendName ?? '알 수 없음',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w500,
+                            color: isDisabled ? Colors.grey[400] : null,
                           ),
                         ),
-                        subtitle: friend.friendEmail != null
-                            ? Text(
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (friend.friendEmail != null)
+                              Text(
                                 friend.friendEmail!,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: isDisabled ? Colors.grey[400] : Colors.grey[600],
                                 ),
-                              )
-                            : null,
-                        secondary: CircleAvatar(
-                          backgroundImage: friend.friendPhotoUrl != null
-                              ? NetworkImage(friend.friendPhotoUrl!)
-                              : null,
-                          child: friend.friendPhotoUrl == null
-                              ? Text(
-                                  (friend.friendNickname ?? friend.friendName ?? '?')[0],
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                )
-                              : null,
+                              ),
+                            if (disabledReason != null)
+                              Text(
+                                disabledReason,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
+                        ),
+                        secondary: Opacity(
+                          opacity: isDisabled ? 0.5 : 1.0,
+                          child: CircleAvatar(
+                            backgroundImage: friend.friendPhotoUrl != null
+                                ? NetworkImage(friend.friendPhotoUrl!)
+                                : null,
+                            child: friend.friendPhotoUrl == null
+                                ? Text(
+                                    (friend.friendNickname ?? friend.friendName ?? '?')[0],
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  )
+                                : null,
+                          ),
                         ),
                       );
                     },

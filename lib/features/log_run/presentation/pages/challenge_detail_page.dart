@@ -157,7 +157,18 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     );
   }
 
-  void _showInviteFriendsSheet(ChallengeEntity challenge, String userId, String userNickname) {
+  void _showInviteFriendsSheet(ChallengeEntity challenge, String userId, String userNickname) async {
+    // 이미 초대된 사용자 ID 목록 가져오기
+    final repository = context.read<ChallengeBloc>().repository;
+    final invitedUsersResult = await repository.getChallengeInvitedUserIds(challenge.id);
+
+    final alreadyInvitedUserIds = invitedUsersResult.fold(
+      (failure) => <String>[],
+      (userIds) => userIds,
+    );
+
+    if (!mounted) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -171,6 +182,8 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
         child: InviteFriendsBottomSheet(
           challengeId: challenge.id,
           challengeName: '${challenge.targetWeight.toStringAsFixed(0)}kg 챌린지',
+          alreadyInvitedUserIds: alreadyInvitedUserIds,
+          participantUserIds: challenge.participants,
           onInvite: (friendIds, selectedFriends) {
             context.read<ChallengeBloc>().add(
                   CreateChallengeInvites(

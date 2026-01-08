@@ -554,6 +554,20 @@ class FirestoreChallengeDataSource {
     return query.docs.map((doc) => ChallengeInviteModel.fromFirestore(doc)).toList();
   }
 
+  /// 특정 챌린지의 초대된 사용자 ID 목록 조회
+  Future<List<String>> getChallengeInvitedUserIds(String challengeId) async {
+    final query = await firestore
+        .collection(_invitesCollection)
+        .where('challengeId', isEqualTo: challengeId)
+        .where('status', isEqualTo: 'pending')
+        .get();
+
+    return query.docs
+        .map((doc) => (doc.data()['inviteeId'] as String?) ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
+  }
+
   /// 내가 받은 챌린지 초대 실시간 스트림
   Stream<List<ChallengeInviteModel>> watchMyInvites(String userId) {
     return firestore

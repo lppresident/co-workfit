@@ -224,6 +224,19 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
   }
 
   @override
+  Future<Either<Failure, List<String>>> getChallengeInvitedUserIds(
+    String challengeId,
+  ) async {
+    try {
+      final userIds = await dataSource.getChallengeInvitedUserIds(challengeId);
+      return Right(userIds);
+    } catch (e) {
+      AppLogger.error('ChallengeRepository', 'getChallengeInvitedUserIds 에러: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> acceptInvite({
     required String inviteId,
     required String userId,

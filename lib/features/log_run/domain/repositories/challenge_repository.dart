@@ -115,6 +115,11 @@ abstract class ChallengeRepository {
     String userId,
   );
 
+  /// 특정 챌린지의 초대된 사용자 ID 목록 조회
+  Future<Either<Failure, List<String>>> getChallengeInvitedUserIds(
+    String challengeId,
+  );
+
   /// 챌린지 초대 수락
   Future<Either<Failure, void>> acceptInvite({
     required String inviteId,
