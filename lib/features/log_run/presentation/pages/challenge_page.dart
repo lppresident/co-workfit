@@ -8,7 +8,6 @@ import 'package:co_workfit/features/log_run/presentation/widgets/create_challeng
 import 'package:co_workfit/features/log_run/presentation/widgets/invite_code_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/challenge_invites_section.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/challenge_view_toggle.dart';
-import 'package:co_workfit/features/log_run/presentation/widgets/weekly_calendar_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/monthly_calendar_widget.dart';
 import 'package:co_workfit/features/log_run/presentation/models/calendar_challenge_data.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
@@ -34,8 +33,9 @@ class ChallengePage extends BasePage {
 
 class _ChallengePageState extends BasePageState<ChallengePage> {
   ChallengeViewType _viewType = ChallengeViewType.list;
-  bool _isWeeklyView = true; // true: 주간, false: 월간
   DateTime _selectedDate = DateTime.now();
+  List<ChallengeEntity> _currentChallenges = [];
+  List<ChallengeInviteEntity> _currentInvites = [];
   List<ChallengeArchiveEntity> _archives = [];
   bool _isInitialLoading = true;
 
@@ -180,14 +180,26 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
   Widget buildBody(BuildContext context) {
     return BlocConsumer<ChallengeBloc, ChallengeState>(
       listener: (context, state) {
-        // 아카이브 상태 처리
-        if (state is ChallengeArchivesLoaded) {
-          _archives = state.archives;
+        // 챌린지 및 초대 상태 저장
+        if (state is ChallengesLoaded ||
+            state is ChallengeDetailLoaded ||
+            state is WorkoutSubmitted ||
+            state is MyInvitesUpdated ||
+            state is ChallengeArchivesLoaded) {
+          _currentChallenges = _getChallenges(state);
+          _currentInvites = _getInvites(state);
           _isInitialLoading = false;
         }
 
+        // 아카이브 상태 처리
+        if (state is ChallengeArchivesLoaded) {
+          _archives = state.archives;
+        }
+
         // 챌린지 로드 완료 시에도 초기 로딩 해제
-        if (state is ChallengesLoaded || state is ChallengeEmpty) {
+        if (state is ChallengeEmpty) {
+          _currentChallenges = [];
+          _currentInvites = _getInvites(state);
           _isInitialLoading = false;
         }
 
@@ -237,9 +249,8 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         // Empty 상태
         if (state is ChallengeEmpty) {
           // Empty 상태에서도 초대가 있을 수 있음
-          final invites = _getInvites(state);
-          if (invites.isNotEmpty) {
-            return _buildMainView([], invites);
+          if (_currentInvites.isNotEmpty || _archives.isNotEmpty) {
+            return _buildMainView(_currentChallenges, _currentInvites);
           }
           return EmptyChallengeWidget(
             onCreateOrJoin: _showActionSelectionDialog,
@@ -248,16 +259,13 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
 
         // 챌린지 목록이 있는 상태들
         if (state is ChallengesLoaded || state is ChallengeDetailLoaded || state is WorkoutSubmitted || state is MyInvitesLoaded || state is MyInvitesUpdated || state is ChallengeArchivesLoaded) {
-          final challenges = _getChallenges(state);
-          final invites = _getInvites(state);
-
-          if (challenges.isEmpty && invites.isEmpty && _archives.isEmpty) {
+          if (_currentChallenges.isEmpty && _currentInvites.isEmpty && _archives.isEmpty) {
             return EmptyChallengeWidget(
               onCreateOrJoin: _showActionSelectionDialog,
             );
           }
 
-          return _buildMainView(challenges, invites);
+          return _buildMainView(_currentChallenges, _currentInvites);
         }
 
         // 일시적인 상태
@@ -303,47 +311,16 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // 주간/월간 전환 버튼
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment(value: true, label: Text('주간')),
-                    ButtonSegment(value: false, label: Text('월간')),
-                  ],
-                  selected: {_isWeeklyView},
-                  onSelectionChanged: (Set<bool> selected) {
-                    setState(() {
-                      _isWeeklyView = selected.first;
-                    });
-                  },
-                ),
-              ],
-            ),
+          // 월간 캘린더
+          MonthlyCalendarWidget(
+            selectedDate: _selectedDate,
+            challengeDataMap: challengeDataMap,
+            onDateSelected: (date) {
+              setState(() {
+                _selectedDate = date;
+              });
+            },
           ),
-          // 캘린더
-          _isWeeklyView
-              ? WeeklyCalendarWidget(
-                  selectedDate: _selectedDate,
-                  challengeDataMap: challengeDataMap,
-                  onDateSelected: (date) {
-                    setState(() {
-                      _selectedDate = date;
-                    });
-                  },
-                )
-              : MonthlyCalendarWidget(
-                  selectedDate: _selectedDate,
-                  challengeDataMap: challengeDataMap,
-                  onDateSelected: (date) {
-                    setState(() {
-                      _selectedDate = date;
-                    });
-                  },
-                ),
           const Divider(),
           // 선택된 날짜의 챌린지 목록
           _buildSelectedDateChallenges(challenges, invites),
@@ -555,9 +532,7 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
       builder: (context, state) {
         // 챌린지 목록이 있을 때 FloatingActionButton 표시
         // (Empty 상태에서는 EmptyChallengeWidget에 버튼이 있음)
-        final challenges = _getChallenges(state);
-
-        if (challenges.isNotEmpty) {
+        if (_currentChallenges.isNotEmpty || _currentInvites.isNotEmpty || _archives.isNotEmpty) {
           return FloatingActionButton(
             onPressed: _showActionSelectionDialog,
             tooltip: '챌린지 생성 또는 참가',
