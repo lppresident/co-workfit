@@ -82,6 +82,7 @@ import 'package:co_workfit/features/log_run/domain/usecases/create_challenge_inv
 import 'package:co_workfit/features/log_run/domain/usecases/get_my_invites.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/accept_invite.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/reject_invite.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_archives.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
 
 // Currency (통합 재화 시스템)
@@ -331,6 +332,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => GetMyInvites(sl()));
   sl.registerLazySingleton(() => AcceptInvite(sl()));
   sl.registerLazySingleton(() => RejectInvite(sl()));
+  sl.registerLazySingleton(() => GetChallengeArchives(sl()));
 
   // BLoC
   sl.registerFactory(
@@ -346,6 +348,7 @@ Future<void> initializeDependencies() async {
       getMyInvitesUseCase: sl(),
       acceptInviteUseCase: sl(),
       rejectInviteUseCase: sl(),
+      getChallengeArchivesUseCase: sl(),
       repository: sl(),
     ),
   );
@@ -372,7 +375,8 @@ Future<void> initializeDependencies() async {
   );
   sl.registerLazySingleton(
     () => currency.CheckPendingSettlements(
-      repository: sl(),
+      currencyRepository: sl(),
+      challengeRepository: sl(),
       settleDailyRewards: sl(),
     ),
   );

@@ -7,11 +7,16 @@ import 'package:co_workfit/features/log_run/presentation/widgets/challenge_card_
 import 'package:co_workfit/features/log_run/presentation/widgets/create_challenge_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/invite_code_bottom_sheet.dart';
 import 'package:co_workfit/features/log_run/presentation/widgets/challenge_invites_section.dart';
+import 'package:co_workfit/features/log_run/presentation/widgets/challenge_view_toggle.dart';
+import 'package:co_workfit/features/log_run/presentation/widgets/weekly_calendar_widget.dart';
+import 'package:co_workfit/features/log_run/presentation/widgets/monthly_calendar_widget.dart';
+import 'package:co_workfit/features/log_run/presentation/models/calendar_challenge_data.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_bloc.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_event.dart';
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_state.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_invite_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_archive_entity.dart';
 import 'package:co_workfit/features/log_run/presentation/pages/challenge_detail_page.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
@@ -28,10 +33,17 @@ class ChallengePage extends BasePage {
 }
 
 class _ChallengePageState extends BasePageState<ChallengePage> {
+  ChallengeViewType _viewType = ChallengeViewType.list;
+  bool _isWeeklyView = true; // true: 주간, false: 월간
+  DateTime _selectedDate = DateTime.now();
+  List<ChallengeArchiveEntity> _archives = [];
+  bool _isInitialLoading = true;
+
   @override
   void loadInitialData() {
     refreshChallenges();
     loadInvites();
+    loadArchives();
   }
 
   /// 챌린지 목록 새로고침
@@ -47,6 +59,14 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
       context.read<ChallengeBloc>().add(WatchMyInvites(authState.user.id));
+    }
+  }
+
+  /// 아카이브 로드
+  void loadArchives() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      context.read<ChallengeBloc>().add(LoadChallengeArchives(authState.user.id));
     }
   }
 
@@ -160,6 +180,17 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
   Widget buildBody(BuildContext context) {
     return BlocConsumer<ChallengeBloc, ChallengeState>(
       listener: (context, state) {
+        // 아카이브 상태 처리
+        if (state is ChallengeArchivesLoaded) {
+          _archives = state.archives;
+          _isInitialLoading = false;
+        }
+
+        // 챌린지 로드 완료 시에도 초기 로딩 해제
+        if (state is ChallengesLoaded || state is ChallengeEmpty) {
+          _isInitialLoading = false;
+        }
+
         if (state is ChallengeError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -193,6 +224,11 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         }
       },
       builder: (context, state) {
+        // 초기 로딩 중
+        if (_isInitialLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         // 초기 상태 또는 로딩 상태
         if (state is ChallengeInitial || state is ChallengeLoading) {
           return const Center(child: CircularProgressIndicator());
@@ -203,7 +239,7 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
           // Empty 상태에서도 초대가 있을 수 있음
           final invites = _getInvites(state);
           if (invites.isNotEmpty) {
-            return _buildChallengeListWithInvites([], invites);
+            return _buildMainView([], invites);
           }
           return EmptyChallengeWidget(
             onCreateOrJoin: _showActionSelectionDialog,
@@ -211,17 +247,17 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         }
 
         // 챌린지 목록이 있는 상태들
-        if (state is ChallengesLoaded || state is ChallengeDetailLoaded || state is WorkoutSubmitted || state is MyInvitesLoaded || state is MyInvitesUpdated) {
+        if (state is ChallengesLoaded || state is ChallengeDetailLoaded || state is WorkoutSubmitted || state is MyInvitesLoaded || state is MyInvitesUpdated || state is ChallengeArchivesLoaded) {
           final challenges = _getChallenges(state);
           final invites = _getInvites(state);
 
-          if (challenges.isEmpty && invites.isEmpty) {
+          if (challenges.isEmpty && invites.isEmpty && _archives.isEmpty) {
             return EmptyChallengeWidget(
               onCreateOrJoin: _showActionSelectionDialog,
             );
           }
 
-          return _buildChallengeListWithInvites(challenges, invites);
+          return _buildMainView(challenges, invites);
         }
 
         // 일시적인 상태
@@ -233,6 +269,235 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         return const Center(child: CircularProgressIndicator());
       },
     );
+  }
+
+  Widget _buildMainView(
+    List<ChallengeEntity> challenges,
+    List<ChallengeInviteEntity> invites,
+  ) {
+    return Column(
+      children: [
+        ChallengeViewToggle(
+          viewType: _viewType,
+          onChanged: (type) {
+            setState(() {
+              _viewType = type;
+            });
+          },
+        ),
+        Expanded(
+          child: _viewType == ChallengeViewType.calendar
+              ? _buildCalendarView(challenges, invites)
+              : _buildChallengeListWithInvites(challenges, invites),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCalendarView(
+    List<ChallengeEntity> challenges,
+    List<ChallengeInviteEntity> invites,
+  ) {
+    final challengeDataMap = _buildChallengeDataMap(challenges);
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // 주간/월간 전환 버튼
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: true, label: Text('주간')),
+                    ButtonSegment(value: false, label: Text('월간')),
+                  ],
+                  selected: {_isWeeklyView},
+                  onSelectionChanged: (Set<bool> selected) {
+                    setState(() {
+                      _isWeeklyView = selected.first;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          // 캘린더
+          _isWeeklyView
+              ? WeeklyCalendarWidget(
+                  selectedDate: _selectedDate,
+                  challengeDataMap: challengeDataMap,
+                  onDateSelected: (date) {
+                    setState(() {
+                      _selectedDate = date;
+                    });
+                  },
+                )
+              : MonthlyCalendarWidget(
+                  selectedDate: _selectedDate,
+                  challengeDataMap: challengeDataMap,
+                  onDateSelected: (date) {
+                    setState(() {
+                      _selectedDate = date;
+                    });
+                  },
+                ),
+          const Divider(),
+          // 선택된 날짜의 챌린지 목록
+          _buildSelectedDateChallenges(challenges, invites),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedDateChallenges(
+    List<ChallengeEntity> challenges,
+    List<ChallengeInviteEntity> invites,
+  ) {
+    final selectedChallenges = challenges.where((c) {
+      final startDate = DateTime(c.startDate.year, c.startDate.month, c.startDate.day);
+      final endDate = DateTime(c.endDate.year, c.endDate.month, c.endDate.day);
+      final selected = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+      return !selected.isBefore(startDate) && !selected.isAfter(endDate);
+    }).toList();
+
+    final selectedArchives = _archives.where((a) {
+      final endDate = DateTime(a.endDate.year, a.endDate.month, a.endDate.day);
+      final selected = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+      return endDate.isAtSameMomentAs(selected);
+    }).toList();
+
+    if (selectedChallenges.isEmpty && selectedArchives.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Center(
+          child: Text(
+            '${_selectedDate.month}월 ${_selectedDate.day}일\n챌린지가 없습니다',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (selectedChallenges.isNotEmpty) ...[
+            const Text(
+              '진행 중인 챌린지',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...selectedChallenges.map((challenge) => ChallengeCardWidget(
+                  challenge: challenge,
+                  onTap: () async {
+                    await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChallengeDetailPage(
+                          challengeId: challenge.id,
+                        ),
+                      ),
+                    );
+                    if (mounted) {
+                      refreshChallenges();
+                    }
+                  },
+                )),
+          ],
+          if (selectedArchives.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text(
+              '종료된 챌린지',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...selectedArchives.map((archive) => Card(
+                  child: ListTile(
+                    leading: Icon(
+                      archive.isSuccess ? Icons.check_circle : Icons.cancel,
+                      color: archive.isSuccess ? Colors.green : Colors.red,
+                    ),
+                    title: Text('목표: ${archive.targetWeight}kg'),
+                    subtitle: Text(archive.isSuccess ? '성공' : '실패'),
+                    trailing: Text(
+                      '${archive.endDate.month}/${archive.endDate.day}',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+                )),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Map<DateTime, CalendarChallengeData> _buildChallengeDataMap(
+    List<ChallengeEntity> challenges,
+  ) {
+    final Map<DateTime, CalendarChallengeData> dataMap = {};
+
+    // 현재 챌린지 데이터 추가
+    for (final challenge in challenges) {
+      final endDate = DateTime(
+        challenge.endDate.year,
+        challenge.endDate.month,
+        challenge.endDate.day,
+      );
+
+      final existing = dataMap[endDate];
+      if (existing == null) {
+        dataMap[endDate] = CalendarChallengeData(
+          date: endDate,
+          activeChallenges: challenge.status == ChallengeStatus.active ? [challenge] : [],
+          completedChallenges: challenge.status == ChallengeStatus.completed ? [challenge] : [],
+        );
+      } else {
+        final updated = CalendarChallengeData(
+          date: endDate,
+          activeChallenges: challenge.status == ChallengeStatus.active
+              ? [...existing.activeChallenges, challenge]
+              : existing.activeChallenges,
+          completedChallenges: challenge.status == ChallengeStatus.completed
+              ? [...existing.completedChallenges, challenge]
+              : existing.completedChallenges,
+          archivedChallenges: existing.archivedChallenges,
+        );
+        dataMap[endDate] = updated;
+      }
+    }
+
+    // 아카이브 데이터 추가
+    for (final archive in _archives) {
+      final endDate = DateTime(
+        archive.endDate.year,
+        archive.endDate.month,
+        archive.endDate.day,
+      );
+
+      final existing = dataMap[endDate];
+      if (existing == null) {
+        dataMap[endDate] = CalendarChallengeData(
+          date: endDate,
+          archivedChallenges: [archive],
+        );
+      } else {
+        final updated = CalendarChallengeData(
+          date: endDate,
+          activeChallenges: existing.activeChallenges,
+          completedChallenges: existing.completedChallenges,
+          archivedChallenges: [...existing.archivedChallenges, archive],
+        );
+        dataMap[endDate] = updated;
+      }
+    }
+
+    return dataMap;
   }
 
   Widget _buildChallengeListWithInvites(

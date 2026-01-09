@@ -1,0 +1,128 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== 사용자 프로필 =====
+    match /users/{userId} {
+      // 본인 프로필: 읽기/쓰기 가능
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // 다른 사용자 프로필: 읽기만 가능 (닉네임, 아바타, 리더보드 등)
+      allow read: if request.auth != null;
+
+      // 재화 정산 기록 서브컬렉션
+      match /settlements/{settlementId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // 인벤토리 서브컬렉션
+      match /inventory/{itemId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // 챌린지 아카이브 서브컬렉션 (7일 이상 지난 챌린지 기록)
+      match /challenge_archives/{challengeId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // ===== 닉네임 중복 체크용 컬렉션 =====
+    match /nicknames/{nickname} {
+      // 읽기: 인증된 사용자 모두 가능 (중복 확인용)
+      allow read: if request.auth != null;
+      // 생성: 인증된 사용자가 본인 userId로 생성 가능
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // 삭제: 해당 닉네임의 소유자만
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // 업데이트: 해당 닉네임의 소유자만
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // ===== 친구 관계 =====
+    match /friends/{friendshipId} {
+      // 읽기: 인증된 사용자 모두 가능 (친구 확인용)
+      allow read: if request.auth != null;
+      // 생성: 인증된 사용자가 자신을 포함한 친구 관계 생성 가능
+      allow create: if request.auth != null && request.auth.uid in request.resource.data.users;
+      // 삭제: 해당 친구 관계의 당사자만
+      allow delete: if request.auth != null && request.auth.uid in resource.data.users;
+    }
+
+    // ===== 친구 요청 =====
+    match /friend_requests/{requestId} {
+      // 읽기: 인증된 사용자 모두 가능 (중복 확인용 쿼리 허용)
+      allow read: if request.auth != null;
+      // 생성: 인증된 사용자가 본인이 보낸 요청만 생성 가능
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.senderId;
+      // 업데이트: 받는 사람만 가능 (수락/거절)
+      allow update: if request.auth != null && request.auth.uid == resource.data.receiverId;
+      // 삭제: 보낸 사람 또는 받는 사람만
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
+    }
+
+    // ===== 운동 기록 (top-level) =====
+    match /workouts/{workoutId} {
+      // 생성 시 userId 검증
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // 본인 운동 기록: 읽기/쓰기 가능
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      // 타인 운동 기록: 읽기만 가능 (챌린지 기여 상세 보기용)
+      allow read: if request.auth != null;
+    }
+
+    // ===== 챌린지 =====
+    match /challenges/{challengeId} {
+      // 읽기: 초대 코드 조회를 위해 인증된 사용자 모두 가능
+      allow read: if request.auth != null;
+
+      // 챌린지 생성: 인증된 사용자
+      allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;
+
+      // 챌린지 업데이트: 참여자 또는 새로 참가하는 사용자
+      allow update: if request.auth != null && (
+        // 기존 참여자 (운동 기록 제출, 챌린지 상태 업데이트 등)
+        request.auth.uid in resource.data.participants ||
+        // 새로운 참가자 (participants 배열에 자신을 추가하는 경우)
+        (request.auth.uid in request.resource.data.participants && !(request.auth.uid in resource.data.participants))
+      );
+
+      // 챌린지 삭제: 방장만
+      allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+
+      // 기여 기록 서브컬렉션
+      match /contributions/{contributionId} {
+        // 챌린지 참여자만 읽기/쓰기 가능
+        allow read: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/challenges/$(challengeId)).data.participants;
+        allow write: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/challenges/$(challengeId)).data.participants;
+      }
+    }
+
+    // ===== 챌린지 초대 =====
+    match /challenge_invites/{inviteId} {
+      // 초대 읽기: 쿼리 기반 읽기 허용
+      allow read: if request.auth != null;
+
+      // 초대 생성: 인증된 사용자가 자신이 보내는 초대만 생성 가능
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.inviterId;
+
+      // 초대 업데이트: 초대를 보낸 사람 또는 받는 사람만 가능
+      allow update: if request.auth != null && (request.auth.uid == resource.data.inviterId || request.auth.uid == resource.data.inviteeId);
+
+      // 초대 삭제: 초대를 보낸 사람 또는 받는 사람만 가능
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.inviterId || request.auth.uid == resource.data.inviteeId);
+    }
+
+    // ===== Collection Group Query 지원 =====
+    // collectionGroup('contributions')를 위한 규칙
+    match /{path=**}/contributions/{contributionId} {
+      // 인증된 사용자만 읽기 가능 (운동 기록 삭제 시 사용)
+      allow read: if request.auth != null;
+    }
+
+    // collectionGroup('challenge_archives')를 위한 규칙
+    match /{path=**}/challenge_archives/{archiveId} {
+      // 인증된 사용자만 읽기 가능
+      allow read: if request.auth != null;
+    }
+  }
+}

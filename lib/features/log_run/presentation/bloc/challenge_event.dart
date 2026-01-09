@@ -267,3 +267,13 @@ class RejectInviteEvent extends ChallengeEvent {
   @override
   List<Object?> get props => [inviteId];
 }
+
+/// 챌린지 아카이브 조회
+class LoadChallengeArchives extends ChallengeEvent {
+  final String userId;
+
+  const LoadChallengeArchives(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
+}

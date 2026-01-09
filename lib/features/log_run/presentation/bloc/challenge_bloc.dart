@@ -18,6 +18,7 @@ import 'package:co_workfit/features/log_run/domain/usecases/create_challenge_inv
 import 'package:co_workfit/features/log_run/domain/usecases/get_my_invites.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/accept_invite.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/reject_invite.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_archives.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 
@@ -34,6 +35,7 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
   final GetMyInvites getMyInvitesUseCase;
   final AcceptInvite acceptInviteUseCase;
   final RejectInvite rejectInviteUseCase;
+  final GetChallengeArchives getChallengeArchivesUseCase;
   final ChallengeRepository repository;
 
   StreamSubscription? _challengeSubscription;
@@ -51,6 +53,7 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     required this.getMyInvitesUseCase,
     required this.acceptInviteUseCase,
     required this.rejectInviteUseCase,
+    required this.getChallengeArchivesUseCase,
     required this.repository,
   }) : super(const ChallengeInitial()) {
     on<LoadChallenges>(_onLoadChallenges);
@@ -70,6 +73,7 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     on<WatchMyInvites>(_onWatchMyInvites);
     on<AcceptInviteEvent>(_onAcceptInvite);
     on<RejectInviteEvent>(_onRejectInvite);
+    on<LoadChallengeArchives>(_onLoadChallengeArchives);
   }
 
   /// 현재 상태에서 챌린지 목록 추출
@@ -506,6 +510,25 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
       (_) {
         AppLogger.info('ChallengeBloc', 'Invite rejected: ${event.inviteId}');
         emit(InviteRejected(event.inviteId));
+      },
+    );
+  }
+
+  Future<void> _onLoadChallengeArchives(
+    LoadChallengeArchives event,
+    Emitter<ChallengeState> emit,
+  ) async {
+    final result = await getChallengeArchivesUseCase(event.userId);
+
+    result.fold(
+      (failure) => emit(ChallengeError(failure.toString())),
+      (archives) {
+        final currentChallenges = _getCurrentChallenges();
+        AppLogger.info('ChallengeBloc', 'Loaded ${archives.length} archives');
+        emit(ChallengeArchivesLoaded(
+          archives: archives,
+          challenges: currentChallenges,
+        ));
       },
     );
   }

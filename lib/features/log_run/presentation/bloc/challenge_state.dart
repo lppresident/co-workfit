@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_invite_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_archive_entity.dart';
 
 /// 챌린지 BLoC 상태
 abstract class ChallengeState extends Equatable {
@@ -212,4 +213,18 @@ class InviteRejected extends ChallengeState {
 
   @override
   List<Object?> get props => [inviteId];
+}
+
+/// 챌린지 아카이브 로드 성공
+class ChallengeArchivesLoaded extends ChallengeState {
+  final List<ChallengeArchiveEntity> archives;
+  final List<ChallengeEntity> challenges; // 현재 챌린지 목록 유지
+
+  const ChallengeArchivesLoaded({
+    required this.archives,
+    this.challenges = const [],
+  });
+
+  @override
+  List<Object?> get props => [archives, challenges];
 }

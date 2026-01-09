@@ -3,6 +3,7 @@ import 'package:co_workfit/features/log_run/data/models/challenge_model.dart';
 import 'package:co_workfit/features/log_run/data/models/contribution_model.dart';
 import 'package:co_workfit/features/log_run/data/models/participant_stats_model.dart';
 import 'package:co_workfit/features/log_run/data/models/challenge_invite_model.dart';
+import 'package:co_workfit/features/log_run/data/models/challenge_archive_model.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/participant_stats_entity.dart';
 import 'package:co_workfit/features/log_run/domain/utils/invite_code_generator.dart';
@@ -172,6 +173,7 @@ class FirestoreChallengeDataSource {
       if (isNowCompleted) {
         updateData['status'] = ChallengeStatus.completed.toFirestore();
         updateData['completedAt'] = FieldValue.serverTimestamp();
+        updateData['isSuccess'] = true; // 완료 = 성공
         // TTL: 7일 후 자동 삭제를 위한 expireAt 필드 설정
         updateData['expireAt'] = Timestamp.fromDate(
           DateTime.now().add(const Duration(days: 7)),
@@ -630,6 +632,162 @@ class FirestoreChallengeDataSource {
     await firestore.collection(_invitesCollection).doc(inviteId).delete();
 
     AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 거절 및 삭제: $inviteId');
+  }
+
+  // ========== Private Methods ==========
+
+  /// 사용자의 만료된 챌린지들을 일괄 처리
+  /// 정산 전에 호출하여 정산 시 올바른 isSuccess 값을 사용할 수 있도록 함
+  /// 만료된 챌린지의 초대도 함께 정리함
+  /// 7일 이상 지난 챌린지는 아카이브로 변환 후 삭제함
+  Future<int> markExpiredChallenges(String userId) async {
+    try {
+      AppLogger.info('LogRunDataSource', '=== 만료된 챌린지 일괄 처리 시작 ===');
+
+      final now = DateTime.now();
+      final sevenDaysAgo = now.subtract(const Duration(days: 7));
+
+      // 1. 사용자가 참여한 active 상태 챌린지 조회
+      final activeQuery = await firestore
+          .collection(_challengesCollection)
+          .where('participants', arrayContains: userId)
+          .where('status', isEqualTo: 'active')
+          .get();
+
+      int expiredCount = 0;
+      int deletedInvitesCount = 0;
+      final expiredChallengeIds = <String>[];
+
+      for (final doc in activeQuery.docs) {
+        final challenge = ChallengeModel.fromFirestore(doc);
+
+        // 만료된 챌린지만 처리
+        if (challenge.isExpired) {
+          final isSuccess = challenge.currentWeight >= challenge.targetWeight;
+
+          await firestore.collection(_challengesCollection).doc(challenge.id).update({
+            'status': ChallengeStatus.expired.toFirestore(),
+            'isSuccess': isSuccess,
+          });
+
+          expiredCount++;
+          expiredChallengeIds.add(challenge.id);
+          AppLogger.info(
+            'LogRunDataSource',
+            '챌린지 만료 처리: ${challenge.id} (성공: $isSuccess, ${challenge.currentWeight}/${challenge.targetWeight}kg)',
+          );
+        }
+      }
+
+      // 2. 만료된 챌린지의 초대 삭제
+      if (expiredChallengeIds.isNotEmpty) {
+        for (final challengeId in expiredChallengeIds) {
+          final invites = await firestore
+              .collection(_invitesCollection)
+              .where('challengeId', isEqualTo: challengeId)
+              .get();
+
+          for (final inviteDoc in invites.docs) {
+            await inviteDoc.reference.delete();
+            deletedInvitesCount++;
+          }
+        }
+      }
+
+      // 3. 7일 이상 지난 완료/만료 챌린지를 아카이브로 변환 후 삭제
+      final oldChallengesQuery = await firestore
+          .collection(_challengesCollection)
+          .where('participants', arrayContains: userId)
+          .where('endDate', isLessThan: Timestamp.fromDate(sevenDaysAgo))
+          .get();
+
+      int archivedCount = 0;
+      for (final doc in oldChallengesQuery.docs) {
+        final challenge = ChallengeModel.fromFirestore(doc);
+
+        // completed 또는 expired 상태만 아카이브
+        if (challenge.status == ChallengeStatus.completed ||
+            challenge.status == ChallengeStatus.expired) {
+
+          // 아카이브 문서 생성 (users/{userId}/challenge_archives/{challengeId})
+          // Note: 달성량, 참가자 수, 기여도는 workout 기록에서 조회 가능하므로 저장하지 않음
+          await firestore
+              .collection('users')
+              .doc(userId)
+              .collection('challenge_archives')
+              .doc(challenge.id)
+              .set({
+            'challengeId': challenge.id,
+            'isSuccess': challenge.isSuccess ?? (challenge.currentWeight >= challenge.targetWeight),
+            'targetWeight': challenge.targetWeight,
+            'endDate': Timestamp.fromDate(challenge.endDate),
+            'archivedAt': FieldValue.serverTimestamp(),
+          });
+
+          // 기여 기록 삭제
+          final contributions = await firestore
+              .collection(_challengesCollection)
+              .doc(challenge.id)
+              .collection('contributions')
+              .get();
+
+          for (final contribDoc in contributions.docs) {
+            await contribDoc.reference.delete();
+          }
+
+          // 초대 삭제
+          final invites = await firestore
+              .collection(_invitesCollection)
+              .where('challengeId', isEqualTo: challenge.id)
+              .get();
+
+          for (final inviteDoc in invites.docs) {
+            await inviteDoc.reference.delete();
+          }
+
+          // 챌린지 삭제
+          await firestore.collection(_challengesCollection).doc(challenge.id).delete();
+
+          archivedCount++;
+          AppLogger.info(
+            'LogRunDataSource',
+            '챌린지 아카이브: ${challenge.id} (${challenge.currentWeight}/${challenge.targetWeight}kg)',
+          );
+        }
+      }
+
+      AppLogger.info(
+        'LogRunDataSource',
+        '=== 만료된 챌린지 일괄 처리 완료: 만료 $expiredCount개, 아카이브 $archivedCount개 (초대 $deletedInvitesCount개 정리) ===',
+      );
+
+      return expiredCount;
+    } catch (e, stackTrace) {
+      AppLogger.error('LogRunDataSource', '만료된 챌린지 일괄 처리 실패', e, stackTrace);
+      rethrow;
+    }
+  }
+
+  /// 사용자의 챌린지 아카이브 조회
+  Future<List<ChallengeArchiveModel>> getChallengeArchives(String userId) async {
+    try {
+      final archivesSnapshot = await firestore
+          .collection('users')
+          .doc(userId)
+          .collection('challenge_archives')
+          .orderBy('endDate', descending: true)
+          .get();
+
+      final archives = archivesSnapshot.docs
+          .map((doc) => ChallengeArchiveModel.fromFirestore(doc.data()))
+          .toList();
+
+      AppLogger.info('LogRunDataSource', '챌린지 아카이브 조회: ${archives.length}개');
+      return archives;
+    } catch (e, stackTrace) {
+      AppLogger.error('LogRunDataSource', '챌린지 아카이브 조회 실패', e, stackTrace);
+      rethrow;
+    }
   }
 
   // ========== Private Methods ==========

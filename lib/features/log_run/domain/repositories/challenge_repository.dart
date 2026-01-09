@@ -3,6 +3,7 @@ import 'package:co_workfit/core/error/failures.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_invite_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_archive_entity.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
 
 /// 챌린지 Repository 인터페이스
@@ -131,4 +132,11 @@ abstract class ChallengeRepository {
   Future<Either<Failure, void>> rejectInvite({
     required String inviteId,
   });
+
+  /// 사용자의 만료된 챌린지를 모두 expired 상태로 변경하고 isSuccess 저장
+  /// 정산 전에 호출하여 정산 시 올바른 isSuccess 값을 사용할 수 있도록 함
+  Future<Either<Failure, int>> markExpiredChallenges(String userId);
+
+  /// 사용자의 챌린지 아카이브 조회
+  Future<Either<Failure, List<ChallengeArchiveEntity>>> getChallengeArchives(String userId);
 }

@@ -4,6 +4,7 @@ import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/contribution_entity.dart';
 import 'package:co_workfit/features/log_run/domain/entities/challenge_invite_entity.dart';
+import 'package:co_workfit/features/log_run/domain/entities/challenge_archive_entity.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 import 'package:co_workfit/features/log_run/data/datasources/firestore_challenge_datasource.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
@@ -264,6 +265,28 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
       return const Right(null);
     } catch (e) {
       AppLogger.error('ChallengeRepository', 'rejectInvite 에러: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, int>> markExpiredChallenges(String userId) async {
+    try {
+      final count = await dataSource.markExpiredChallenges(userId);
+      return Right(count);
+    } catch (e) {
+      AppLogger.error('ChallengeRepository', 'markExpiredChallenges 에러: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ChallengeArchiveEntity>>> getChallengeArchives(String userId) async {
+    try {
+      final archives = await dataSource.getChallengeArchives(userId);
+      return Right(archives);
+    } catch (e) {
+      AppLogger.error('ChallengeRepository', 'getChallengeArchives 에러: $e');
       return Left(ServerFailure(e.toString()));
     }
   }

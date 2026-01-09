@@ -315,21 +315,9 @@ class FirestoreCurrencyDataSource {
     Map<String, dynamic> data,
   ) async {
     try {
-      // 챌린지 타입 결정
-      final typeStr = data['type'] as String? ?? 'running';
-      ChallengeType challengeType;
-      switch (typeStr) {
-        case 'strength_training':
-        case 'strengthTraining':
-          challengeType = ChallengeType.strengthTraining;
-          break;
-        case 'other':
-          challengeType = ChallengeType.other;
-          break;
-        case 'running':
-        default:
-          challengeType = ChallengeType.running;
-      }
+      // 실제 챌린지는 모두 running 타입 (targetWeight 기반)
+      // 달리기: 1km = 1kg, 헬스: 10점 = 1kg
+      final challengeType = ChallengeType.running;
 
       // 참가자별 기여도 조회
       final contributionsQuery = await firestore
@@ -346,7 +334,8 @@ class FirestoreCurrencyDataSource {
       for (final contribDoc in contributionsQuery.docs) {
         final contribData = contribDoc.data();
         final participantId = contribData['userId'] as String;
-        final value = (contribData['value'] as num?)?.toDouble() ?? 0;
+        // 올바른 필드명: contributionValue
+        final value = (contribData['contributionValue'] as num?)?.toDouble() ?? 0;
 
         participantContributions[participantId] =
             (participantContributions[participantId] ?? 0) + value;
@@ -377,23 +366,35 @@ class FirestoreCurrencyDataSource {
         endDate = DateTime.parse(endDateData as String);
       }
 
+      // 실제 필드명 사용
+      final targetWeight = (data['targetWeight'] as num?)?.toDouble() ?? 0;
+      final currentWeight = (data['currentWeight'] as num?)?.toDouble() ?? 0;
+      final participants = data['participants'] as List?;
+
+      // isSuccess: expired/completed 상태일 때 저장된 값, 없으면 currentWeight >= targetWeight로 계산
+      final isSuccess = data['isSuccess'] as bool? ?? (currentWeight >= targetWeight);
+
+      // 챌린지 이름: creatorNickname 또는 기본값
+      final creatorNickname = data['creatorNickname'] as String? ?? '챌린지';
+      final challengeName = '$creatorNickname님의 챌린지';
+
       return ChallengeSettlementData(
         challengeId: challengeId,
-        challengeName: data['name'] as String? ?? '챌린지',
+        challengeName: challengeName,
         challengeType: challengeType,
-        targetValue: (data['targetValue'] as num?)?.toDouble() ?? 0,
-        achievedValue: (data['achievedValue'] as num?)?.toDouble() ?? 0,
-        isSuccess: data['isSuccess'] as bool? ?? false,
+        targetValue: targetWeight,
+        achievedValue: currentWeight,
+        isSuccess: isSuccess,
         endDate: endDate,
-        participantCount: (data['participantIds'] as List?)?.length ?? 1,
+        participantCount: participants?.length ?? 1,
         participantContributions: participantContributions,
         userContribution: userContribution,
         isUserMvp: mvpUserId == userId,
         userTotalWorkoutValue: userTotalWorkoutValue,
         isFirstContribution: isFirstContribution,
       );
-    } catch (e) {
-      AppLogger.error('CurrencyDS', '_buildChallengeSettlementData failed', e);
+    } catch (e, stackTrace) {
+      AppLogger.error('CurrencyDS', '_buildChallengeSettlementData failed for challenge $challengeId', e, stackTrace);
       return null;
     }
   }
