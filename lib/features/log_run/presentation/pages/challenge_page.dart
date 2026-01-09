@@ -346,6 +346,10 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
       return endDate.isAtSameMomentAs(selected);
     }).toList();
 
+    // 성공한 아카이브와 실패한 아카이브 분리
+    final successArchives = selectedArchives.where((a) => a.isSuccess).toList();
+    final failureArchives = selectedArchives.where((a) => !a.isSuccess).toList();
+
     if (selectedChallenges.isEmpty && selectedArchives.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(32),
@@ -364,7 +368,54 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 성공한 챌린지 (우선 표시)
+          if (successArchives.isNotEmpty) ...[
+            const Text(
+              '성공한 챌린지',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...successArchives.map((archive) => Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                    ),
+                    title: Text('목표: ${archive.targetWeight}kg'),
+                    subtitle: const Text('성공'),
+                    trailing: Text(
+                      '${archive.endDate.month}/${archive.endDate.day}',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+                )),
+          ],
+          // 실패한 챌린지
+          if (failureArchives.isNotEmpty) ...[
+            if (successArchives.isNotEmpty) const SizedBox(height: 16),
+            const Text(
+              '실패한 챌린지',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...failureArchives.map((archive) => Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.cancel,
+                      color: Colors.red,
+                    ),
+                    title: Text('목표: ${archive.targetWeight}kg'),
+                    subtitle: const Text('실패'),
+                    trailing: Text(
+                      '${archive.endDate.month}/${archive.endDate.day}',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+                )),
+          ],
+          // 진행 중인 챌린지
           if (selectedChallenges.isNotEmpty) ...[
+            if (selectedArchives.isNotEmpty) const SizedBox(height: 16),
             const Text(
               '진행 중인 챌린지',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -385,28 +436,6 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
                       refreshChallenges();
                     }
                   },
-                )),
-          ],
-          if (selectedArchives.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Text(
-              '종료된 챌린지',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ...selectedArchives.map((archive) => Card(
-                  child: ListTile(
-                    leading: Icon(
-                      archive.isSuccess ? Icons.check_circle : Icons.cancel,
-                      color: archive.isSuccess ? Colors.green : Colors.red,
-                    ),
-                    title: Text('목표: ${archive.targetWeight}kg'),
-                    subtitle: Text(archive.isSuccess ? '성공' : '실패'),
-                    trailing: Text(
-                      '${archive.endDate.month}/${archive.endDate.day}',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ),
                 )),
           ],
         ],

@@ -240,8 +240,8 @@ class _DayCell extends StatelessWidget {
   Widget _buildIndicator(BuildContext context) {
     final successCount = challengeData!.successCount;
     final failureCount = challengeData!.failureCount;
-    final activeCount = challengeData!.activeCount;
 
+    // 성공한 챌린지가 있으면 초록색
     if (successCount > 0) {
       return Container(
         width: 4,
@@ -251,7 +251,9 @@ class _DayCell extends StatelessWidget {
           shape: BoxShape.circle,
         ),
       );
-    } else if (failureCount > 0) {
+    }
+    // 성공한 챌린지 없고 실패한 챌린지가 있으면 빨간색
+    else if (failureCount > 0) {
       return Container(
         width: 4,
         height: 4,
@@ -260,17 +262,9 @@ class _DayCell extends StatelessWidget {
           shape: BoxShape.circle,
         ),
       );
-    } else if (activeCount > 0) {
-      return Container(
-        width: 4,
-        height: 4,
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.orange,
-          shape: BoxShape.circle,
-        ),
-      );
     }
 
+    // 아무것도 없으면 표시 안함
     return const SizedBox.shrink();
   }
 }
