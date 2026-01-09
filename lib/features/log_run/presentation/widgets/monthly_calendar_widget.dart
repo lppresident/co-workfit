@@ -240,6 +240,7 @@ class _DayCell extends StatelessWidget {
   Widget _buildIndicator(BuildContext context) {
     final successCount = challengeData!.successCount;
     final failureCount = challengeData!.failureCount;
+    final activeCount = challengeData!.activeCount;
 
     // 성공한 챌린지가 있으면 초록색
     if (successCount > 0) {
@@ -259,6 +260,17 @@ class _DayCell extends StatelessWidget {
         height: 4,
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.red,
+          shape: BoxShape.circle,
+        ),
+      );
+    }
+    // 성공/실패 없고 진행중인 챌린지가 있으면 주황색
+    else if (activeCount > 0) {
+      return Container(
+        width: 4,
+        height: 4,
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.orange,
           shape: BoxShape.circle,
         ),
       );
