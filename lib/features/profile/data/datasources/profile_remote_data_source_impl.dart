@@ -63,6 +63,34 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           'nickname': newDisplayName,
           'isNicknameSet': true,
         });
+
+    // 4. 사용자가 참여 중인 모든 챌린지의 participantNicknames 업데이트
+    final challengesQuery = await firestore
+        .collection('challenges')
+        .where('participants', arrayContains: firebaseUser.uid)
+        .get();
+
+    final batch = firestore.batch();
+    for (final doc in challengesQuery.docs) {
+      batch.update(doc.reference, {
+        'participantNicknames.${firebaseUser.uid}': newDisplayName,
+      });
+    }
+    await batch.commit();
+
+    // 5. 사용자의 모든 기여 기록(contributions)의 닉네임 업데이트
+    final contributionsQuery = await firestore
+        .collectionGroup('contributions')
+        .where('userId', isEqualTo: firebaseUser.uid)
+        .get();
+
+    final contributionsBatch = firestore.batch();
+    for (final doc in contributionsQuery.docs) {
+      contributionsBatch.update(doc.reference, {
+        'userNickname': newDisplayName,
+      });
+    }
+    await contributionsBatch.commit();
   }
 
   @override
