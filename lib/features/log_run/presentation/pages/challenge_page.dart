@@ -245,7 +245,10 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
           setState(() {
             _currentChallenges = challenges;
             _currentInvites = invites;
-            _isInitialLoading = false;
+            // MyInvitesUpdated는 초기 로딩을 해제하지 않음 (챌린지 로딩과 별개)
+            if (state is! MyInvitesUpdated) {
+              _isInitialLoading = false;
+            }
           });
         }
 
