@@ -95,21 +95,25 @@ service cloud.firestore {
         allow read: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/challenges/$(challengeId)).data.participants;
         allow write: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/challenges/$(challengeId)).data.participants;
       }
-    }
 
-    // ===== 챌린지 초대 =====
-    match /challenge_invites/{inviteId} {
-      // 초대 읽기: 쿼리 기반 읽기 허용
-      allow read: if request.auth != null;
+      // 챌린지 초대 서브컬렉션 (challenges/{challengeId}/invites/{inviteId})
+      match /invites/{inviteId} {
+        // 초대 읽기: 쿼리 기반 읽기 허용 (collection group query용)
+        allow read: if request.auth != null;
 
-      // 초대 생성: 인증된 사용자가 자신이 보내는 초대만 생성 가능
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.inviterId;
+        // 초대 생성: 챌린지 참여자만 초대 가능
+        allow create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/challenges/$(challengeId)).data.participants;
 
-      // 초대 업데이트: 초대를 보낸 사람 또는 받는 사람만 가능
-      allow update: if request.auth != null && (request.auth.uid == resource.data.inviterId || request.auth.uid == resource.data.inviteeId);
+        // 초대 업데이트: 초대를 보낸 사람 또는 받는 사람만 가능
+        allow update: if request.auth != null && (request.auth.uid == resource.data.inviterId || request.auth.uid == resource.data.inviteeId);
 
-      // 초대 삭제: 초대를 보낸 사람 또는 받는 사람만 가능
-      allow delete: if request.auth != null && (request.auth.uid == resource.data.inviterId || request.auth.uid == resource.data.inviteeId);
+        // 초대 삭제: 초대를 보낸 사람, 받는 사람, 또는 챌린지 참여자만 가능
+        allow delete: if request.auth != null && (
+          request.auth.uid == resource.data.inviterId ||
+          request.auth.uid == resource.data.inviteeId ||
+          request.auth.uid in get(/databases/$(database)/documents/challenges/$(challengeId)).data.participants
+        );
+      }
     }
 
     // ===== Collection Group Query 지원 =====
@@ -117,6 +121,14 @@ service cloud.firestore {
     match /{path=**}/contributions/{contributionId} {
       // 인증된 사용자만 읽기 가능 (운동 기록 삭제 시 사용)
       allow read: if request.auth != null;
+    }
+
+    // collectionGroup('invites')를 위한 규칙 (내가 받은 초대 조회)
+    match /{path=**}/invites/{inviteId} {
+      // 인증된 사용자만 읽기 가능 (collection group query용)
+      allow read: if request.auth != null;
+      // 초대 수락/거절 시 삭제 (초대를 받은 사람만)
+      allow delete: if request.auth != null && resource.data.inviteeId == request.auth.uid;
     }
 
     // collectionGroup('challenge_archives')를 위한 규칙
