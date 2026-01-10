@@ -16,9 +16,13 @@ class WorkoutListPage extends StatefulWidget {
 
   @override
   State<WorkoutListPage> createState() => _WorkoutListPageState();
+
+  // DashboardPage에서 새로고침을 트리거할 수 있도록 GlobalKey 제공
+  static final GlobalKey<_WorkoutListPageState> globalKey = GlobalKey<_WorkoutListPageState>();
 }
 
-class _WorkoutListPageState extends State<WorkoutListPage> {
+class _WorkoutListPageState extends State<WorkoutListPage>
+    with AutomaticKeepAliveClientMixin {
   WorkoutType? _selectedType;
   WorkoutSource? _selectedSource;
   String _sortBy = 'latest'; // 'latest', 'oldest', 'duration_high', 'duration_low'
@@ -30,6 +34,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   bool _hasReachedEnd = false; // 더 이상 로드할 데이터가 없는지
   List<WorkoutEntity> _allWorkouts = []; // 로컬에서 관리하는 전체 데이터
   int _previousWorkoutCount = 0; // 이전 로드 시 운동 개수 (더 로드할 데이터 있는지 확인용)
+  bool _hasLoadedInitialData = false;
 
   // 필터 결과 최소 개수 (이보다 적으면 자동으로 더 로드)
   static const int _minFilteredResults = 3;
@@ -39,11 +44,17 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   static const int _maxLoadDays = 365;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     // Firestore에 등록된 데이터만 로드 (로컬 Health 데이터는 등록 버튼 클릭 시에만)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
+      if (!_hasLoadedInitialData) {
+        _hasLoadedInitialData = true;
+        _loadInitialData();
+      }
     });
 
     // 스크롤 리스너 추가
@@ -54,6 +65,17 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _loadInitialData() {
+    context.read<WorkoutBloc>().add(const FetchWorkoutsFromFirestoreEvent(days: 30));
+  }
+
+  /// 같은 탭을 다시 클릭하거나 pull-to-refresh 시 호출
+  void reloadData() {
+    _hasReachedEnd = false;
+    _loadedDays = 30;
+    _loadInitialData();
   }
 
   void _onScroll() {
@@ -114,6 +136,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Scaffold(
       appBar: AppBar(
         title: const Text('전체 운동 기록'),

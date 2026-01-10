@@ -10,13 +10,20 @@ abstract class BasePage extends StatefulWidget {
 /// Base state for pages
 ///
 /// Provides lifecycle hooks and common functionality
-abstract class BasePageState<T extends BasePage> extends State<T> {
+abstract class BasePageState<T extends BasePage> extends State<T>
+    with AutomaticKeepAliveClientMixin {
+  bool _hasLoadedInitialData = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
     // Safely load initial data after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (mounted && !_hasLoadedInitialData) {
+        _hasLoadedInitialData = true;
         loadInitialData();
       }
     });
@@ -27,6 +34,11 @@ abstract class BasePageState<T extends BasePage> extends State<T> {
   /// This is called after the first frame is rendered,
   /// ensuring BuildContext is ready for BLoC access
   void loadInitialData() {}
+
+  /// Force reload data (called when same tab is tapped or pull-to-refresh)
+  void reloadData() {
+    loadInitialData();
+  }
 
   /// Build the AppBar for this page
   ///
@@ -55,6 +67,7 @@ abstract class BasePageState<T extends BasePage> extends State<T> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final body = buildBody(context);
 
     return Scaffold(

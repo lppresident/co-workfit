@@ -4,8 +4,6 @@ import 'package:co_workfit/features/workout/presentation/pages/workout_list_page
 import 'package:co_workfit/features/profile/presentation/screens/profile_screen.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
-import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -33,12 +31,12 @@ class _DashboardPageState extends State<DashboardPage> {
     _pageController = PageController();
     _pageController.addListener(_onPageChanged);
     _pages = [
-      const WorkoutListPage(),
+      WorkoutListPage(key: WorkoutListPage.globalKey),
       ChallengePage(key: ChallengePage.globalKey),
-      const CommunityPage(),
+      CommunityPage(key: CommunityPage.globalKey),
       BlocProvider<ProfileBloc>(
         create: (context) => di.sl<ProfileBloc>()..add(FetchProfileData()),
-        child: const ProfileScreen(),
+        child: ProfileScreen(key: ProfileScreen.globalKey),
       ),
     ];
   }
@@ -48,14 +46,8 @@ class _DashboardPageState extends State<DashboardPage> {
     final page = _pageController.page?.round();
     if (page == null) return;
 
-    // 프로필 탭(index 3)으로 전환될 때 AuthBloc 새로고침
-    if (page == 3 && _selectedIndex != 3) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          context.read<AuthBloc>().add(const AuthRefreshUserRequested());
-        }
-      });
-    }
+    // 탭 전환 시 AuthBloc 새로고침은 하지 않음 (프로필 페이지에서 필요시 자체 처리)
+    // 페이지 상태는 AutomaticKeepAliveClientMixin으로 유지됨
   }
 
   @override
@@ -77,15 +69,23 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _refreshCurrentPage(int index) {
-    // 각 페이지별 새로고침 로직
+    // 같은 탭을 다시 클릭했을 때 각 페이지별 새로고침 로직
     switch (index) {
+      case 0:
+        // 운동 페이지 새로고침
+        WorkoutListPage.globalKey.currentState?.reloadData();
+        break;
       case 1:
         // 챌린지 페이지 새로고침
-        ChallengePage.globalKey.currentState?.refreshChallenges();
+        ChallengePage.globalKey.currentState?.reloadData();
+        break;
+      case 2:
+        // 친구 페이지 새로고침
+        CommunityPage.globalKey.currentState?.reloadData();
         break;
       case 3:
         // 프로필 페이지 새로고침
-        // ProfileBloc은 별도 Provider로 관리되므로 여기서는 처리하지 않음
+        ProfileScreen.globalKey.currentState?.reloadData();
         break;
       default:
         break;

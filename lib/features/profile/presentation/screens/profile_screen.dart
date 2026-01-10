@@ -19,15 +19,34 @@ class ProfileScreen extends StatefulWidget {
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
+
+  // DashboardPage에서 새로고침을 트리거할 수 있도록 GlobalKey 제공
+  static final GlobalKey<_ProfileScreenState> globalKey = GlobalKey<_ProfileScreenState>();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with AutomaticKeepAliveClientMixin {
   EquippedItemsEntity? _equippedItems;
+  bool _hasLoadedInitialData = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hasLoadedInitialData) {
+        _hasLoadedInitialData = true;
+        _loadEquippedItems();
+      }
+    });
+  }
+
+  /// 같은 탭을 다시 클릭하거나 pull-to-refresh 시 호출
+  void reloadData() {
     _loadEquippedItems();
+    context.read<ProfileBloc>().add(FetchProfileData());
   }
 
   Future<void> _loadEquippedItems() async {
@@ -140,6 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: BlocBuilder<ProfileBloc, ProfileState>(
