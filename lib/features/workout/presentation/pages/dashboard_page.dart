@@ -4,7 +4,8 @@ import 'package:co_workfit/features/workout/presentation/pages/workout_list_page
 import 'package:co_workfit/features/profile/presentation/screens/profile_screen.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
-import 'package:co_workfit/core/notifications/refresh_notification.dart';
+import 'package:co_workfit/core/bloc/refresh_bloc.dart';
+import 'package:co_workfit/core/bloc/refresh_event.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -70,9 +71,9 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _refreshCurrentPage(int index) {
-    // 같은 탭을 다시 클릭했을 때 RefreshPageNotification을 통해 새로고침 요청
-    // 현재 페이지가 NotificationListener를 통해 이 알림을 받아 reloadData() 호출
-    const RefreshPageNotification().dispatch(context);
+    // 같은 탭을 다시 클릭했을 때 RefreshBloc을 통해 새로고침 요청
+    // 현재 페이지가 BlocListener를 통해 이 이벤트를 받아 reloadData() 호출
+    context.read<RefreshBloc>().add(RefreshPageRequested(index));
   }
 
   @override

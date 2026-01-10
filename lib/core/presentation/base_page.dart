@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:co_workfit/core/notifications/refresh_notification.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:co_workfit/core/bloc/refresh_bloc.dart';
+import 'package:co_workfit/core/bloc/refresh_state.dart';
 
 /// Base class for all pages in the application
 ///
 /// Provides consistent structure and behavior across pages
 abstract class BasePage extends StatefulWidget {
   const BasePage({super.key});
+
+  /// Page index for refresh targeting (optional)
+  /// If null, page won't respond to refresh events
+  int? get pageIndex => null;
 }
 
 /// Base state for pages
@@ -71,18 +77,26 @@ abstract class BasePageState<T extends BasePage> extends State<T>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     final body = buildBody(context);
 
-    return NotificationListener<RefreshPageNotification>(
-      onNotification: (notification) {
-        reloadData();
-        return true; // 알림을 여기서 처리했음을 표시
-      },
-      child: Scaffold(
-        appBar: buildAppBar(context),
-        body: useSafeArea ? SafeArea(child: body) : body,
-        floatingActionButton: buildFloatingActionButton(context),
-        bottomNavigationBar: buildBottomNavigationBar(context),
-      ),
+    // pageIndex가 설정된 경우 RefreshBloc 리스닝
+    Widget scaffold = Scaffold(
+      appBar: buildAppBar(context),
+      body: useSafeArea ? SafeArea(child: body) : body,
+      floatingActionButton: buildFloatingActionButton(context),
+      bottomNavigationBar: buildBottomNavigationBar(context),
     );
+
+    if (widget.pageIndex != null) {
+      return BlocListener<RefreshBloc, RefreshState>(
+        listener: (context, state) {
+          if (state is RefreshTriggered && state.pageIndex == widget.pageIndex) {
+            reloadData();
+          }
+        },
+        child: scaffold,
+      );
+    }
+
+    return scaffold;
   }
 }
 

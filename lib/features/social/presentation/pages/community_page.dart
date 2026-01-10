@@ -15,6 +15,9 @@ class CommunityPage extends BasePage {
   const CommunityPage({super.key});
 
   @override
+  int? get pageIndex => 2; // Dashboard의 친구 탭 인덱스
+
+  @override
   State<CommunityPage> createState() => _CommunityPageState();
 }
 

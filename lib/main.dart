@@ -21,6 +21,7 @@ import 'package:co_workfit/features/log_run/presentation/bloc/challenge_event.da
 import 'package:co_workfit/features/log_run/presentation/bloc/challenge_state.dart';
 import 'package:co_workfit/features/currency/currency.dart';
 import 'package:co_workfit/features/craft/presentation/bloc/craft_bloc.dart';
+import 'package:co_workfit/core/bloc/refresh_bloc.dart';
 import 'package:co_workfit/core/utils/logger.dart';
 import 'package:co_workfit/core/services/deep_link_service.dart';
 import 'package:co_workfit/core/services/version_check_service.dart';
@@ -206,6 +207,11 @@ class _CoWorkFitAppState extends State<CoWorkFitApp> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        // Core BLoCs
+        BlocProvider<RefreshBloc>(
+          create: (_) => di.sl<RefreshBloc>(),
+        ),
+        // Feature BLoCs
         BlocProvider<WorkoutBloc>(
           create: (_) => di.sl<WorkoutBloc>(),
         ),

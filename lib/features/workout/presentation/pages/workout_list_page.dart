@@ -8,7 +8,8 @@ import 'package:co_workfit/features/workout/presentation/widgets/register_workou
 import 'package:co_workfit/features/workout/presentation/pages/workout_detail_page.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/filter_bottom_sheet.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
-import 'package:co_workfit/core/notifications/refresh_notification.dart';
+import 'package:co_workfit/core/bloc/refresh_bloc.dart';
+import 'package:co_workfit/core/bloc/refresh_state.dart';
 import 'package:intl/intl.dart';
 
 /// 운동 전체목록 페이지
@@ -135,10 +136,11 @@ class _WorkoutListPageState extends State<WorkoutListPage>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    return NotificationListener<RefreshPageNotification>(
-      onNotification: (notification) {
-        reloadData();
-        return true;
+    return BlocListener<RefreshBloc, RefreshState>(
+      listener: (context, state) {
+        if (state is RefreshTriggered && state.pageIndex == 0) {
+          reloadData();
+        }
       },
       child: Scaffold(
       appBar: AppBar(

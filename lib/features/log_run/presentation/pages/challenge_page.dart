@@ -25,6 +25,9 @@ class ChallengePage extends BasePage {
   const ChallengePage({super.key});
 
   @override
+  int? get pageIndex => 1; // Dashboard의 챌린지 탭 인덱스
+
+  @override
   State<ChallengePage> createState() => _ChallengePageState();
 }
 

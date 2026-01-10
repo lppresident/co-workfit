@@ -11,7 +11,8 @@ import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart'
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_state.dart';
 import 'package:co_workfit/features/currency/currency.dart';
-import 'package:co_workfit/core/notifications/refresh_notification.dart';
+import 'package:co_workfit/core/bloc/refresh_bloc.dart';
+import 'package:co_workfit/core/bloc/refresh_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -158,10 +159,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    return NotificationListener<RefreshPageNotification>(
-      onNotification: (notification) {
-        reloadData();
-        return true;
+    return BlocListener<RefreshBloc, RefreshState>(
+      listener: (context, state) {
+        if (state is RefreshTriggered && state.pageIndex == 3) {
+          reloadData();
+        }
       },
       child: Scaffold(
       backgroundColor: Colors.grey[50],

@@ -1,6 +1,9 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Core BLoCs
+import 'package:co_workfit/core/bloc/refresh_bloc.dart';
+
 // Firebase & Google Sign-In
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -103,6 +106,9 @@ Future<void> initializeDependencies() async {
   // SharedPreferences
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
+
+  // RefreshBloc (싱글톤으로 앱 전체에서 공유)
+  sl.registerLazySingleton<RefreshBloc>(() => RefreshBloc());
 
   // ========== Data Sources ==========
 
