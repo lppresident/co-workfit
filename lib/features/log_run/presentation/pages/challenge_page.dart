@@ -19,6 +19,7 @@ import 'package:co_workfit/features/log_run/domain/entities/challenge_archive_en
 import 'package:co_workfit/features/log_run/presentation/pages/challenge_detail_page.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import 'package:co_workfit/core/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 챌린지 메인 페이지
