@@ -126,28 +126,16 @@ class _InviteFriendsBottomSheetState extends State<InviteFriendsBottomSheet> {
                             color: isDisabled ? Colors.grey[400] : null,
                           ),
                         ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (friend.friendEmail != null)
-                              Text(
-                                friend.friendEmail!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDisabled ? Colors.grey[400] : Colors.grey[600],
-                                ),
-                              ),
-                            if (disabledReason != null)
-                              Text(
+                        subtitle: disabledReason != null
+                            ? Text(
                                 disabledReason,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.orange[700],
                                   fontWeight: FontWeight.w500,
                                 ),
-                              ),
-                          ],
-                        ),
+                              )
+                            : null,
                         secondary: Opacity(
                           opacity: isDisabled ? 0.5 : 1.0,
                           child: CircleAvatar(
