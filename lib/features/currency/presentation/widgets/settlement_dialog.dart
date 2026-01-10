@@ -27,9 +27,10 @@ class SettlementDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             // 헤더
             const Text(
               '🎉 보상 획득!',
@@ -92,7 +93,8 @@ class SettlementDialog extends StatelessWidget {
                 child: const Text('확인'),
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -102,7 +104,7 @@ class SettlementDialog extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: type.color.withOpacity(0.1),
+        color: type.color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
