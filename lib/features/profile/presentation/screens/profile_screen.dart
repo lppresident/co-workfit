@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import 'package:co_workfit/features/auth/presentation/bloc/auth_event.dart';
 import 'package:co_workfit/features/craft/domain/entities/equipped_items_entity.dart';
 import 'package:co_workfit/features/craft/presentation/pages/craft_page.dart';
 import 'package:co_workfit/features/craft/presentation/pages/character_page.dart';
@@ -123,12 +124,27 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    return BlocListener<RefreshBloc, RefreshState>(
-      listener: (context, state) {
-        if (state is RefreshTriggered && state.pageIndex == 3) {
-          reloadData();
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<RefreshBloc, RefreshState>(
+          listener: (context, state) {
+            if (state is RefreshTriggered && state.pageIndex == 3) {
+              reloadData();
+            }
+          },
+        ),
+        BlocListener<ProfileBloc, ProfileState>(
+          listener: (context, state) {
+            // 닉네임 변경 성공 시 AuthBloc 새로고침
+            if (state is ProfileLoadSuccess) {
+              context.read<AuthBloc>().add(const AuthRefreshUserRequested());
+
+              // 이전 상태가 있고 닉네임이 변경된 경우 성공 메시지 표시
+              // (초기 로드가 아닌 경우에만)
+            }
+          },
+        ),
+      ],
       child: Scaffold(
       backgroundColor: Colors.grey[50],
       body: BlocBuilder<ProfileBloc, ProfileState>(
