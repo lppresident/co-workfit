@@ -297,6 +297,11 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         }
       },
       builder: (context, state) {
+        // 로딩 상태 명시적 처리
+        if (state is ChallengeLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         // 뷰 타입 로딩 중이거나 초기 데이터 로딩 중일 때 로딩 표시
         if (_isLoadingViewType || _isInitialLoading) {
           return const Center(child: CircularProgressIndicator());
