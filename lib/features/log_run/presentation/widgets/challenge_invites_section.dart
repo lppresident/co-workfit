@@ -148,6 +148,7 @@ class _InviteCard extends StatelessWidget {
     context.read<ChallengeBloc>().add(
           AcceptInviteEvent(
             inviteId: invite.id,
+            challengeId: invite.challengeId,
             userId: authState.user.id,
             userNickname: authState.user.nickname,
           ),
@@ -163,7 +164,10 @@ class _InviteCard extends StatelessWidget {
 
   void _rejectInvite(BuildContext context) {
     context.read<ChallengeBloc>().add(
-          RejectInviteEvent(invite.id),
+          RejectInviteEvent(
+            inviteId: invite.id,
+            challengeId: invite.challengeId,
+          ),
         );
 
     ScaffoldMessenger.of(context).showSnackBar(

@@ -620,6 +620,7 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         // (Empty 상태에서는 EmptyChallengeWidget에 버튼이 있음)
         if (_currentChallenges.isNotEmpty || _currentInvites.isNotEmpty || _archives.isNotEmpty) {
           return FloatingActionButton(
+            heroTag: 'challenge_page_fab',
             onPressed: _showActionSelectionDialog,
             tooltip: '챌린지 생성 또는 참가',
             child: const Icon(Icons.add),

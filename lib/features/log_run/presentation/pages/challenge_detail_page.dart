@@ -689,6 +689,7 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           }
 
           return FloatingActionButton.extended(
+            heroTag: 'challenge_detail_fab',
             onPressed: () => _showSubmitWorkoutSheet(
               challenge.startDate,
               challenge.endDate,

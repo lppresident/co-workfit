@@ -240,12 +240,14 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
   @override
   Future<Either<Failure, void>> acceptInvite({
     required String inviteId,
+    required String challengeId,
     required String userId,
     required String userNickname,
   }) async {
     try {
       await dataSource.acceptInvite(
         inviteId: inviteId,
+        challengeId: challengeId,
         userId: userId,
         userNickname: userNickname,
       );
@@ -259,9 +261,13 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
   @override
   Future<Either<Failure, void>> rejectInvite({
     required String inviteId,
+    required String challengeId,
   }) async {
     try {
-      await dataSource.rejectInvite(inviteId: inviteId);
+      await dataSource.rejectInvite(
+        inviteId: inviteId,
+        challengeId: challengeId,
+      );
       return const Right(null);
     } catch (e) {
       AppLogger.error('ChallengeRepository', 'rejectInvite 에러: $e');

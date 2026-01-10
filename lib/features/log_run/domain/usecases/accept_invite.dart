@@ -13,6 +13,7 @@ class AcceptInvite implements UseCase<void, AcceptInviteParams> {
   Future<Either<Failure, void>> call(AcceptInviteParams params) async {
     return await repository.acceptInvite(
       inviteId: params.inviteId,
+      challengeId: params.challengeId,
       userId: params.userId,
       userNickname: params.userNickname,
     );
@@ -21,11 +22,13 @@ class AcceptInvite implements UseCase<void, AcceptInviteParams> {
 
 class AcceptInviteParams {
   final String inviteId;
+  final String challengeId;
   final String userId;
   final String userNickname;
 
   AcceptInviteParams({
     required this.inviteId,
+    required this.challengeId,
     required this.userId,
     required this.userNickname,
   });

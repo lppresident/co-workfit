@@ -47,6 +47,7 @@ class _CommunityPageState extends BasePageState<CommunityPage> {
   @override
   Widget? buildFloatingActionButton(BuildContext context) {
     return FloatingActionButton(
+      heroTag: 'community_page_fab',
       onPressed: () {
         Navigator.push(
           context,

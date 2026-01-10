@@ -245,27 +245,33 @@ class WatchMyInvites extends ChallengeEvent {
 /// 챌린지 초대 수락
 class AcceptInviteEvent extends ChallengeEvent {
   final String inviteId;
+  final String challengeId;
   final String userId;
   final String userNickname;
 
   const AcceptInviteEvent({
     required this.inviteId,
+    required this.challengeId,
     required this.userId,
     required this.userNickname,
   });
 
   @override
-  List<Object?> get props => [inviteId, userId, userNickname];
+  List<Object?> get props => [inviteId, challengeId, userId, userNickname];
 }
 
 /// 챌린지 초대 거절
 class RejectInviteEvent extends ChallengeEvent {
   final String inviteId;
+  final String challengeId;
 
-  const RejectInviteEvent(this.inviteId);
+  const RejectInviteEvent({
+    required this.inviteId,
+    required this.challengeId,
+  });
 
   @override
-  List<Object?> get props => [inviteId];
+  List<Object?> get props => [inviteId, challengeId];
 }
 
 /// 챌린지 아카이브 조회

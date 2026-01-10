@@ -4,13 +4,26 @@ import 'package:co_workfit/core/usecases/usecase.dart';
 import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 
 /// 챌린지 초대 거절 UseCase
-class RejectInvite implements UseCase<void, String> {
+class RejectInvite implements UseCase<void, RejectInviteParams> {
   final ChallengeRepository repository;
 
   RejectInvite(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(String inviteId) async {
-    return await repository.rejectInvite(inviteId: inviteId);
+  Future<Either<Failure, void>> call(RejectInviteParams params) async {
+    return await repository.rejectInvite(
+      inviteId: params.inviteId,
+      challengeId: params.challengeId,
+    );
   }
+}
+
+class RejectInviteParams {
+  final String inviteId;
+  final String challengeId;
+
+  RejectInviteParams({
+    required this.inviteId,
+    required this.challengeId,
+  });
 }

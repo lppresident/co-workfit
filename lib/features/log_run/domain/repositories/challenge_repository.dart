@@ -124,6 +124,7 @@ abstract class ChallengeRepository {
   /// 챌린지 초대 수락
   Future<Either<Failure, void>> acceptInvite({
     required String inviteId,
+    required String challengeId,
     required String userId,
     required String userNickname,
   });
@@ -131,6 +132,7 @@ abstract class ChallengeRepository {
   /// 챌린지 초대 거절
   Future<Either<Failure, void>> rejectInvite({
     required String inviteId,
+    required String challengeId,
   });
 
   /// 사용자의 만료된 챌린지를 모두 expired 상태로 변경하고 isSuccess 저장

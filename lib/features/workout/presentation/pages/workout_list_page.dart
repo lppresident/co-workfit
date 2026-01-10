@@ -155,6 +155,7 @@ class _WorkoutListPageState extends State<WorkoutListPage>
       ),
       floatingActionButton: _allWorkouts.isNotEmpty
           ? FloatingActionButton.extended(
+              heroTag: 'workout_list_fab',
               onPressed: _showSyncConfirmation,
               icon: const Icon(Icons.cloud_upload),
               label: const Text('운동 등록'),

@@ -484,6 +484,7 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     final result = await acceptInviteUseCase(
       AcceptInviteParams(
         inviteId: event.inviteId,
+        challengeId: event.challengeId,
         userId: event.userId,
         userNickname: event.userNickname,
       ),
@@ -493,8 +494,7 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
       (failure) => emit(ChallengeError(failure.toString())),
       (_) {
         AppLogger.info('ChallengeBloc', 'Invite accepted: ${event.inviteId}');
-        // 챌린지 ID를 알 수 없으므로 빈 문자열로 전달
-        emit(InviteAccepted(inviteId: event.inviteId, challengeId: ''));
+        emit(InviteAccepted(inviteId: event.inviteId, challengeId: event.challengeId));
       },
     );
   }
@@ -503,7 +503,12 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     RejectInviteEvent event,
     Emitter<ChallengeState> emit,
   ) async {
-    final result = await rejectInviteUseCase(event.inviteId);
+    final result = await rejectInviteUseCase(
+      RejectInviteParams(
+        inviteId: event.inviteId,
+        challengeId: event.challengeId,
+      ),
+    );
 
     result.fold(
       (failure) => emit(ChallengeError(failure.toString())),

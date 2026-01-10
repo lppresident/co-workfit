@@ -591,26 +591,26 @@ class FirestoreChallengeDataSource {
   /// inviteId 형식: "challengeId/invites/inviteDocId" 또는 "inviteDocId"만 전달
   Future<void> acceptInvite({
     required String inviteId,
+    required String challengeId,
     required String userId,
     required String userNickname,
   }) async {
-    // Collection group query로 초대 찾기 (어느 챌린지의 subcollection인지 모르므로)
-    final inviteQuery = await firestore
-        .collectionGroup(_invitesSubcollection)
-        .where(FieldPath.documentId, isEqualTo: inviteId)
-        .limit(1)
-        .get();
-
-    if (inviteQuery.docs.isEmpty) {
-      throw Exception('초대를 찾을 수 없습니다');
-    }
-
-    final inviteDoc = inviteQuery.docs.first;
-    final invite = ChallengeInviteModel.fromFirestore(inviteDoc);
+    // challengeId를 알고 있으므로 직접 subcollection에 접근
+    final inviteRef = firestore
+        .collection(_challengesCollection)
+        .doc(challengeId)
+        .collection(_invitesSubcollection)
+        .doc(inviteId);
 
     // 트랜잭션으로 챌린지 참가 + 초대 삭제
     await firestore.runTransaction((transaction) async {
-      final challengeRef = firestore.collection(_challengesCollection).doc(invite.challengeId);
+      final inviteDoc = await transaction.get(inviteRef);
+
+      if (!inviteDoc.exists) {
+        throw Exception('초대를 찾을 수 없습니다');
+      }
+
+      final challengeRef = firestore.collection(_challengesCollection).doc(challengeId);
       final challengeDoc = await transaction.get(challengeRef);
 
       if (!challengeDoc.exists) {
@@ -623,32 +623,29 @@ class FirestoreChallengeDataSource {
         'participantNicknames.$userId': userNickname,
       });
 
-      // 초대 삭제 (subcollection에서)
-      transaction.delete(inviteDoc.reference);
+      // 초대 삭제
+      transaction.delete(inviteRef);
     });
 
-    AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 수락 (subcollection): $inviteId');
+    AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 수락: $inviteId');
   }
 
   /// 챌린지 초대 거절 (Subcollection)
   Future<void> rejectInvite({
     required String inviteId,
+    required String challengeId,
   }) async {
-    // Collection group query로 초대 찾기
-    final inviteQuery = await firestore
-        .collectionGroup(_invitesSubcollection)
-        .where(FieldPath.documentId, isEqualTo: inviteId)
-        .limit(1)
-        .get();
+    // challengeId를 알고 있으므로 직접 subcollection에 접근
+    final inviteRef = firestore
+        .collection(_challengesCollection)
+        .doc(challengeId)
+        .collection(_invitesSubcollection)
+        .doc(inviteId);
 
-    if (inviteQuery.docs.isEmpty) {
-      throw Exception('초대를 찾을 수 없습니다');
-    }
+    // 거절 시 초대 문서 삭제
+    await inviteRef.delete();
 
-    // 거절 시 초대 문서 삭제 (subcollection에서)
-    await inviteQuery.docs.first.reference.delete();
-
-    AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 거절 및 삭제 (subcollection): $inviteId');
+    AppLogger.info('FirestoreChallengeDataSource', '챌린지 초대 거절: $inviteId');
   }
 
   // ========== Private Methods ==========
