@@ -225,31 +225,43 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
   Widget buildBody(BuildContext context) {
     return BlocConsumer<ChallengeBloc, ChallengeState>(
       listener: (context, state) {
+        // 로딩 상태에서는 초기 로딩 플래그 유지
+        if (state is ChallengeLoading) {
+          // 로딩 중에는 아무것도 하지 않음
+          return;
+        }
+
         // 챌린지 및 초대 상태 저장
         if (state is ChallengesLoaded ||
             state is ChallengeDetailLoaded ||
             state is WorkoutSubmitted ||
             state is MyInvitesUpdated) {
-          _currentChallenges = _getChallenges(state);
-          _currentInvites = _getInvites(state);
-          _isInitialLoading = false;
+          setState(() {
+            _currentChallenges = _getChallenges(state);
+            _currentInvites = _getInvites(state);
+            _isInitialLoading = false;
+          });
         }
 
         // 아카이브 상태 처리
         if (state is ChallengeArchivesLoaded) {
-          _archives = state.archives;
-          // 챌린지가 이미 로드되어 있으면 현재 상태 유지, 아니면 state의 챌린지 사용
-          if (_currentChallenges.isEmpty && state.challenges.isNotEmpty) {
-            _currentChallenges = state.challenges;
-          }
-          _isInitialLoading = false;
+          setState(() {
+            _archives = state.archives;
+            // 챌린지가 이미 로드되어 있으면 현재 상태 유지, 아니면 state의 챌린지 사용
+            if (_currentChallenges.isEmpty && state.challenges.isNotEmpty) {
+              _currentChallenges = state.challenges;
+            }
+            _isInitialLoading = false;
+          });
         }
 
         // 챌린지 로드 완료 시에도 초기 로딩 해제
         if (state is ChallengeEmpty) {
-          _currentChallenges = [];
-          _currentInvites = _getInvites(state);
-          _isInitialLoading = false;
+          setState(() {
+            _currentChallenges = [];
+            _currentInvites = _getInvites(state);
+            _isInitialLoading = false;
+          });
         }
 
         if (state is ChallengeError) {
