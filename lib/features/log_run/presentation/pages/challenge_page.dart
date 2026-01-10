@@ -237,18 +237,24 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         // 챌린지 및 초대 상태 저장
         if (state is ChallengesLoaded ||
             state is ChallengeDetailLoaded ||
-            state is WorkoutSubmitted ||
-            state is MyInvitesUpdated) {
+            state is WorkoutSubmitted) {
           final challenges = _getChallenges(state);
           final invites = _getInvites(state);
-          AppLogger.info('ChallengePage', '📥 Updating state - Challenges: ${challenges.length}, Invites: ${invites.length}');
+          AppLogger.info('ChallengePage', '📥 Updating challenges and invites - Challenges: ${challenges.length}, Invites: ${invites.length}');
           setState(() {
             _currentChallenges = challenges;
             _currentInvites = invites;
-            // MyInvitesUpdated는 초기 로딩을 해제하지 않음 (챌린지 로딩과 별개)
-            if (state is! MyInvitesUpdated) {
-              _isInitialLoading = false;
-            }
+            _isInitialLoading = false;
+          });
+        }
+
+        // MyInvitesUpdated는 초대만 업데이트 (챌린지는 유지)
+        if (state is MyInvitesUpdated) {
+          final invites = _getInvites(state);
+          AppLogger.info('ChallengePage', '📥 Updating invites only - Invites: ${invites.length}, keeping Challenges: ${_currentChallenges.length}');
+          setState(() {
+            _currentInvites = invites;
+            // 초기 로딩은 해제하지 않음
           });
         }
 
