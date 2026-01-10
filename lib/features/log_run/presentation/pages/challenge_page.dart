@@ -184,8 +184,7 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         if (state is ChallengesLoaded ||
             state is ChallengeDetailLoaded ||
             state is WorkoutSubmitted ||
-            state is MyInvitesUpdated ||
-            state is ChallengeArchivesLoaded) {
+            state is MyInvitesUpdated) {
           _currentChallenges = _getChallenges(state);
           _currentInvites = _getInvites(state);
           _isInitialLoading = false;
@@ -194,6 +193,11 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         // 아카이브 상태 처리
         if (state is ChallengeArchivesLoaded) {
           _archives = state.archives;
+          // 챌린지가 이미 로드되어 있으면 현재 상태 유지, 아니면 state의 챌린지 사용
+          if (_currentChallenges.isEmpty && state.challenges.isNotEmpty) {
+            _currentChallenges = state.challenges;
+          }
+          _isInitialLoading = false;
         }
 
         // 챌린지 로드 완료 시에도 초기 로딩 해제
