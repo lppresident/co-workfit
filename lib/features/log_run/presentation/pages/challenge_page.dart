@@ -19,6 +19,7 @@ import 'package:co_workfit/features/log_run/domain/entities/challenge_archive_en
 import 'package:co_workfit/features/log_run/presentation/pages/challenge_detail_page.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:co_workfit/features/auth/presentation/bloc/auth_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 챌린지 메인 페이지
 class ChallengePage extends BasePage {
@@ -38,6 +39,49 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
   List<ChallengeInviteEntity> _currentInvites = [];
   List<ChallengeArchiveEntity> _archives = [];
   bool _isInitialLoading = true;
+  bool _isLoadingViewType = true; // 뷰 타입 로딩 중
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedViewType();
+  }
+
+  Future<void> _loadSavedViewType() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedViewType = prefs.getString('challenge_view_type');
+      if (savedViewType != null) {
+        setState(() {
+          _viewType = savedViewType == 'calendar'
+              ? ChallengeViewType.calendar
+              : ChallengeViewType.list;
+          _isLoadingViewType = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingViewType = false;
+        });
+      }
+    } catch (e) {
+      AppLogger.error('ChallengePage', 'Failed to load saved view type', e);
+      setState(() {
+        _isLoadingViewType = false;
+      });
+    }
+  }
+
+  Future<void> _saveViewType(ChallengeViewType viewType) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'challenge_view_type',
+        viewType == ChallengeViewType.calendar ? 'calendar' : 'list',
+      );
+    } catch (e) {
+      AppLogger.error('ChallengePage', 'Failed to save view type', e);
+    }
+  }
 
   @override
   void loadInitialData() {
@@ -240,13 +284,8 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         }
       },
       builder: (context, state) {
-        // 초기 로딩 중
-        if (_isInitialLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        // 초기 상태 또는 로딩 상태
-        if (state is ChallengeInitial || state is ChallengeLoading) {
+        // 뷰 타입 로딩 중이거나 초기 데이터 로딩 중일 때 로딩 표시
+        if (_isLoadingViewType || _isInitialLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -295,6 +334,7 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
             setState(() {
               _viewType = type;
             });
+            _saveViewType(type);
           },
         ),
         Expanded(
