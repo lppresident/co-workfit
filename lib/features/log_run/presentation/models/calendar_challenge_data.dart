@@ -6,12 +6,14 @@ class CalendarChallengeData {
   final DateTime date;
   final List<ChallengeEntity> activeChallenges;
   final List<ChallengeEntity> completedChallenges;
+  final List<ChallengeEntity> expiredChallenges;
   final List<ChallengeArchiveEntity> archivedChallenges;
 
   const CalendarChallengeData({
     required this.date,
     this.activeChallenges = const [],
     this.completedChallenges = const [],
+    this.expiredChallenges = const [],
     this.archivedChallenges = const [],
   });
 
@@ -19,6 +21,7 @@ class CalendarChallengeData {
   bool get hasChallenges =>
       activeChallenges.isNotEmpty ||
       completedChallenges.isNotEmpty ||
+      expiredChallenges.isNotEmpty ||
       archivedChallenges.isNotEmpty;
 
   /// 성공한 챌린지 개수
@@ -28,6 +31,7 @@ class CalendarChallengeData {
 
   /// 실패한 챌린지 개수
   int get failureCount =>
+      expiredChallenges.length +
       archivedChallenges.where((a) => !a.isSuccess).length;
 
   /// 진행 중인 챌린지 개수
@@ -37,5 +41,6 @@ class CalendarChallengeData {
   int get totalCount =>
       activeChallenges.length +
       completedChallenges.length +
+      expiredChallenges.length +
       archivedChallenges.length;
 }

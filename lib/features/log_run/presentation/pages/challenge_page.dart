@@ -535,6 +535,7 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
           date: endDate,
           activeChallenges: challenge.status == ChallengeStatus.active ? [challenge] : [],
           completedChallenges: challenge.status == ChallengeStatus.completed ? [challenge] : [],
+          expiredChallenges: challenge.status == ChallengeStatus.expired ? [challenge] : [],
         );
       } else {
         final updated = CalendarChallengeData(
@@ -545,6 +546,9 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
           completedChallenges: challenge.status == ChallengeStatus.completed
               ? [...existing.completedChallenges, challenge]
               : existing.completedChallenges,
+          expiredChallenges: challenge.status == ChallengeStatus.expired
+              ? [...existing.expiredChallenges, challenge]
+              : existing.expiredChallenges,
           archivedChallenges: existing.archivedChallenges,
         );
         dataMap[endDate] = updated;
@@ -570,6 +574,7 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
           date: endDate,
           activeChallenges: existing.activeChallenges,
           completedChallenges: existing.completedChallenges,
+          expiredChallenges: existing.expiredChallenges,
           archivedChallenges: [...existing.archivedChallenges, archive],
         );
         dataMap[endDate] = updated;
@@ -583,6 +588,52 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
     List<ChallengeEntity> challenges,
     List<ChallengeInviteEntity> invites,
   ) {
+    // 챌린지를 날짜별로 정렬 (최근 날짜가 위로)
+    final sortedChallenges = List<ChallengeEntity>.from(challenges)
+      ..sort((a, b) => b.endDate.compareTo(a.endDate));
+
+    // 날짜별로 그룹화
+    final Map<String, List<ChallengeEntity>> groupedChallenges = {};
+    for (final challenge in sortedChallenges) {
+      final dateKey = _formatDateKey(challenge.endDate);
+      groupedChallenges.putIfAbsent(dateKey, () => []).add(challenge);
+    }
+
+    // 리스트 아이템 생성: [초대섹션?] + [날짜헤더1, 챌린지1-1, 챌린지1-2, 날짜헤더2, ...]
+    final List<Widget> items = [];
+
+    // 초대 섹션 추가
+    if (invites.isNotEmpty) {
+      items.add(ChallengeInvitesSection(invites: invites));
+    }
+
+    // 날짜별 챌린지 추가
+    groupedChallenges.forEach((dateKey, challengesForDate) {
+      // 날짜 헤더
+      items.add(_buildDateHeader(dateKey));
+
+      // 해당 날짜의 챌린지들
+      for (final challenge in challengesForDate) {
+        items.add(ChallengeCardWidget(
+          challenge: challenge,
+          onTap: () async {
+            await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChallengeDetailPage(
+                  challengeId: challenge.id,
+                ),
+              ),
+            );
+            // 상세 페이지에서 돌아오면 목록 새로고침
+            if (mounted) {
+              refreshChallenges();
+            }
+          },
+        ));
+      }
+    });
+
     return RefreshIndicator(
       onRefresh: () async {
         refreshChallenges();
@@ -590,40 +641,26 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
       },
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: (invites.isNotEmpty ? 1 : 0) + challenges.length,
-        itemBuilder: (context, index) {
-          // 첫 번째 아이템: 초대 섹션
-          if (invites.isNotEmpty && index == 0) {
-            return ChallengeInvitesSection(invites: invites);
-          }
+        itemCount: items.length,
+        itemBuilder: (context, index) => items[index],
+      ),
+    );
+  }
 
-          // 나머지 아이템: 챌린지 카드
-          final challengeIndex = invites.isNotEmpty ? index - 1 : index;
+  String _formatDateKey(DateTime date) {
+    return '${date.month}월 ${date.day}일';
+  }
 
-          // 챌린지가 없으면 빈 위젯 반환
-          if (challengeIndex >= challenges.length) {
-            return const SizedBox.shrink();
-          }
-
-          final challenge = challenges[challengeIndex];
-          return ChallengeCardWidget(
-            challenge: challenge,
-            onTap: () async {
-              await Navigator.push<bool>(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChallengeDetailPage(
-                    challengeId: challenge.id,
-                  ),
-                ),
-              );
-              // 상세 페이지에서 돌아오면 목록 새로고침
-              if (mounted) {
-                refreshChallenges();
-              }
-            },
-          );
-        },
+  Widget _buildDateHeader(String dateText) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(
+        dateText,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey,
+        ),
       ),
     );
   }
