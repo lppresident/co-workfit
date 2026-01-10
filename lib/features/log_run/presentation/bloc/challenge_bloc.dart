@@ -123,7 +123,8 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
         AppLogger.info('ChallengeBloc', 'LoadChallenges 성공: ${challenges.length}개');
         // 현재 초대 목록 유지
         final currentInvites = _getCurrentInvites();
-        if (challenges.isEmpty) {
+        // 챌린지가 비어있어도 초대가 있으면 ChallengesLoaded 사용
+        if (challenges.isEmpty && currentInvites.isEmpty) {
           emit(const ChallengeEmpty());
         } else {
           emit(ChallengesLoaded(challenges: challenges, invites: currentInvites));
