@@ -539,6 +539,9 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           );
           // 상세 페이지 새로고침
           context.read<ChallengeBloc>().add(LoadChallengeDetail(widget.challengeId));
+        } else if (state is ChallengeInvitesCreated) {
+          // 초대 생성 후 챌린지 상세 페이지 상태 복원
+          context.read<ChallengeBloc>().add(LoadChallengeDetail(widget.challengeId));
         } else if (state is ChallengeDeleted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
