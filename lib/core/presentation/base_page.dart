@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:co_workfit/core/notifications/refresh_notification.dart';
 
 /// Base class for all pages in the application
 ///
@@ -70,11 +71,17 @@ abstract class BasePageState<T extends BasePage> extends State<T>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     final body = buildBody(context);
 
-    return Scaffold(
-      appBar: buildAppBar(context),
-      body: useSafeArea ? SafeArea(child: body) : body,
-      floatingActionButton: buildFloatingActionButton(context),
-      bottomNavigationBar: buildBottomNavigationBar(context),
+    return NotificationListener<RefreshPageNotification>(
+      onNotification: (notification) {
+        reloadData();
+        return true; // 알림을 여기서 처리했음을 표시
+      },
+      child: Scaffold(
+        appBar: buildAppBar(context),
+        body: useSafeArea ? SafeArea(child: body) : body,
+        floatingActionButton: buildFloatingActionButton(context),
+        bottomNavigationBar: buildBottomNavigationBar(context),
+      ),
     );
   }
 }

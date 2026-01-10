@@ -8,6 +8,7 @@ import 'package:co_workfit/features/workout/presentation/widgets/register_workou
 import 'package:co_workfit/features/workout/presentation/pages/workout_detail_page.dart';
 import 'package:co_workfit/features/workout/presentation/widgets/filter_bottom_sheet.dart';
 import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart';
+import 'package:co_workfit/core/notifications/refresh_notification.dart';
 import 'package:intl/intl.dart';
 
 /// 운동 전체목록 페이지
@@ -16,9 +17,6 @@ class WorkoutListPage extends StatefulWidget {
 
   @override
   State<WorkoutListPage> createState() => _WorkoutListPageState();
-
-  // DashboardPage에서 새로고침을 트리거할 수 있도록 GlobalKey 제공
-  static final GlobalKey<_WorkoutListPageState> globalKey = GlobalKey<_WorkoutListPageState>();
 }
 
 class _WorkoutListPageState extends State<WorkoutListPage>
@@ -137,7 +135,12 @@ class _WorkoutListPageState extends State<WorkoutListPage>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    return Scaffold(
+    return NotificationListener<RefreshPageNotification>(
+      onNotification: (notification) {
+        reloadData();
+        return true;
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('전체 운동 기록'),
         actions: [
@@ -517,6 +520,7 @@ class _WorkoutListPageState extends State<WorkoutListPage>
           // 초기 상태
           return const Center(child: CircularProgressIndicator());
         },
+      ),
       ),
     );
   }

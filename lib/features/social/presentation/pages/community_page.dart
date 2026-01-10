@@ -16,9 +16,6 @@ class CommunityPage extends BasePage {
 
   @override
   State<CommunityPage> createState() => _CommunityPageState();
-
-  // DashboardPage에서 새로고침을 트리거할 수 있도록 GlobalKey 제공
-  static final GlobalKey<_CommunityPageState> globalKey = GlobalKey<_CommunityPageState>();
 }
 
 class _CommunityPageState extends BasePageState<CommunityPage> {

@@ -11,6 +11,7 @@ import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart'
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_state.dart';
 import 'package:co_workfit/features/currency/currency.dart';
+import 'package:co_workfit/core/notifications/refresh_notification.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -19,9 +20,6 @@ class ProfileScreen extends StatefulWidget {
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
-
-  // DashboardPage에서 새로고침을 트리거할 수 있도록 GlobalKey 제공
-  static final GlobalKey<_ProfileScreenState> globalKey = GlobalKey<_ProfileScreenState>();
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
@@ -160,7 +158,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    return Scaffold(
+    return NotificationListener<RefreshPageNotification>(
+      onNotification: (notification) {
+        reloadData();
+        return true;
+      },
+      child: Scaffold(
       backgroundColor: Colors.grey[50],
       body: BlocBuilder<ProfileBloc, ProfileState>(
         builder: (context, state) {
@@ -240,6 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           }
           return const Center(child: Text('알 수 없는 오류가 발생했습니다.'));
         },
+      ),
       ),
     );
   }

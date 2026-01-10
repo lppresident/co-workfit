@@ -4,6 +4,7 @@ import 'package:co_workfit/features/workout/presentation/pages/workout_list_page
 import 'package:co_workfit/features/profile/presentation/screens/profile_screen.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
+import 'package:co_workfit/core/notifications/refresh_notification.dart';
 import 'package:co_workfit/core/di/injection.dart' as di;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,12 +32,12 @@ class _DashboardPageState extends State<DashboardPage> {
     _pageController = PageController();
     _pageController.addListener(_onPageChanged);
     _pages = [
-      WorkoutListPage(key: WorkoutListPage.globalKey),
-      ChallengePage(key: ChallengePage.globalKey),
-      CommunityPage(key: CommunityPage.globalKey),
+      const WorkoutListPage(),
+      const ChallengePage(),
+      const CommunityPage(),
       BlocProvider<ProfileBloc>(
         create: (context) => di.sl<ProfileBloc>()..add(FetchProfileData()),
-        child: ProfileScreen(key: ProfileScreen.globalKey),
+        child: const ProfileScreen(),
       ),
     ];
   }
@@ -69,27 +70,9 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _refreshCurrentPage(int index) {
-    // 같은 탭을 다시 클릭했을 때 각 페이지별 새로고침 로직
-    switch (index) {
-      case 0:
-        // 운동 페이지 새로고침
-        WorkoutListPage.globalKey.currentState?.reloadData();
-        break;
-      case 1:
-        // 챌린지 페이지 새로고침
-        ChallengePage.globalKey.currentState?.reloadData();
-        break;
-      case 2:
-        // 친구 페이지 새로고침
-        CommunityPage.globalKey.currentState?.reloadData();
-        break;
-      case 3:
-        // 프로필 페이지 새로고침
-        ProfileScreen.globalKey.currentState?.reloadData();
-        break;
-      default:
-        break;
-    }
+    // 같은 탭을 다시 클릭했을 때 RefreshPageNotification을 통해 새로고침 요청
+    // 현재 페이지가 NotificationListener를 통해 이 알림을 받아 reloadData() 호출
+    const RefreshPageNotification().dispatch(context);
   }
 
   @override

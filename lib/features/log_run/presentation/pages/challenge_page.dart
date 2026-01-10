@@ -26,9 +26,6 @@ class ChallengePage extends BasePage {
 
   @override
   State<ChallengePage> createState() => _ChallengePageState();
-
-  // DashboardPage에서 새로고침을 트리거할 수 있도록 GlobalKey 제공
-  static final GlobalKey<_ChallengePageState> globalKey = GlobalKey<_ChallengePageState>();
 }
 
 class _ChallengePageState extends BasePageState<ChallengePage> {
