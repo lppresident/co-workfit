@@ -225,11 +225,8 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
   Widget buildBody(BuildContext context) {
     return BlocConsumer<ChallengeBloc, ChallengeState>(
       listener: (context, state) {
-        AppLogger.info('ChallengePage', '👂 Listener received state: ${state.runtimeType}');
-
         // 로딩 상태에서는 초기 로딩 플래그 유지
         if (state is ChallengeLoading) {
-          AppLogger.info('ChallengePage', '⏳ ChallengeLoading - keeping initial loading flag');
           // 로딩 중에는 아무것도 하지 않음
           return;
         }
@@ -240,7 +237,6 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
             state is WorkoutSubmitted) {
           final challenges = _getChallenges(state);
           final invites = _getInvites(state);
-          AppLogger.info('ChallengePage', '📥 Updating challenges and invites - Challenges: ${challenges.length}, Invites: ${invites.length}');
           setState(() {
             _currentChallenges = challenges;
             _currentInvites = invites;
@@ -251,7 +247,6 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         // MyInvitesUpdated는 초대만 업데이트 (챌린지는 유지)
         if (state is MyInvitesUpdated) {
           final invites = _getInvites(state);
-          AppLogger.info('ChallengePage', '📥 Updating invites only - Invites: ${invites.length}, keeping Challenges: ${_currentChallenges.length}');
           setState(() {
             _currentInvites = invites;
             // 초기 로딩은 해제하지 않음
@@ -260,7 +255,6 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
 
         // 아카이브 상태 처리
         if (state is ChallengeArchivesLoaded) {
-          AppLogger.info('ChallengePage', '📦 Archives loaded: ${state.archives.length}, Challenges in state: ${state.challenges.length}');
           setState(() {
             _archives = state.archives;
             // 챌린지가 이미 로드되어 있으면 현재 상태 유지, 아니면 state의 챌린지 사용
@@ -274,7 +268,6 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         // 챌린지 로드 완료 시에도 초기 로딩 해제
         if (state is ChallengeEmpty) {
           final invites = _getInvites(state);
-          AppLogger.info('ChallengePage', '📭 ChallengeEmpty - Setting challenges to empty, Invites: ${invites.length}');
           setState(() {
             _currentChallenges = [];
             _currentInvites = invites;
@@ -315,30 +308,22 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         }
       },
       builder: (context, state) {
-        AppLogger.info('ChallengePage', '🔄 Builder called - State: ${state.runtimeType}, isInitialLoading: $_isInitialLoading, isLoadingViewType: $_isLoadingViewType');
-        AppLogger.info('ChallengePage', '📊 Current data - Challenges: ${_currentChallenges.length}, Invites: ${_currentInvites.length}, Archives: ${_archives.length}');
-
         // 로딩 상태 명시적 처리
         if (state is ChallengeLoading) {
-          AppLogger.info('ChallengePage', '⏳ Showing loading indicator - ChallengeLoading state');
           return const Center(child: CircularProgressIndicator());
         }
 
         // 뷰 타입 로딩 중이거나 초기 데이터 로딩 중일 때 로딩 표시
         if (_isLoadingViewType || _isInitialLoading) {
-          AppLogger.info('ChallengePage', '⏳ Showing loading indicator - ViewType loading: $_isLoadingViewType, Initial loading: $_isInitialLoading');
           return const Center(child: CircularProgressIndicator());
         }
 
         // Empty 상태
         if (state is ChallengeEmpty) {
-          AppLogger.info('ChallengePage', '📭 ChallengeEmpty state - Invites: ${_currentInvites.length}, Archives: ${_archives.length}');
           // Empty 상태에서도 초대가 있을 수 있음
           if (_currentInvites.isNotEmpty || _archives.isNotEmpty) {
-            AppLogger.info('ChallengePage', '✅ Showing main view (has invites or archives)');
             return _buildMainView(_currentChallenges, _currentInvites);
           }
-          AppLogger.info('ChallengePage', '❌ Showing EmptyChallengeWidget - No challenges, invites, or archives');
           return EmptyChallengeWidget(
             onCreateOrJoin: _showActionSelectionDialog,
           );
@@ -347,24 +332,20 @@ class _ChallengePageState extends BasePageState<ChallengePage> {
         // 챌린지 목록이 있는 상태들
         if (state is ChallengesLoaded || state is ChallengeDetailLoaded || state is WorkoutSubmitted || state is MyInvitesLoaded || state is MyInvitesUpdated || state is ChallengeArchivesLoaded) {
           if (_currentChallenges.isEmpty && _currentInvites.isEmpty && _archives.isEmpty) {
-            AppLogger.info('ChallengePage', '❌ Showing EmptyChallengeWidget - All lists are empty');
             return EmptyChallengeWidget(
               onCreateOrJoin: _showActionSelectionDialog,
             );
           }
 
-          AppLogger.info('ChallengePage', '✅ Showing main view - Has data');
           return _buildMainView(_currentChallenges, _currentInvites);
         }
 
         // 일시적인 상태
         if (state is ChallengeCreated || state is ChallengeJoined) {
-          AppLogger.info('ChallengePage', '⏳ Showing loading indicator - Transient state: ${state.runtimeType}');
           return const Center(child: CircularProgressIndicator());
         }
 
         // 기본
-        AppLogger.info('ChallengePage', '⏳ Showing loading indicator - Default fallback');
         return const Center(child: CircularProgressIndicator());
       },
     );
