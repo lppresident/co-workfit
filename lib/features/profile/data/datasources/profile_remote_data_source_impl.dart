@@ -72,9 +72,17 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
     final batch = firestore.batch();
     for (final doc in challengesQuery.docs) {
-      batch.update(doc.reference, {
+      final data = doc.data();
+      final updateData = <String, dynamic>{
         'participantNicknames.${firebaseUser.uid}': newDisplayName,
-      });
+      };
+
+      // 사용자가 챌린지 생성자인 경우 creatorNickname도 업데이트
+      if (data['createdBy'] == firebaseUser.uid) {
+        updateData['creatorNickname'] = newDisplayName;
+      }
+
+      batch.update(doc.reference, updateData);
     }
     await batch.commit();
 
