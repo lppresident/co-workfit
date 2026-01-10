@@ -10,6 +10,7 @@ import 'package:co_workfit/features/craft/presentation/widgets/character_widget.
 import 'package:co_workfit/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_event.dart';
 import 'package:co_workfit/features/profile/presentation/bloc/profile_state.dart';
+import 'package:co_workfit/features/profile/presentation/widgets/edit_nickname_dialog.dart';
 import 'package:co_workfit/features/currency/currency.dart';
 import 'package:co_workfit/core/bloc/refresh_bloc.dart';
 import 'package:co_workfit/core/bloc/refresh_state.dart';
@@ -80,47 +81,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showEditNicknameDialog(BuildContext context, String currentNickname) {
-    final TextEditingController controller =
-        TextEditingController(text: currentNickname);
-
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('닉네임 변경'),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: '닉네임',
-            hintText: '새 닉네임을 입력하세요',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            prefixIcon: const Icon(Icons.person_outline),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newName = controller.text.trim();
-              if (newName.isNotEmpty && newName != currentNickname) {
-                context.read<ProfileBloc>().add(UpdateDisplayName(newName));
-              }
-              Navigator.pop(dialogContext);
-            },
-            style: ElevatedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('저장'),
-          ),
-        ],
+      builder: (dialogContext) => EditNicknameDialog(
+        currentNickname: currentNickname,
       ),
     );
   }

@@ -40,14 +40,29 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       throw AuthException('No user is currently signed in.');
     }
 
-    // Update in Firebase Auth
-    await firebaseUser.updateDisplayName(newDisplayName);
+    // 실제로는 nickname을 업데이트 (displayName은 유지)
+    // 1. 닉네임 컬렉션에서 기존 닉네임 삭제
+    final userDoc = await firestore.collection('users').doc(firebaseUser.uid).get();
+    final currentNickname = userDoc.data()?['nickname'] as String?;
 
-    // Update in Firestore
+    if (currentNickname != null) {
+      await firestore.collection('nicknames').doc(currentNickname).delete();
+    }
+
+    // 2. 새 닉네임을 nicknames 컬렉션에 추가
+    await firestore.collection('nicknames').doc(newDisplayName).set({
+      'userId': firebaseUser.uid,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // 3. users 컬렉션에서 nickname 업데이트
     await firestore
         .collection('users')
         .doc(firebaseUser.uid)
-        .update({'displayName': newDisplayName});
+        .update({
+          'nickname': newDisplayName,
+          'isNicknameSet': true,
+        });
   }
 
   @override
