@@ -106,10 +106,8 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     LoadChallenges event,
     Emitter<ChallengeState> emit,
   ) async {
-    // 초기 로딩인 경우에만 로딩 상태 표시
-    if (state is ChallengeInitial) {
-      emit(const ChallengeLoading());
-    }
+    // 항상 로딩 상태 표시하여 새로고침 시에도 로딩 인디케이터 표시
+    emit(const ChallengeLoading());
 
     AppLogger.info('ChallengeBloc', 'LoadChallenges 시작: userId=${event.userId}');
     final result = await getAllChallengesUseCase(event.userId);
