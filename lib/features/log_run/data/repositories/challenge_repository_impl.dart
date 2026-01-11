@@ -138,6 +138,24 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
   }
 
   @override
+  Future<Either<Failure, ChallengeEntity>> updateChallengeTarget({
+    required String challengeId,
+    required String userId,
+    required double newTargetWeight,
+  }) async {
+    try {
+      final updatedChallenge = await dataSource.updateChallengeTarget(
+        challengeId: challengeId,
+        userId: userId,
+        newTargetWeight: newTargetWeight,
+      );
+      return Right(updatedChallenge);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> deleteContribution({
     required String challengeId,
     required String contributionId,

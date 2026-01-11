@@ -35,27 +35,27 @@
       ]
     },
     {
-      "collectionGroup": "log_run_challenges",
+      "collectionGroup": "challenges",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "participants", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "expireAt", "order": "ASCENDING" }
+        { "fieldPath": "status", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "challenges",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "participantIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "participants", "arrayConfig": "CONTAINS" },
         { "fieldPath": "endDate", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "settlements",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "invites",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "settlementDate", "order": "DESCENDING" }
+        { "fieldPath": "inviteeId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
       ]
     },
     {

@@ -14,6 +14,7 @@ import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_ch
 import 'package:co_workfit/features/log_run/domain/usecases/get_active_challenges.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contributions.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/delete_contribution.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/update_challenge_target.dart' as target_usecases;
 import 'package:co_workfit/features/log_run/domain/usecases/create_challenge_invites.dart' as usecases;
 import 'package:co_workfit/features/log_run/domain/usecases/get_my_invites.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/accept_invite.dart';
@@ -31,6 +32,7 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
   final GetAllChallenges getAllChallengesUseCase;
   final GetChallengeContributions getChallengeContributionsUseCase;
   final DeleteContribution deleteContributionUseCase;
+  final target_usecases.UpdateChallengeTarget updateChallengeTargetUseCase;
   final usecases.CreateChallengeInvites createChallengeInvitesUseCase;
   final GetMyInvites getMyInvitesUseCase;
   final AcceptInvite acceptInviteUseCase;
@@ -49,6 +51,7 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     required this.getAllChallengesUseCase,
     required this.getChallengeContributionsUseCase,
     required this.deleteContributionUseCase,
+    required this.updateChallengeTargetUseCase,
     required this.createChallengeInvitesUseCase,
     required this.getMyInvitesUseCase,
     required this.acceptInviteUseCase,
@@ -67,6 +70,7 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
     on<WatchChallenge>(_onWatchChallenge);
     on<WatchContributions>(_onWatchContributions);
     on<DeleteChallenge>(_onDeleteChallenge);
+    on<UpdateChallengeTarget>(_onUpdateChallengeTarget);
     on<DeleteContributionEvent>(_onDeleteContribution);
     on<CreateChallengeInvites>(_onCreateChallengeInvites);
     on<LoadMyInvites>(_onLoadMyInvites);
@@ -377,6 +381,28 @@ class ChallengeBloc extends Bloc<ChallengeEvent, ChallengeState> {
       (_) {
         AppLogger.info('ChallengeBloc', 'Challenge deleted: ${event.challengeId}');
         emit(ChallengeDeleted(event.challengeId));
+      },
+    );
+  }
+
+  Future<void> _onUpdateChallengeTarget(
+    UpdateChallengeTarget event,
+    Emitter<ChallengeState> emit,
+  ) async {
+    final result = await updateChallengeTargetUseCase(
+      target_usecases.UpdateChallengeTargetParams(
+        challengeId: event.challengeId,
+        userId: event.userId,
+        newTargetWeight: event.newTargetWeight,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(ChallengeError(failure.toString())),
+      (updatedChallenge) {
+        AppLogger.info('ChallengeBloc',
+          'Challenge target updated: ${event.challengeId} (${event.newTargetWeight}kg)');
+        emit(ChallengeTargetUpdated(updatedChallenge));
       },
     );
   }

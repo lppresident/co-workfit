@@ -132,12 +132,7 @@ class FirestoreChallengeDataSource {
         throw Exception('해당 운동은 챌린지 기간(${_formatDate(challenge.startDate)} ~ ${_formatDate(challenge.endDate)}) 내의 기록이 아닙니다');
       }
 
-      // 챌린지가 이미 완료되었는지 확인
-      if (challenge.isCompleted) {
-        throw Exception('이미 완료된 챌린지입니다');
-      }
-
-      // 챌린지 종료일이 지났는지 확인
+      // 챌린지 종료일이 지났는지 확인 (완료 여부와 상관없이 기한 내에만 제출 가능)
       if (challenge.isExpired) {
         throw Exception('챌린지 기간이 종료되었습니다');
       }
@@ -170,7 +165,8 @@ class FirestoreChallengeDataSource {
         'participantStats': updatedStatsMap,
       };
 
-      if (isNowCompleted) {
+      // 처음으로 완료 상태가 되는 경우에만 상태 변경
+      if (isNowCompleted && !challenge.isCompleted) {
         updateData['status'] = ChallengeStatus.completed.toFirestore();
         updateData['completedAt'] = FieldValue.serverTimestamp();
         updateData['isSuccess'] = true; // 완료 = 성공
@@ -179,6 +175,7 @@ class FirestoreChallengeDataSource {
           DateTime.now().add(const Duration(days: 7)),
         );
       }
+      // 이미 완료된 챌린지에 운동을 제출하면 목표 초과 가능 (상태는 유지)
 
       transaction.update(challengeRef, updateData);
 
@@ -426,6 +423,131 @@ class FirestoreChallengeDataSource {
     await challengeRef.delete();
 
     AppLogger.info('FirestoreChallengeDataSource', '챌린지 및 관련 초대 삭제 완료 (subcollection): $challengeId (기여: ${contributions.docs.length}개, 초대: ${invites.docs.length}개)');
+  }
+
+  /// 챌린지 목표 수정 (방장만 가능)
+  ///
+  /// 목표가 변경되면 진행률과 기여도가 자동으로 재계산됩니다.
+  Future<ChallengeModel> updateChallengeTarget({
+    required String challengeId,
+    required String userId,
+    required double newTargetWeight,
+  }) async {
+    return await firestore.runTransaction<ChallengeModel>((transaction) async {
+      final challengeRef = firestore.collection(_challengesCollection).doc(challengeId);
+      final challengeDoc = await transaction.get(challengeRef);
+
+      if (!challengeDoc.exists) throw Exception('챌린지를 찾을 수 없습니다');
+
+      final challenge = ChallengeModel.fromFirestore(challengeDoc);
+
+      // 방장 권한 확인
+      if (challenge.createdBy != userId) {
+        throw Exception('방장만 목표를 수정할 수 있습니다');
+      }
+
+      // 만료된 챌린지는 수정 불가 (기한이 지난 경우)
+      if (challenge.isExpired) {
+        throw Exception('기한이 지난 챌린지의 목표는 수정할 수 없습니다');
+      }
+
+      // 목표가 0 이하인지 확인
+      if (newTargetWeight <= 0) {
+        throw Exception('목표는 0보다 커야 합니다');
+      }
+
+      // 새로운 목표로 remainingWeight 재계산
+      final newRemainingWeight = (newTargetWeight - challenge.currentWeight).clamp(0.0, newTargetWeight);
+      final isNowCompleted = challenge.currentWeight >= newTargetWeight;
+      final shouldReactivate = challenge.isCompleted && !isNowCompleted;
+
+      // 참가자별 기여 통계는 그대로 유지 (기여도%는 런타임에 계산됨)
+      final updatedStatsMap = Map<String, Map<String, dynamic>>.from(
+        challenge.participantStats.map(
+          (key, value) => MapEntry(key, ParticipantStatsModel.fromEntity(value).toJson()),
+        ),
+      );
+
+      // 업데이트 데이터
+      final updateData = <String, dynamic>{
+        'targetWeight': newTargetWeight,
+        'remainingWeight': newRemainingWeight,
+        'participantStats': updatedStatsMap,
+      };
+
+      // 목표 변경으로 완료 상태가 되는 경우
+      if (isNowCompleted && !challenge.isCompleted) {
+        updateData['status'] = ChallengeStatus.completed.toFirestore();
+        updateData['completedAt'] = FieldValue.serverTimestamp();
+        updateData['isSuccess'] = true;
+        updateData['expireAt'] = Timestamp.fromDate(
+          DateTime.now().add(const Duration(days: 7)),
+        );
+      }
+
+      // 완료된 챌린지를 다시 활성화하는 경우 (목표를 높였을 때)
+      if (shouldReactivate) {
+        updateData['status'] = ChallengeStatus.active.toFirestore();
+        updateData['completedAt'] = null;
+        updateData['isSuccess'] = null;
+        updateData['expireAt'] = null;
+        updateData['scoreAwarded'] = false; // 점수 지급도 취소
+        updateData['awardedScores'] = {};
+      }
+
+      transaction.update(challengeRef, updateData);
+
+      // 업데이트된 챌린지 반환 (트랜잭션 내에서는 get 불가하므로 모델 직접 생성)
+      ChallengeStatus newStatus = challenge.status;
+      DateTime? newCompletedAt = challenge.completedAt;
+      DateTime? newExpireAt = challenge.expireAt;
+      bool? newIsSuccess = challenge.isSuccess;
+      bool newScoreAwarded = challenge.scoreAwarded;
+      Map<String, int> newAwardedScores = challenge.awardedScores;
+
+      if (isNowCompleted && !challenge.isCompleted) {
+        newStatus = ChallengeStatus.completed;
+        newCompletedAt = DateTime.now();
+        newExpireAt = DateTime.now().add(const Duration(days: 7));
+        newIsSuccess = true;
+      } else if (shouldReactivate) {
+        newStatus = ChallengeStatus.active;
+        newCompletedAt = null;
+        newExpireAt = null;
+        newIsSuccess = null;
+        newScoreAwarded = false;
+        newAwardedScores = {};
+      }
+
+      final updatedChallenge = ChallengeModel(
+        id: challenge.id,
+        createdBy: challenge.createdBy,
+        targetWeight: newTargetWeight,
+        currentWeight: challenge.currentWeight,
+        remainingWeight: newRemainingWeight,
+        participants: challenge.participants,
+        participantNicknames: challenge.participantNicknames,
+        participantStats: updatedStatsMap.map(
+          (key, value) => MapEntry(key, ParticipantStatsModel.fromJson(value)),
+        ),
+        status: newStatus,
+        createdAt: challenge.createdAt,
+        startDate: challenge.startDate,
+        endDate: challenge.endDate,
+        inviteCode: challenge.inviteCode,
+        completedAt: newCompletedAt,
+        expireAt: newExpireAt,
+        maxParticipants: challenge.maxParticipants,
+        scoreAwarded: newScoreAwarded,
+        awardedScores: newAwardedScores,
+        isSuccess: newIsSuccess,
+      );
+
+      AppLogger.info('FirestoreChallengeDataSource',
+          '목표 수정 완료: $challengeId (${challenge.targetWeight}kg → ${newTargetWeight}kg)');
+
+      return updatedChallenge;
+    });
   }
 
   /// 특정 운동이 제출된 챌린지 목록 조회

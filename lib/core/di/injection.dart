@@ -81,6 +81,7 @@ import 'package:co_workfit/features/log_run/domain/usecases/submit_workout_to_ch
 import 'package:co_workfit/features/log_run/domain/usecases/get_active_challenges.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/get_challenge_contributions.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/delete_contribution.dart';
+import 'package:co_workfit/features/log_run/domain/usecases/update_challenge_target.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/create_challenge_invites.dart' as invite_usecases;
 import 'package:co_workfit/features/log_run/domain/usecases/get_my_invites.dart';
 import 'package:co_workfit/features/log_run/domain/usecases/accept_invite.dart';
@@ -334,6 +335,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => GetAllChallenges(sl()));
   sl.registerLazySingleton(() => GetChallengeContributions(sl()));
   sl.registerLazySingleton(() => DeleteContribution(sl()));
+  sl.registerLazySingleton(() => UpdateChallengeTarget(sl()));
   sl.registerLazySingleton(() => invite_usecases.CreateChallengeInvites(sl()));
   sl.registerLazySingleton(() => GetMyInvites(sl()));
   sl.registerLazySingleton(() => AcceptInvite(sl()));
@@ -350,6 +352,7 @@ Future<void> initializeDependencies() async {
       getAllChallengesUseCase: sl(),
       getChallengeContributionsUseCase: sl(),
       deleteContributionUseCase: sl(),
+      updateChallengeTargetUseCase: sl(),
       createChallengeInvitesUseCase: sl(),
       getMyInvitesUseCase: sl(),
       acceptInviteUseCase: sl(),

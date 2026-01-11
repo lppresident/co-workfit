@@ -80,6 +80,15 @@ abstract class ChallengeRepository {
     required String userId,
   });
 
+  /// 챌린지 목표 수정 (방장만 가능)
+  ///
+  /// 목표가 변경되면 진행률과 기여도가 자동으로 재계산됩니다.
+  Future<Either<Failure, ChallengeEntity>> updateChallengeTarget({
+    required String challengeId,
+    required String userId,
+    required double newTargetWeight,
+  });
+
   /// 기여 기록 삭제
   Future<Either<Failure, void>> deleteContribution({
     required String challengeId,

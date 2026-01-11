@@ -419,6 +419,87 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
     );
   }
 
+  void _showUpdateTargetDialog(ChallengeEntity challenge) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! Authenticated) return;
+
+    final controller = TextEditingController(
+      text: challenge.targetWeight.toStringAsFixed(0),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('목표 수정'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '현재 목표: ${challenge.targetWeight.toStringAsFixed(0)}kg',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            Text(
+              '현재 달성: ${challenge.currentWeight.toStringAsFixed(2)}kg',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: '새로운 목표 (kg)',
+                hintText: '예: 10',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '• 완료된 챌린지도 기한 내라면 수정 가능합니다.\n'
+              '• 목표를 낮추면 자동 완료, 높이면 다시 활성화됩니다.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              final newTarget = double.tryParse(controller.text);
+              if (newTarget == null || newTarget <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('올바른 목표를 입력해주세요'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              Navigator.pop(context);
+              context.read<ChallengeBloc>().add(
+                UpdateChallengeTarget(
+                  challengeId: widget.challengeId,
+                  userId: authState.user.id,
+                  newTargetWeight: newTarget,
+                ),
+              );
+            },
+            child: const Text('수정'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showDeleteOrLeaveConfirmation(ChallengeEntity challenge) {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) return;
@@ -496,6 +577,13 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
                     onPressed: () => _showShareOptions(challenge),
                     tooltip: '챌린지 공유',
                   ),
+                  if (isCreator && !challenge.isExpired) ...[
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _showUpdateTargetDialog(challenge),
+                      tooltip: '목표 수정',
+                    ),
+                  ],
                   IconButton(
                     icon: Icon(isCreator ? Icons.delete_outline : Icons.exit_to_app),
                     onPressed: () => _showDeleteOrLeaveConfirmation(challenge),
@@ -552,6 +640,16 @@ class _ChallengeDetailPageState extends BasePageState<ChallengeDetailPage> {
           // 이전 페이지로 돌아가기
           Navigator.pop(context, true);
           return;
+        } else if (state is ChallengeTargetUpdated) {
+          _hasChanges = true; // 변경 사항 표시
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('목표가 수정되었습니다!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // 상세 페이지 새로고침
+          context.read<ChallengeBloc>().add(LoadChallengeDetail(widget.challengeId));
         } else if (state is ChallengeError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

@@ -168,6 +168,22 @@ class DeleteChallenge extends ChallengeEvent {
   List<Object?> get props => [challengeId, userId];
 }
 
+/// 챌린지 목표 수정 (방장만 가능)
+class UpdateChallengeTarget extends ChallengeEvent {
+  final String challengeId;
+  final String userId;
+  final double newTargetWeight;
+
+  const UpdateChallengeTarget({
+    required this.challengeId,
+    required this.userId,
+    required this.newTargetWeight,
+  });
+
+  @override
+  List<Object?> get props => [challengeId, userId, newTargetWeight];
+}
+
 /// 기여 기록 삭제
 class DeleteContributionEvent extends ChallengeEvent {
   final String challengeId;

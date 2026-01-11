@@ -111,6 +111,16 @@ class ChallengeDeleted extends ChallengeState {
   List<Object?> get props => [challengeId];
 }
 
+/// 챌린지 목표 수정 성공
+class ChallengeTargetUpdated extends ChallengeState {
+  final ChallengeEntity challenge;
+
+  const ChallengeTargetUpdated(this.challenge);
+
+  @override
+  List<Object?> get props => [challenge];
+}
+
 /// 실시간 챌린지 업데이트
 class ChallengeUpdated extends ChallengeState {
   final ChallengeEntity challenge;

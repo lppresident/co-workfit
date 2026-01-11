@@ -84,6 +84,10 @@ service cloud.firestore {
         request.auth.uid in resource.data.participants ||
         // 새로운 참가자 (participants 배열에 자신을 추가하는 경우)
         (request.auth.uid in request.resource.data.participants && !(request.auth.uid in resource.data.participants))
+      ) && (
+        // targetWeight 변경은 방장만 가능
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['targetWeight']) ||
+        request.auth.uid == resource.data.createdBy
       );
 
       // 챌린지 삭제: 방장만
