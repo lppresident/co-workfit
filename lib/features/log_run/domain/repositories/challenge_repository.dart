@@ -135,10 +135,19 @@ abstract class ChallengeRepository {
     required String challengeId,
   });
 
-  /// 사용자의 만료된 챌린지를 모두 expired 상태로 변경하고 isSuccess 저장
+  /// 사용자의 만료된 챌린지를 모두 처리
+  ///
+  /// 1. active 상태 챌린지 중 만료된 것들을 expired 상태로 변경하고 isSuccess 저장
+  /// 2. 7일 이상 지난 completed/expired 챌린지를 아카이브로 변환 후 원본 삭제
+  ///
   /// 정산 전에 호출하여 정산 시 올바른 isSuccess 값을 사용할 수 있도록 함
   Future<Either<Failure, int>> markExpiredChallenges(String userId);
 
   /// 사용자의 챌린지 아카이브 조회
   Future<Either<Failure, List<ChallengeArchiveEntity>>> getChallengeArchives(String userId);
+
+  /// 7일 이상 지난 완료/만료 챌린지 정리 (백그라운드 작업)
+  ///
+  /// @deprecated markExpiredChallenges에서 이미 처리하므로 사용되지 않음
+  Future<Either<Failure, int>> cleanupExpiredChallenges();
 }
