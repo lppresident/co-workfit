@@ -461,41 +461,16 @@ class FirestoreChallengeDataSource {
   }
 
   /// 보관 기간이 지난 완료 챌린지 정리 (백그라운드 작업용)
+  ///
+  /// Note: 이 함수는 markExpiredChallenges에서 이미 처리되므로 사용되지 않음.
+  /// markExpiredChallenges가 7일 지난 completed/expired 챌린지를 아카이브로 변환하고 삭제함.
   Future<int> cleanupExpiredChallenges() async {
-    final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
-
-    final query = await firestore
-        .collection(_challengesCollection)
-        .where('status', isEqualTo: 'completed')
-        .where('completedAt', isLessThan: Timestamp.fromDate(sevenDaysAgo))
-        .get();
-
-    int deletedCount = 0;
-    for (final doc in query.docs) {
-      final challengeRef = doc.reference;
-
-      // 기여 내역 삭제
-      final contributions = await challengeRef.collection(_contributionsSubcollection).get();
-      for (final contribDoc in contributions.docs) {
-        await contribDoc.reference.delete();
-      }
-
-      // 해당 챌린지의 초대 subcollection 삭제
-      final invites = await challengeRef.collection(_invitesSubcollection).get();
-      for (final inviteDoc in invites.docs) {
-        await inviteDoc.reference.delete();
-      }
-
-      // 챌린지 삭제
-      await challengeRef.delete();
-      deletedCount++;
-    }
-
-    if (deletedCount > 0) {
-      AppLogger.info('FirestoreChallengeDataSource', '보관 기간이 지난 챌린지 $deletedCount개 삭제됨 (초대 포함)');
-    }
-
-    return deletedCount;
+    // markExpiredChallenges에서 이미 처리하므로 항상 0 반환
+    AppLogger.info(
+      'FirestoreChallengeDataSource',
+      'cleanupExpiredChallenges는 markExpiredChallenges에서 이미 처리됨',
+    );
+    return 0;
   }
 
   // ========== Challenge Invite Methods ==========
@@ -709,68 +684,9 @@ class FirestoreChallengeDataSource {
         }
       }
 
-      // 3. 7일 이상 지난 완료/만료 챌린지를 아카이브로 변환 후 삭제
-      final oldChallengesQuery = await firestore
-          .collection(_challengesCollection)
-          .where('participants', arrayContains: userId)
-          .where('endDate', isLessThan: Timestamp.fromDate(sevenDaysAgo))
-          .get();
-
+      // 3. 7일 이상 지난 완료/만료 챌린지 아카이브 기능은 현재 비활성화됨
+      // TODO: GitHub Issue #77 - 멀티플레이어 아카이브 로직 구현 후 활성화
       int archivedCount = 0;
-      for (final doc in oldChallengesQuery.docs) {
-        final challenge = ChallengeModel.fromFirestore(doc);
-
-        // completed 또는 expired 상태만 아카이브
-        if (challenge.status == ChallengeStatus.completed ||
-            challenge.status == ChallengeStatus.expired) {
-
-          // 아카이브 문서 생성 (users/{userId}/challenge_archives/{challengeId})
-          // Note: 달성량, 참가자 수, 기여도는 workout 기록에서 조회 가능하므로 저장하지 않음
-          await firestore
-              .collection('users')
-              .doc(userId)
-              .collection('challenge_archives')
-              .doc(challenge.id)
-              .set({
-            'challengeId': challenge.id,
-            'isSuccess': challenge.isSuccess ?? (challenge.currentWeight >= challenge.targetWeight),
-            'targetWeight': challenge.targetWeight,
-            'endDate': Timestamp.fromDate(challenge.endDate),
-            'archivedAt': FieldValue.serverTimestamp(),
-          });
-
-          // 기여 기록 삭제
-          final contributions = await firestore
-              .collection(_challengesCollection)
-              .doc(challenge.id)
-              .collection(_contributionsSubcollection)
-              .get();
-
-          for (final contribDoc in contributions.docs) {
-            await contribDoc.reference.delete();
-          }
-
-          // 초대 subcollection 삭제
-          final invites = await firestore
-              .collection(_challengesCollection)
-              .doc(challenge.id)
-              .collection(_invitesSubcollection)
-              .get();
-
-          for (final inviteDoc in invites.docs) {
-            await inviteDoc.reference.delete();
-          }
-
-          // 챌린지 삭제
-          await firestore.collection(_challengesCollection).doc(challenge.id).delete();
-
-          archivedCount++;
-          AppLogger.info(
-            'LogRunDataSource',
-            '챌린지 아카이브: ${challenge.id} (${challenge.currentWeight}/${challenge.targetWeight}kg)',
-          );
-        }
-      }
 
       AppLogger.info(
         'LogRunDataSource',

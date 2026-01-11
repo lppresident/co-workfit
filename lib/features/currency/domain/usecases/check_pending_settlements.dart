@@ -23,18 +23,21 @@ class CheckPendingSettlements {
   /// Returns: 정산된 결과 목록
   Future<List<SettlementEntity>> call(String userId) async {
     // 0. 정산 전에 먼저 만료된 챌린지들을 모두 처리
+    // - active 챌린지 중 만료된 것들을 expired 상태로 변경하고 isSuccess 저장
+    // - 7일 이상 지난 completed/expired 챌린지를 아카이브로 변환 후 원본 삭제
     // 이렇게 해야 정산 시 isSuccess 값이 Firestore에 저장되어 있음
-    AppLogger.info('CheckPendingSettlements', '정산 전 만료된 챌린지 처리 시작');
+    AppLogger.info('CheckPendingSettlements', '정산 전 만료된 챌린지 처리 및 아카이브 시작');
     final expiredResult = await _challengeRepository.markExpiredChallenges(userId);
     expiredResult.fold(
       (failure) => AppLogger.error('CheckPendingSettlements', '만료된 챌린지 처리 실패: $failure'),
-      (count) => AppLogger.info('CheckPendingSettlements', '만료된 챌린지 $count개 처리 완료'),
+      (count) => AppLogger.info('CheckPendingSettlements', '만료된 챌린지 처리 완료 (만료: $count개)'),
     );
 
     // 1. 미정산 날짜 목록 조회
     final pendingDates = await _currencyRepository.getPendingSettlementDates(userId);
 
     if (pendingDates.isEmpty) {
+      AppLogger.info('CheckPendingSettlements', '정산 완료: 미정산 날짜 없음');
       return [];
     }
 

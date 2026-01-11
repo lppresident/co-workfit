@@ -296,4 +296,15 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, int>> cleanupExpiredChallenges() async {
+    try {
+      final count = await dataSource.cleanupExpiredChallenges();
+      return Right(count);
+    } catch (e) {
+      AppLogger.error('ChallengeRepository', 'cleanupExpiredChallenges 에러: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }
