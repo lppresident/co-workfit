@@ -200,11 +200,15 @@ class _SettlementHistoryPageState extends State<SettlementHistoryPage> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            reward.currencyType.emoji,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          const SizedBox(width: 8),
+                          // 챌린지 보상 재화들 표시
+                          ...reward.totalRewards.keys.take(3).map((type) => Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Text(
+                              type.emoji,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          )),
+                          const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               reward.challengeName,
@@ -242,13 +246,13 @@ class _SettlementHistoryPageState extends State<SettlementHistoryPage> {
                             reward.isSuccess ? '성공 🎉' : '실패',
                             style: TextStyle(
                               fontSize: 12,
-                              color: reward.isSuccess 
-                                  ? Colors.green[700] 
+                              color: reward.isSuccess
+                                  ? Colors.green[700]
                                   : Colors.red[400],
                             ),
                           ),
                           Text(
-                            '+${reward.total}',
+                            '+${reward.totalAmount}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.green[700],

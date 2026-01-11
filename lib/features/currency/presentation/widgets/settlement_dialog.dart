@@ -147,29 +147,32 @@ class SettlementDialog extends StatelessWidget {
         const SizedBox(height: 8),
 
         // 챌린지 보상
-        ...settlement.challengeRewards.where((r) => r.selected).map((reward) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              children: [
-                Text(reward.currencyType.emoji),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    reward.challengeName,
-                    style: const TextStyle(fontSize: 13),
+        ...settlement.challengeRewards.where((r) => r.selected).expand((reward) {
+          // 챌린지 보상을 재화별로 표시
+          return reward.totalRewards.entries.map((entry) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Text(entry.key.emoji),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      reward.challengeName,
+                      style: const TextStyle(fontSize: 13),
+                    ),
                   ),
-                ),
-                Text(
-                  '+${reward.total}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: reward.currencyType.color,
+                  Text(
+                    '+${entry.value}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: entry.key.color,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
+                ],
+              ),
+            );
+          });
         }),
 
         // 운동 보상

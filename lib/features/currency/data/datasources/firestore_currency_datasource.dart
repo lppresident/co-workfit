@@ -319,31 +319,46 @@ class FirestoreCurrencyDataSource {
       // 달리기: 1km = 1kg, 헬스: 10점 = 1kg
       final challengeType = ChallengeType.running;
 
-      // 참가자별 기여도 조회
-      final contributionsQuery = await firestore
-          .collection(_challengesCollection)
-          .doc(challengeId)
-          .collection('contributions')
-          .get();
+      // 참가자별 통계에서 운동 타입별 기여도 추출
+      final participantStatsData = data['participantStats'] as Map<String, dynamic>? ?? {};
 
       final participantContributions = <String, double>{};
+      final participatedWorkoutTypes = <ChallengeType>{};
+      final userContributionByType = <ChallengeType, double>{};
+
       double userContribution = 0;
       double userTotalWorkoutValue = 0;
-      bool isFirstContribution = true;
 
-      for (final contribDoc in contributionsQuery.docs) {
-        final contribData = contribDoc.data();
-        final participantId = contribData['userId'] as String;
-        // 올바른 필드명: contributionValue
-        final value = (contribData['contributionValue'] as num?)?.toDouble() ?? 0;
+      for (final entry in participantStatsData.entries) {
+        final participantId = entry.key;
+        final stats = entry.value as Map<String, dynamic>;
 
-        participantContributions[participantId] =
-            (participantContributions[participantId] ?? 0) + value;
+        final runningContrib = (stats['runningContribution'] as num?)?.toDouble() ?? 0;
+        final strengthContrib = (stats['strengthContribution'] as num?)?.toDouble() ?? 0;
+        final totalContrib = (stats['totalContribution'] as num?)?.toDouble() ?? 0;
 
+        // 전체 참가자 기준으로 참여한 운동 종류 파악
+        if (runningContrib > 0) {
+          participatedWorkoutTypes.add(ChallengeType.running);
+        }
+        if (strengthContrib > 0) {
+          participatedWorkoutTypes.add(ChallengeType.strengthTraining);
+        }
+
+        // 참가자별 총 기여도
+        participantContributions[participantId] = totalContrib;
+
+        // 해당 사용자의 운동 타입별 기여도
         if (participantId == userId) {
-          userContribution += value;
-          userTotalWorkoutValue += value;
-          isFirstContribution = false;
+          userContribution = totalContrib;
+          userTotalWorkoutValue = totalContrib;
+
+          if (runningContrib > 0) {
+            userContributionByType[ChallengeType.running] = runningContrib;
+          }
+          if (strengthContrib > 0) {
+            userContributionByType[ChallengeType.strengthTraining] = strengthContrib;
+          }
         }
       }
 
@@ -391,7 +406,9 @@ class FirestoreCurrencyDataSource {
         userContribution: userContribution,
         isUserMvp: mvpUserId == userId,
         userTotalWorkoutValue: userTotalWorkoutValue,
-        isFirstContribution: isFirstContribution,
+        isFirstContribution: userContribution == 0,
+        participatedWorkoutTypes: participatedWorkoutTypes,
+        userContributionByType: userContributionByType,
       );
     } catch (e, stackTrace) {
       AppLogger.error('CurrencyDS', '_buildChallengeSettlementData failed for challenge $challengeId', e, stackTrace);

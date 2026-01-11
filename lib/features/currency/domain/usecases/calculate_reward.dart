@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:co_workfit/features/currency/domain/entities/currency_type.dart';
 import 'package:co_workfit/features/currency/domain/entities/reward_config.dart';
 import 'package:co_workfit/features/currency/domain/entities/settlement_entity.dart';
 import 'package:co_workfit/features/currency/domain/entities/challenge_settlement_data.dart';
@@ -9,87 +10,89 @@ import 'package:co_workfit/features/currency/domain/entities/challenge_settlemen
 class RewardCalculator {
   const RewardCalculator();
 
-  /// 챌린지 성공 보너스 계산 (새 로직)
+  /// 챌린지 성공 보너스 계산 (통합 챌린지)
   ///
-  /// 챌린지 성공 시에만 보너스 지급 (완료 + MVP + 협력 + 마일스톤)
+  /// 성공 시 참여한 운동 종류에 따라 재화 분배
+  /// - 1종류: 해당 재화 전액
+  /// - 2종류: 2등분
+  /// - 3종류: 3등분
+  ///
+  /// MVP는 가장 많이 기여한 운동 타입의 재화 +5
   ChallengeReward calculateChallengeSuccessBonus({
     required ChallengeSettlementData challengeData,
   }) {
-    final currencyType = challengeData.currencyType;
-    final config = CurrencyConfigRegistry.getConfig(currencyType);
+    if (!challengeData.isSuccess) {
+      // 실패 시 보상 없음
+      return ChallengeReward(
+        challengeId: challengeData.challengeId,
+        challengeName: challengeData.challengeName,
+        isSuccess: false,
+        completionBonus: {},
+        mvpBonus: {},
+        totalRewards: {},
+        selected: false,
+        isMvp: false,
+      );
+    }
 
-    // 성공 보너스만 계산
-    final successBonus = _calculateSuccessBonus(
-      config: config,
-      isSuccess: challengeData.isSuccess,
-      isMvp: challengeData.isUserMvp,
-      participantCount: challengeData.participantCount,
-      targetValue: challengeData.targetValue,
-    );
+    final targetValue = challengeData.targetValue;
+    final participatedTypes = challengeData.participatedWorkoutTypes;
 
-    final milestoneName = challengeData.isSuccess
-        ? config.getMilestoneName(challengeData.targetValue)
-        : null;
+    // 1. 기본 완료 보너스 계산
+    final completionBonus = <CurrencyType, int>{};
+
+    if (participatedTypes.isNotEmpty) {
+      final rewardPerType = (targetValue / participatedTypes.length).ceil();
+
+      for (final workoutType in participatedTypes) {
+        final currencyType = ChallengeSettlementData.workoutTypeToCurrency(workoutType);
+        completionBonus[currencyType] = rewardPerType;
+      }
+    }
+
+    // 2. MVP 보너스 계산
+    final mvpBonus = <CurrencyType, int>{};
+    CurrencyType? mvpCurrencyType;
+
+    if (challengeData.isUserMvp) {
+      final topWorkoutType = challengeData.getUserTopContributionType();
+      if (topWorkoutType != null) {
+        mvpCurrencyType = ChallengeSettlementData.workoutTypeToCurrency(topWorkoutType);
+        mvpBonus[mvpCurrencyType] = 5;
+      }
+    }
+
+    // 3. 총 보상 계산
+    final totalRewards = <CurrencyType, int>{};
+    for (final type in CurrencyType.values) {
+      final completion = completionBonus[type] ?? 0;
+      final mvp = mvpBonus[type] ?? 0;
+      final total = completion + mvp;
+      if (total > 0) {
+        totalRewards[type] = total;
+      }
+    }
 
     return ChallengeReward(
       challengeId: challengeData.challengeId,
       challengeName: challengeData.challengeName,
-      currencyType: currencyType,
-      isSuccess: challengeData.isSuccess,
-      successBonus: successBonus,
-      total: successBonus,
+      isSuccess: true,
+      completionBonus: completionBonus,
+      mvpBonus: mvpBonus,
+      totalRewards: totalRewards,
       selected: false, // 정산 시 결정
       isMvp: challengeData.isUserMvp,
-      milestoneName: milestoneName,
+      mvpCurrencyType: mvpCurrencyType,
     );
   }
 
-  /// 챌린지 보상 계산 (구 로직 - 호환성 유지)
+  /// 챌린지 보상 계산 (구 로직 - deprecated)
   @Deprecated('Use calculateChallengeSuccessBonus instead')
   ChallengeReward calculateChallengeReward({
     required ChallengeSettlementData challengeData,
   }) {
-    final currencyType = challengeData.currencyType;
-    final config = CurrencyConfigRegistry.getConfig(currencyType);
-
-    // 1. 개인 운동 보상
-    final personalReward = _calculatePersonalReward(
-      config: config,
-      value: challengeData.userTotalWorkoutValue,
-    );
-
-    // 2. 챌린지 기여 보상
-    final contributionReward = _calculateContributionReward(
-      config: config,
-      value: challengeData.userContribution,
-      isFirstContribution: challengeData.isFirstContribution,
-    );
-
-    // 3. 성공 보너스
-    final successBonus = _calculateSuccessBonus(
-      config: config,
-      isSuccess: challengeData.isSuccess,
-      isMvp: challengeData.isUserMvp,
-      participantCount: challengeData.participantCount,
-      targetValue: challengeData.targetValue,
-    );
-
-    final total = personalReward + contributionReward + successBonus;
-    final milestoneName = challengeData.isSuccess
-        ? config.getMilestoneName(challengeData.targetValue)
-        : null;
-
-    return ChallengeReward(
-      challengeId: challengeData.challengeId,
-      challengeName: challengeData.challengeName,
-      currencyType: currencyType,
-      isSuccess: challengeData.isSuccess,
-      successBonus: successBonus,
-      total: total,
-      selected: false, // 정산 시 결정
-      isMvp: challengeData.isUserMvp,
-      milestoneName: milestoneName,
-    );
+    // 새로운 통합 챌린지 시스템 사용
+    return calculateChallengeSuccessBonus(challengeData: challengeData);
   }
 
   /// 개인 운동 보상 계산 (챌린지 없을 때)
@@ -110,52 +113,5 @@ class RewardCalculator {
     );
   }
 
-  int _calculatePersonalReward({
-    required RewardConfig config,
-    required double value,
-  }) {
-    final baseReward = config.personalBase;
-    final unitReward = (value * config.personalPerUnit).round();
-
-    return baseReward + unitReward;
-  }
-
-  int _calculateContributionReward({
-    required RewardConfig config,
-    required double value,
-    required bool isFirstContribution,
-  }) {
-    final unitReward = (value * config.contributionPerUnit).round();
-    final firstBonus = isFirstContribution ? config.firstContributionBonus : 0;
-
-    return unitReward + firstBonus;
-  }
-
-  int _calculateSuccessBonus({
-    required RewardConfig config,
-    required bool isSuccess,
-    required bool isMvp,
-    required int participantCount,
-    required double targetValue,
-  }) {
-    if (!isSuccess) return 0;
-
-    int bonus = config.completionBonus;
-
-    // MVP 보너스
-    if (isMvp) {
-      bonus += config.mvpBonus;
-    }
-
-    // 협력 보너스
-    final cooperationBonus = 
-        (participantCount - 1) * config.cooperationPerParticipant;
-    bonus += cooperationBonus.clamp(0, config.maxCooperationBonus);
-
-    // 마일스톤 보너스
-    bonus += config.calculateMilestoneBonus(targetValue);
-
-    return bonus;
-  }
 }
 

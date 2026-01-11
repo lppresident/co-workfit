@@ -9,7 +9,8 @@ class ChallengeSettlementData {
   /// 챌린지 이름
   final String challengeName;
 
-  /// 챌린지 운동 타입
+  /// 챌린지 운동 타입 (통합 챌린지로 deprecated)
+  @Deprecated('Use participatedWorkoutTypes instead')
   final ChallengeType challengeType;
 
   /// 목표 수치 (거리 km 또는 점수)
@@ -42,6 +43,14 @@ class ChallengeSettlementData {
   /// 사용자의 첫 기여 여부
   final bool isFirstContribution;
 
+  /// 챌린지에 참여한 운동 종류 (전체 참가자 기준)
+  /// 예: [ChallengeType.running, ChallengeType.strengthTraining]
+  final Set<ChallengeType> participatedWorkoutTypes;
+
+  /// 사용자의 운동 타입별 기여도
+  /// 예: {ChallengeType.running: 5.0, ChallengeType.strengthTraining: 3.0}
+  final Map<ChallengeType, double> userContributionByType;
+
   const ChallengeSettlementData({
     required this.challengeId,
     required this.challengeName,
@@ -56,9 +65,12 @@ class ChallengeSettlementData {
     required this.isUserMvp,
     required this.userTotalWorkoutValue,
     required this.isFirstContribution,
+    required this.participatedWorkoutTypes,
+    required this.userContributionByType,
   });
 
-  /// 해당하는 재화 타입 반환
+  /// 해당하는 재화 타입 반환 (deprecated - 통합 챌린지)
+  @Deprecated('Use participatedWorkoutTypes instead')
   CurrencyType get currencyType {
     switch (challengeType) {
       case ChallengeType.running:
@@ -70,11 +82,47 @@ class ChallengeSettlementData {
     }
   }
 
-  /// 달리기 챌린지인지
+  /// 달리기 챌린지인지 (deprecated)
+  @Deprecated('Use participatedWorkoutTypes.contains instead')
   bool get isRunning => challengeType == ChallengeType.running;
 
-  /// 헬스 챌린지인지
+  /// 헬스 챌린지인지 (deprecated)
+  @Deprecated('Use participatedWorkoutTypes.contains instead')
   bool get isStrengthTraining => challengeType == ChallengeType.strengthTraining;
+
+  /// 사용자가 가장 많이 기여한 운동 타입 반환
+  /// MVP 보너스 재화 결정용
+  /// 동률이면 랜덤 선택
+  ChallengeType? getUserTopContributionType() {
+    if (userContributionByType.isEmpty) return null;
+
+    // 최대 기여도 찾기
+    final maxContribution = userContributionByType.values.reduce((a, b) => a > b ? a : b);
+
+    // 최대 기여도를 가진 운동 타입들 필터링
+    final topTypes = userContributionByType.entries
+        .where((e) => e.value == maxContribution && e.value > 0)
+        .map((e) => e.key)
+        .toList();
+
+    if (topTypes.isEmpty) return null;
+
+    // 동률이면 랜덤 선택
+    topTypes.shuffle();
+    return topTypes.first;
+  }
+
+  /// 운동 타입을 재화 타입으로 변환
+  static CurrencyType workoutTypeToCurrency(ChallengeType type) {
+    switch (type) {
+      case ChallengeType.running:
+        return CurrencyType.wood;
+      case ChallengeType.strengthTraining:
+        return CurrencyType.iron;
+      case ChallengeType.other:
+        return CurrencyType.soil;
+    }
+  }
 }
 
 /// 개인 운동 데이터 (챌린지 없이 운동한 기록)

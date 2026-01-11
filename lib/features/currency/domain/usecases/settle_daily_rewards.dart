@@ -79,31 +79,33 @@ class SettleDailyRewards {
       allChallengeRewards.add(reward);
     }
 
-    // 6. 가장 높은 성공 보너스 챌린지 1개 선택
+    // 6. 가장 높은 성공 보너스 챌린지 1개 선택 (총 보상 합계 기준)
     String? selectedChallengeId;
     ChallengeReward? selectedChallenge;
 
     if (allChallengeRewards.isNotEmpty) {
-      allChallengeRewards.sort((a, b) => b.total.compareTo(a.total));
+      // 총 보상 합계로 정렬
+      allChallengeRewards.sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
       final best = allChallengeRewards.first;
 
-      if (best.total > 0) {
+      if (best.totalAmount > 0) {
         selectedChallengeId = best.challengeId;
         selectedChallenge = ChallengeReward(
           challengeId: best.challengeId,
           challengeName: best.challengeName,
-          currencyType: best.currencyType,
           isSuccess: best.isSuccess,
-          successBonus: best.successBonus,
-          total: best.total,
+          completionBonus: best.completionBonus,
+          mvpBonus: best.mvpBonus,
+          totalRewards: best.totalRewards,
           selected: true,
           isMvp: best.isMvp,
-          milestoneName: best.milestoneName,
+          mvpCurrencyType: best.mvpCurrencyType,
         );
 
-        // 선택된 챌린지의 재화에 보너스 추가
-        final type = best.currencyType;
-        rewards[type] = (rewards[type] ?? 0) + best.total;
+        // 선택된 챌린지의 모든 재화를 보상에 추가
+        for (final entry in best.totalRewards.entries) {
+          rewards[entry.key] = (rewards[entry.key] ?? 0) + entry.value;
+        }
       }
     }
 

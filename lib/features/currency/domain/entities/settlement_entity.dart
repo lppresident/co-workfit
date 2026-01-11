@@ -76,17 +76,17 @@ class ChallengeReward extends Equatable {
   /// 챌린지 이름
   final String challengeName;
 
-  /// 보상 재화 타입
-  final CurrencyType currencyType;
-
   /// 챌린지 성공 여부
   final bool isSuccess;
 
-  /// 성공 보너스 (완료 + MVP + 협력 + 마일스톤)
-  final int successBonus;
+  /// 기본 완료 보너스 (모든 재화: 통나무/쇠/흙)
+  final Map<CurrencyType, int> completionBonus;
 
-  /// 총 보상
-  final int total;
+  /// MVP 보너스 (특정 재화 1종만)
+  final Map<CurrencyType, int> mvpBonus;
+
+  /// 총 보상 (모든 재화)
+  final Map<CurrencyType, int> totalRewards;
 
   /// 선택 여부
   final bool selected;
@@ -94,32 +94,35 @@ class ChallengeReward extends Equatable {
   /// MVP 여부
   final bool isMvp;
 
-  /// 마일스톤 이름
-  final String? milestoneName;
+  /// MVP 보너스 재화 타입 (isMvp == true일 때만 유효)
+  final CurrencyType? mvpCurrencyType;
 
   const ChallengeReward({
     required this.challengeId,
     required this.challengeName,
-    required this.currencyType,
     required this.isSuccess,
-    required this.successBonus,
-    required this.total,
+    required this.completionBonus,
+    required this.mvpBonus,
+    required this.totalRewards,
     required this.selected,
     this.isMvp = false,
-    this.milestoneName,
+    this.mvpCurrencyType,
   });
+
+  /// 총 보상 합계 (모든 재화)
+  int get totalAmount => totalRewards.values.fold(0, (sum, v) => sum + v);
 
   @override
   List<Object?> get props => [
         challengeId,
         challengeName,
-        currencyType,
         isSuccess,
-        successBonus,
-        total,
+        completionBonus,
+        mvpBonus,
+        totalRewards,
         selected,
         isMvp,
-        milestoneName,
+        mvpCurrencyType,
       ];
 }
 
