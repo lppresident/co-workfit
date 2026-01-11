@@ -99,6 +99,9 @@ class FirebaseAuthDataSource {
     }
 
     try {
+      // 기존 세션 정리하여 매번 계정 선택 화면 표시
+      await _googleSignIn.signOut();
+
       // Google 로그인 플로우 시작
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
@@ -249,17 +252,12 @@ class FirebaseAuthDataSource {
     }
 
     try {
-      // Google Sign-In disconnect를 사용하여 다음 로그인 시 계정 선택 화면 표시
       await Future.wait([
         _firebaseAuth.signOut(),
-        _googleSignIn.disconnect(),
+        _googleSignIn.signOut(),
       ]);
       return const Right(null);
     } catch (e) {
-      // disconnect 실패 시에도 signOut은 시도
-      try {
-        await _googleSignIn.signOut();
-      } catch (_) {}
       return Left('로그아웃에 실패했습니다: $e');
     }
   }
