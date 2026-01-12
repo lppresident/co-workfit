@@ -130,10 +130,13 @@ class SoloWorkoutData {
   /// 재화 타입
   final CurrencyType currencyType;
 
-  /// 운동 수치 (거리 km 또는 점수)
+  /// 운동 수치 (재화 개수와 동일)
+  /// - 달리기: 거리 km (1km = 1개)
+  /// - 헬스/기타: kcal/100 (100 kcal = 1개)
+  /// - 칼로리 없으면 보상 없음
   final double value;
 
-  /// 단위 (km, 점)
+  /// 단위 (km, kg)
   final String unit;
 
   /// 운동 횟수
@@ -153,6 +156,8 @@ class SoloWorkoutData {
   bool get hasData => value > 0;
   
   /// 달리기 운동 데이터 생성
+  /// value: 거리 km (1km = 1개)
+  /// Garmin 달리기는 correctedDistance 사용
   factory SoloWorkoutData.running({
     required double distanceKm,
     required int workoutCount,
@@ -166,8 +171,9 @@ class SoloWorkoutData {
       date: date,
     );
   }
-  
+
   /// 헬스 운동 데이터 생성
+  /// value: 칼로리/100 (100 kcal = 1개)
   factory SoloWorkoutData.strength({
     required double score,
     required int workoutCount,
@@ -176,13 +182,14 @@ class SoloWorkoutData {
     return SoloWorkoutData(
       currencyType: CurrencyType.iron,
       value: score,
-      unit: '점',
+      unit: 'kg',
       workoutCount: workoutCount,
       date: date,
     );
   }
-  
-  /// 기타 운동 데이터 생성 (시간 기반)
+
+  /// 기타 운동 데이터 생성
+  /// value: 칼로리/100 (100 kcal = 1개)
   factory SoloWorkoutData.other({
     required double minutes,
     required int workoutCount,
@@ -191,7 +198,7 @@ class SoloWorkoutData {
     return SoloWorkoutData(
       currencyType: CurrencyType.soil,
       value: minutes,
-      unit: '분',
+      unit: 'kg',
       workoutCount: workoutCount,
       date: date,
     );

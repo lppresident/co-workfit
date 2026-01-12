@@ -1,6 +1,4 @@
-import 'dart:math';
 import 'package:co_workfit/features/currency/domain/entities/currency_type.dart';
-import 'package:co_workfit/features/currency/domain/entities/reward_config.dart';
 import 'package:co_workfit/features/currency/domain/entities/settlement_entity.dart';
 import 'package:co_workfit/features/currency/domain/entities/challenge_settlement_data.dart';
 
@@ -96,14 +94,16 @@ class RewardCalculator {
   }
 
   /// 개인 운동 보상 계산 (챌린지 없을 때)
+  ///
+  /// 변환 규칙:
+  /// - 달리기: 1km = 1개
+  /// - 헬스/기타: 100 kcal = 1개
+  /// - 올림 적용 (ceil)
   SoloWorkoutReward calculateSoloWorkoutReward({
     required SoloWorkoutData workoutData,
   }) {
-    final config = CurrencyConfigRegistry.getConfig(workoutData.currencyType);
-
-    final baseReward = config.soloWorkoutBase;
-    final unitReward = (workoutData.value * config.soloWorkoutPerUnit).round();
-    final total = min(baseReward + unitReward, config.soloWorkoutMaxReward);
+    // value를 올림하여 재화 개수 계산
+    final total = workoutData.value.ceil();
 
     return SoloWorkoutReward(
       currencyType: workoutData.currencyType,

@@ -7,8 +7,10 @@ class ParticipantStatsModel extends ParticipantStatsEntity {
     super.totalContribution,
     super.runningContribution,
     super.strengthContribution,
+    super.otherContribution,
     super.runningCount,
     super.strengthCount,
+    super.otherCount,
   });
 
   /// Firestore 문서에서 모델 생성
@@ -20,8 +22,11 @@ class ParticipantStatsModel extends ParticipantStatsEntity {
           (json['runningContribution'] as num?)?.toDouble() ?? 0.0,
       strengthContribution:
           (json['strengthContribution'] as num?)?.toDouble() ?? 0.0,
+      otherContribution:
+          (json['otherContribution'] as num?)?.toDouble() ?? 0.0,
       runningCount: json['runningCount'] as int? ?? 0,
       strengthCount: json['strengthCount'] as int? ?? 0,
+      otherCount: json['otherCount'] as int? ?? 0,
     );
   }
 
@@ -32,8 +37,10 @@ class ParticipantStatsModel extends ParticipantStatsEntity {
       totalContribution: entity.totalContribution,
       runningContribution: entity.runningContribution,
       strengthContribution: entity.strengthContribution,
+      otherContribution: entity.otherContribution,
       runningCount: entity.runningCount,
       strengthCount: entity.strengthCount,
+      otherCount: entity.otherCount,
     );
   }
 
@@ -44,8 +51,10 @@ class ParticipantStatsModel extends ParticipantStatsEntity {
       'totalContribution': totalContribution,
       'runningContribution': runningContribution,
       'strengthContribution': strengthContribution,
+      'otherContribution': otherContribution,
       'runningCount': runningCount,
       'strengthCount': strengthCount,
+      'otherCount': otherCount,
     };
   }
 
@@ -56,16 +65,20 @@ class ParticipantStatsModel extends ParticipantStatsEntity {
     double? totalContribution,
     double? runningContribution,
     double? strengthContribution,
+    double? otherContribution,
     int? runningCount,
     int? strengthCount,
+    int? otherCount,
   }) {
     return ParticipantStatsModel(
       userId: userId ?? this.userId,
       totalContribution: totalContribution ?? this.totalContribution,
       runningContribution: runningContribution ?? this.runningContribution,
       strengthContribution: strengthContribution ?? this.strengthContribution,
+      otherContribution: otherContribution ?? this.otherContribution,
       runningCount: runningCount ?? this.runningCount,
       strengthCount: strengthCount ?? this.strengthCount,
+      otherCount: otherCount ?? this.otherCount,
     );
   }
 
@@ -73,18 +86,25 @@ class ParticipantStatsModel extends ParticipantStatsEntity {
   @override
   ParticipantStatsModel addContribution({
     required double contributionKg,
-    required bool isRunning,
+    String workoutType = 'strength',
   }) {
+    final isRunning = workoutType == 'running';
+    final isOther = workoutType == 'other';
+
     return ParticipantStatsModel(
       userId: userId,
       totalContribution: totalContribution + contributionKg,
       runningContribution:
           isRunning ? runningContribution + contributionKg : runningContribution,
-      strengthContribution: !isRunning
+      strengthContribution: !isRunning && !isOther
           ? strengthContribution + contributionKg
           : strengthContribution,
+      otherContribution: isOther
+          ? otherContribution + contributionKg
+          : otherContribution,
       runningCount: isRunning ? runningCount + 1 : runningCount,
-      strengthCount: !isRunning ? strengthCount + 1 : strengthCount,
+      strengthCount: !isRunning && !isOther ? strengthCount + 1 : strengthCount,
+      otherCount: isOther ? otherCount + 1 : otherCount,
     );
   }
 }

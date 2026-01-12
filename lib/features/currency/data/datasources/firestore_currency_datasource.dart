@@ -335,6 +335,7 @@ class FirestoreCurrencyDataSource {
 
         final runningContrib = (stats['runningContribution'] as num?)?.toDouble() ?? 0;
         final strengthContrib = (stats['strengthContribution'] as num?)?.toDouble() ?? 0;
+        final otherContrib = (stats['otherContribution'] as num?)?.toDouble() ?? 0;
         final totalContrib = (stats['totalContribution'] as num?)?.toDouble() ?? 0;
 
         // 전체 참가자 기준으로 참여한 운동 종류 파악
@@ -343,6 +344,9 @@ class FirestoreCurrencyDataSource {
         }
         if (strengthContrib > 0) {
           participatedWorkoutTypes.add(ChallengeType.strengthTraining);
+        }
+        if (otherContrib > 0) {
+          participatedWorkoutTypes.add(ChallengeType.other);
         }
 
         // 참가자별 총 기여도
@@ -358,6 +362,9 @@ class FirestoreCurrencyDataSource {
           }
           if (strengthContrib > 0) {
             userContributionByType[ChallengeType.strengthTraining] = strengthContrib;
+          }
+          if (otherContrib > 0) {
+            userContributionByType[ChallengeType.other] = otherContrib;
           }
         }
       }
@@ -462,28 +469,35 @@ class FirestoreCurrencyDataSource {
 
           switch (currencyType) {
             case CurrencyType.wood:
-              // 거리 (km)
-              final distance = (data['distance'] as num?)?.toDouble() ?? 0;
-              totalValue += distance;
+              // 거리 기반 - 1km = 1개 (Garmin 달리기는 correctedDistance 사용)
+              final correctedDistance = (data['correctedDistance'] as num?)?.toDouble();
+              final distance = correctedDistance ?? (data['distance'] as num?)?.toDouble();
+              if (distance != null && distance > 0) {
+                totalValue += distance;
+              }
               break;
             case CurrencyType.iron:
-              // 점수 (시간 × 강도)
-              final durationSeconds = data['durationSeconds'] as int?;
-              final durationMinutes = durationSeconds != null ? (durationSeconds / 60).round() : 0;
-              final intensity = (data['intensity'] as num?)?.toDouble() ?? 0.83;
-              totalValue += durationMinutes * intensity;
+              // 칼로리 기반 - 100 kcal = 1개
+              final calories = data['calories'] as int?;
+              if (calories != null && calories > 0) {
+                totalValue += calories / 100.0;
+              }
+              // 칼로리 없으면 보상 없음
               break;
             case CurrencyType.soil:
-              // 시간 (분)
-              final durationSeconds = data['durationSeconds'] as int?;
-              final durationMinutes = durationSeconds != null ? (durationSeconds / 60).round() : 0;
-              totalValue += durationMinutes.toDouble();
+              // 칼로리 기반 - 100 kcal = 1개
+              final calories = data['calories'] as int?;
+              if (calories != null && calories > 0) {
+                totalValue += calories / 100.0;
+              }
+              // 칼로리 없으면 보상 없음
               break;
           }
         }
       }
 
-      if (workoutCount == 0) {
+      // 운동이 없거나 칼로리 데이터가 없어서 보상이 0이면 null 반환
+      if (workoutCount == 0 || totalValue <= 0) {
         return null;
       }
 

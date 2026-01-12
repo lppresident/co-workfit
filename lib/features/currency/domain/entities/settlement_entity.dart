@@ -131,10 +131,13 @@ class SoloWorkoutReward extends Equatable {
   /// 보상 재화 타입
   final CurrencyType currencyType;
 
-  /// 운동 수치 (거리 km 또는 점수)
+  /// 운동 수치
+  /// - 달리기: 거리 km (1km = 1개)
+  /// - 헬스/기타: kcal/100 (100 kcal = 1개)
+  /// - 칼로리 없으면 보상 없음
   final double value;
 
-  /// 단위 표시 (km, 점)
+  /// 단위 표시 (km, kg)
   final String unit;
 
   /// 총 보상

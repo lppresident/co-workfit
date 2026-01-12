@@ -139,7 +139,9 @@ class FirestoreChallengeDataSource {
 
       // WorkoutConverter를 사용하여 kg 변환
       final contributionKg = WorkoutConverter.fromWorkout(workout);
-      final isRunning = workout.type == WorkoutType.running;
+
+      // WorkoutType을 workoutType 문자열로 변환
+      final workoutTypeStr = _getWorkoutTypeString(workout.type);
 
       // 현재 무게 업데이트
       final newCurrentWeight = challenge.currentWeight + contributionKg;
@@ -151,7 +153,7 @@ class FirestoreChallengeDataSource {
       final currentStats = challenge.participantStats[userId] ?? ParticipantStatsEntity.empty(userId);
       final updatedStats = currentStats.addContribution(
         contributionKg: contributionKg,
-        isRunning: isRunning,
+        workoutType: workoutTypeStr,
       );
       final updatedStatsMap = Map<String, Map<String, dynamic>>.from(
         challenge.participantStats.map((key, value) => MapEntry(key, ParticipantStatsModel.fromEntity(value).toJson())),
@@ -248,11 +250,13 @@ class FirestoreChallengeDataSource {
 
       // ParticipantStats 업데이트
       final contributorId = contribution.userId;
-      final isRunning = contribution.workoutType == WorkoutType.running;
+      final workoutTypeStr = contribution.workoutType != null
+          ? _getWorkoutTypeString(contribution.workoutType!)
+          : 'strength'; // 기본값
       final currentStats = challenge.participantStats[contributorId] ?? ParticipantStatsEntity.empty(contributorId);
       final updatedStats = currentStats.removeContribution(
         contributionKg: contribution.contributionValue,
-        isRunning: isRunning,
+        workoutType: workoutTypeStr,
       );
       final updatedStatsMap = Map<String, Map<String, dynamic>>.from(
         challenge.participantStats.map((key, value) => MapEntry(key, ParticipantStatsModel.fromEntity(value).toJson())),
@@ -845,6 +849,26 @@ class FirestoreChallengeDataSource {
   }
 
   // ========== Private Methods ==========
+
+  /// WorkoutType을 workoutType 문자열로 변환
+  /// - running → 'running'
+  /// - weightTraining → 'strength'
+  /// - 기타 → 'other'
+  String _getWorkoutTypeString(WorkoutType type) {
+    switch (type) {
+      case WorkoutType.running:
+        return 'running';
+      case WorkoutType.weightTraining:
+        return 'strength';
+      case WorkoutType.cycling:
+      case WorkoutType.walking:
+      case WorkoutType.swimming:
+      case WorkoutType.yoga:
+      case WorkoutType.hiking:
+      case WorkoutType.other:
+        return 'other';
+    }
+  }
 
   /// 날짜 포맷팅
   String _formatDate(DateTime date) {

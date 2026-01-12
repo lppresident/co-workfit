@@ -6,9 +6,9 @@ import 'package:co_workfit/features/workout/domain/entities/workout_entity.dart'
 ///
 /// 변환 우선순위:
 /// 1. 달리기: 거리 기반 (1km = 1kg)
-/// 2. 기타 운동: 칼로리 기반 (100 kcal = 1kg)
+/// 2. 기타 운동: 칼로리 기반 (10 kcal = 1kg)
 /// 3. 대체 (칼로리 없음): 심박수 × 시간 기반 (10점 = 1kg)
-/// 4. 최소 (심박수도 없음): 시간 기반 저강도 (1시간 = 3kg)
+/// 4. 최소 (심박수도 없음): 시간 기반 저강도 (1시간 = 5kg)
 class WorkoutConverter {
   WorkoutConverter._();
 
@@ -33,8 +33,8 @@ class WorkoutConverter {
 
   /// 칼로리를 무게(kg)로 변환
   ///
-  /// 100 kcal = 1kg
-  /// 예: 300 kcal → 3kg, 600 kcal → 6kg
+  /// 10 kcal = 1kg
+  /// 예: 30 kcal → 3kg, 100 kcal → 10kg
   static double caloriesToWeight(int calories) {
     return calories / _caloriesPerKg;
   }

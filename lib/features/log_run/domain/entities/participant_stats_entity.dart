@@ -19,19 +19,28 @@ class ParticipantStatsEntity extends Equatable {
   /// 10점 = 1kg
   final double strengthContribution;
 
+  /// 기타 운동 기여량 (kg)
+  /// 10분 = 1kg
+  final double otherContribution;
+
   /// 달리기 운동 횟수
   final int runningCount;
 
   /// 헬스 운동 횟수
   final int strengthCount;
 
+  /// 기타 운동 횟수
+  final int otherCount;
+
   const ParticipantStatsEntity({
     required this.userId,
     this.totalContribution = 0.0,
     this.runningContribution = 0.0,
     this.strengthContribution = 0.0,
+    this.otherContribution = 0.0,
     this.runningCount = 0,
     this.strengthCount = 0,
+    this.otherCount = 0,
   });
 
   /// 달리기 비율 (0.0 ~ 1.0)
@@ -42,8 +51,12 @@ class ParticipantStatsEntity extends Equatable {
   double get strengthRatio =>
       totalContribution > 0 ? strengthContribution / totalContribution : 0.0;
 
+  /// 기타 운동 비율 (0.0 ~ 1.0)
+  double get otherRatio =>
+      totalContribution > 0 ? otherContribution / totalContribution : 0.0;
+
   /// 총 운동 횟수
-  int get totalCount => runningCount + strengthCount;
+  int get totalCount => runningCount + strengthCount + otherCount;
 
   /// 주력 운동 타입
   /// - 'running': 달리기가 50% 이상
@@ -67,8 +80,10 @@ class ParticipantStatsEntity extends Equatable {
         totalContribution,
         runningContribution,
         strengthContribution,
+        otherContribution,
         runningCount,
         strengthCount,
+        otherCount,
       ];
 
   ParticipantStatsEntity copyWith({
@@ -76,53 +91,75 @@ class ParticipantStatsEntity extends Equatable {
     double? totalContribution,
     double? runningContribution,
     double? strengthContribution,
+    double? otherContribution,
     int? runningCount,
     int? strengthCount,
+    int? otherCount,
   }) {
     return ParticipantStatsEntity(
       userId: userId ?? this.userId,
       totalContribution: totalContribution ?? this.totalContribution,
       runningContribution: runningContribution ?? this.runningContribution,
       strengthContribution: strengthContribution ?? this.strengthContribution,
+      otherContribution: otherContribution ?? this.otherContribution,
       runningCount: runningCount ?? this.runningCount,
       strengthCount: strengthCount ?? this.strengthCount,
+      otherCount: otherCount ?? this.otherCount,
     );
   }
 
   /// 새로운 기여를 추가하여 통계 업데이트
+  ///
+  /// [workoutType]: 'running', 'strength', 'other' 중 하나
   ParticipantStatsEntity addContribution({
     required double contributionKg,
-    required bool isRunning,
+    String workoutType = 'strength',
   }) {
+    final isRunning = workoutType == 'running';
+    final isOther = workoutType == 'other';
+
     return ParticipantStatsEntity(
       userId: userId,
       totalContribution: totalContribution + contributionKg,
       runningContribution:
           isRunning ? runningContribution + contributionKg : runningContribution,
-      strengthContribution: !isRunning
+      strengthContribution: !isRunning && !isOther
           ? strengthContribution + contributionKg
           : strengthContribution,
+      otherContribution: isOther
+          ? otherContribution + contributionKg
+          : otherContribution,
       runningCount: isRunning ? runningCount + 1 : runningCount,
-      strengthCount: !isRunning ? strengthCount + 1 : strengthCount,
+      strengthCount: !isRunning && !isOther ? strengthCount + 1 : strengthCount,
+      otherCount: isOther ? otherCount + 1 : otherCount,
     );
   }
 
   /// 기여를 제거하여 통계 업데이트
+  ///
+  /// [workoutType]: 'running', 'strength', 'other' 중 하나
   ParticipantStatsEntity removeContribution({
     required double contributionKg,
-    required bool isRunning,
+    String workoutType = 'strength',
   }) {
+    final isRunning = workoutType == 'running';
+    final isOther = workoutType == 'other';
+
     return ParticipantStatsEntity(
       userId: userId,
       totalContribution: (totalContribution - contributionKg).clamp(0.0, double.infinity),
       runningContribution: isRunning
           ? (runningContribution - contributionKg).clamp(0.0, double.infinity)
           : runningContribution,
-      strengthContribution: !isRunning
+      strengthContribution: !isRunning && !isOther
           ? (strengthContribution - contributionKg).clamp(0.0, double.infinity)
           : strengthContribution,
+      otherContribution: isOther
+          ? (otherContribution - contributionKg).clamp(0.0, double.infinity)
+          : otherContribution,
       runningCount: isRunning ? (runningCount - 1).clamp(0, runningCount) : runningCount,
-      strengthCount: !isRunning ? (strengthCount - 1).clamp(0, strengthCount) : strengthCount,
+      strengthCount: !isRunning && !isOther ? (strengthCount - 1).clamp(0, strengthCount) : strengthCount,
+      otherCount: isOther ? (otherCount - 1).clamp(0, otherCount) : otherCount,
     );
   }
 
