@@ -6,9 +6,14 @@ import 'package:co_workfit/features/currency/domain/usecases/calculate_reward.da
 /// 통합 일일 정산 UseCase
 ///
 /// 정산 로직:
-/// 1. 해당 날짜의 모든 운동 기록 조회 → 운동별 기본 보상 지급
-/// 2. 해당 날짜에 종료된 성공한 챌린지 중 최고 성공 보너스 1개 선택
-/// 3. 모든 재화 한 번에 정산
+/// 1. 해당 날짜의 모든 운동 기록 조회 → 개인 운동 보상 계산
+///    - 모든 운동: 10 kcal = 재화 1개 (칼로리 필수)
+///    - 칼로리 없으면 보상 없음
+/// 2. 해당 날짜에 종료된 성공 챌린지 조회 (7일 이내)
+///    - 참여한 운동 종류 수만큼 재화 분배 (목표/종류 수)
+///    - MVP는 최대 기여 운동 타입 재화 +5
+/// 3. 최고 성공 보너스 챌린지 1개만 선택 (총 보상 합계 기준)
+/// 4. 모든 재화 한 번에 정산 (개인 운동 + 선택된 챌린지)
 class SettleDailyRewards {
   final CurrencyRepository _repository;
   final RewardCalculator _calculator;

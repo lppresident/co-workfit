@@ -5,6 +5,13 @@ import 'package:co_workfit/features/currency/domain/usecases/settle_daily_reward
 import 'package:co_workfit/features/log_run/domain/repositories/challenge_repository.dart';
 
 /// 미정산 날짜 확인 및 일괄 정산 UseCase
+///
+/// 정산 로직:
+/// 1. 만료된 챌린지 처리 (active → expired, isSuccess 저장)
+/// 2. 미정산 날짜 조회 (lastSettlementDate 이후 ~ 어제)
+/// 3. 각 날짜별 정산 실행 (SettleDailyRewards)
+/// 4. 마지막 정산 날짜 업데이트
+/// 5. 7일 초과 정산 기록 삭제
 class CheckPendingSettlements {
   final CurrencyRepository _currencyRepository;
   final ChallengeRepository _challengeRepository;
